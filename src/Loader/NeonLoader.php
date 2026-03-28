@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Workflow\Loader;
 
-use Symfony\Component\Yaml\Yaml;
+use Nette\Neon\Neon;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Exception\WorkflowException;
 
-class YamlLoader implements LoaderInterface
+class NeonLoader implements LoaderInterface
 {
     /**
      * @var array<string, \Workflow\Engine\Definition\Definition>
@@ -26,10 +26,10 @@ class YamlLoader implements LoaderInterface
 
     public function __construct(private string $path)
     {
-        if (!class_exists(Yaml::class)) {
+        if (!class_exists(Neon::class)) {
             throw new WorkflowException(
-                'symfony/yaml is required for YAML workflow definitions. '
-                . 'Install it via: composer require symfony/yaml',
+                'nette/neon is required for NEON workflow definitions. '
+                . 'Install it via: composer require nette/neon',
             );
         }
     }
@@ -50,14 +50,14 @@ class YamlLoader implements LoaderInterface
         $this->ensureScanned();
 
         if (!isset($this->files[$workflowName])) {
-            throw new WorkflowException("Workflow '{$workflowName}' not found in YAML files");
+            throw new WorkflowException("Workflow '{$workflowName}' not found in NEON files");
         }
 
         $content = (string)file_get_contents($this->files[$workflowName]);
-        $data = Yaml::parse($content);
+        $data = Neon::decode($content);
 
         if (!isset($data[$workflowName])) {
-            throw new WorkflowException("YAML file does not contain workflow '{$workflowName}'");
+            throw new WorkflowException("NEON file does not contain workflow '{$workflowName}'");
         }
 
         $this->definitions[$workflowName] = $this->buildDefinition($workflowName, $data[$workflowName]);
@@ -87,8 +87,7 @@ class YamlLoader implements LoaderInterface
             return;
         }
 
-        $files = glob($this->path . DS . '*.yaml') ?: [];
-        $files = array_merge($files, glob($this->path . DS . '*.yml') ?: []);
+        $files = glob($this->path . DS . '*.neon') ?: [];
 
         foreach ($files as $file) {
             $basename = pathinfo($file, PATHINFO_FILENAME);
@@ -102,7 +101,6 @@ class YamlLoader implements LoaderInterface
      * @param string $name
      * @param array<string, mixed> $data
      *
-     * @throws \Workflow\Exception\WorkflowException
      * @throws \Workflow\Exception\WorkflowException
      */
     private function buildDefinition(string $name, array $data): Definition
@@ -149,7 +147,6 @@ class YamlLoader implements LoaderInterface
      * @param string $name
      * @param array<string, mixed> $data
      *
-     * @throws \Workflow\Exception\WorkflowException
      * @throws \Workflow\Exception\WorkflowException
      */
     private function buildTransition(string $name, array $data): Transition

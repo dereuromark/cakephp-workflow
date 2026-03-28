@@ -103,19 +103,20 @@ class YamlLoader implements LoaderInterface
      * @param array<string, mixed> $data
      *
      * @throws \Workflow\Exception\WorkflowException
-     * @throws \Workflow\Exception\WorkflowException
      */
     private function buildDefinition(string $name, array $data): Definition
     {
         $states = [];
         foreach ($data['states'] ?? [] as $stateName => $stateData) {
-            $states[] = $this->buildState($stateName, $stateData ?? []);
+            $states[] = $this->buildState($stateName, is_array($stateData) ? $stateData : []);
         }
 
         $transitions = [];
         foreach ($data['transitions'] ?? [] as $transitionName => $transitionData) {
-            $transitions[] = $this->buildTransition($transitionName, $transitionData);
+            $transitions[] = $this->buildTransition($transitionName, is_array($transitionData) ? $transitionData : []);
         }
+
+        $metadata = isset($data['metadata']) && is_array($data['metadata']) ? $data['metadata'] : [];
 
         return new Definition(
             name: $name,
@@ -123,8 +124,8 @@ class YamlLoader implements LoaderInterface
             field: $data['field'] ?? 'state',
             states: $states,
             transitions: $transitions,
-            label: $data['metadata']['label'] ?? null,
-            description: $data['metadata']['description'] ?? null,
+            label: isset($metadata['label']) && is_string($metadata['label']) ? $metadata['label'] : null,
+            description: isset($metadata['description']) && is_string($metadata['description']) ? $metadata['description'] : null,
         );
     }
 
@@ -136,12 +137,15 @@ class YamlLoader implements LoaderInterface
     {
         return new State(
             name: $name,
-            label: $data['label'] ?? null,
-            color: $data['color'] ?? null,
-            initial: $data['initial'] ?? false,
-            final: $data['final'] ?? false,
-            failed: $data['failed'] ?? false,
-            flags: $data['flags'] ?? [],
+            label: isset($data['label']) && is_string($data['label']) ? $data['label'] : null,
+            color: isset($data['color']) && is_string($data['color']) ? $data['color'] : null,
+            initial: (bool)($data['initial'] ?? false),
+            final: (bool)($data['final'] ?? false),
+            failed: (bool)($data['failed'] ?? false),
+            flags: isset($data['flags']) && is_array($data['flags']) ? $data['flags'] : [],
+            onEnter: isset($data['onEnter']) && is_array($data['onEnter']) ? $data['onEnter'] : [],
+            onExit: isset($data['onExit']) && is_array($data['onExit']) ? $data['onExit'] : [],
+            requireReasonFor: isset($data['requireReasonFor']) && is_array($data['requireReasonFor']) ? $data['requireReasonFor'] : [],
         );
     }
 

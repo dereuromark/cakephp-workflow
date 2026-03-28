@@ -107,13 +107,15 @@ class NeonLoader implements LoaderInterface
     {
         $states = [];
         foreach ($data['states'] ?? [] as $stateName => $stateData) {
-            $states[] = $this->buildState($stateName, $stateData ?? []);
+            $states[] = $this->buildState($stateName, is_array($stateData) ? $stateData : []);
         }
 
         $transitions = [];
         foreach ($data['transitions'] ?? [] as $transitionName => $transitionData) {
-            $transitions[] = $this->buildTransition($transitionName, $transitionData);
+            $transitions[] = $this->buildTransition($transitionName, is_array($transitionData) ? $transitionData : []);
         }
+
+        $metadata = isset($data['metadata']) && is_array($data['metadata']) ? $data['metadata'] : [];
 
         return new Definition(
             name: $name,
@@ -121,8 +123,8 @@ class NeonLoader implements LoaderInterface
             field: $data['field'] ?? 'state',
             states: $states,
             transitions: $transitions,
-            label: $data['metadata']['label'] ?? null,
-            description: $data['metadata']['description'] ?? null,
+            label: $this->extractString($metadata['label'] ?? null),
+            description: $this->extractString($metadata['description'] ?? null),
         );
     }
 
@@ -134,13 +136,48 @@ class NeonLoader implements LoaderInterface
     {
         return new State(
             name: $name,
-            label: $data['label'] ?? null,
-            color: $data['color'] ?? null,
-            initial: $data['initial'] ?? false,
-            final: $data['final'] ?? false,
-            failed: $data['failed'] ?? false,
-            flags: $data['flags'] ?? [],
+            label: $this->extractString($data['label'] ?? null),
+            color: $this->extractString($data['color'] ?? null),
+            initial: (bool)($data['initial'] ?? false),
+            final: (bool)($data['final'] ?? false),
+            failed: (bool)($data['failed'] ?? false),
+            flags: $this->extractArray($data['flags'] ?? []),
+            onEnter: $this->extractArray($data['onEnter'] ?? []),
+            onExit: $this->extractArray($data['onExit'] ?? []),
+            requireReasonFor: $this->extractArray($data['requireReasonFor'] ?? []),
         );
+    }
+
+    /**
+     * Extract a string value, handling Nette\Neon\Entity objects.
+     */
+    private function extractString(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        if (is_string($value)) {
+            return $value;
+        }
+        if (is_object($value) && method_exists($value, '__toString')) {
+            return (string)$value;
+        }
+
+        return null;
+    }
+
+    /**
+     * Extract an array value, handling Nette\Neon\Entity objects.
+     *
+     * @return array<string>
+     */
+    private function extractArray(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_map(fn ($v) => is_string($v) ? $v : (string)$v, $value);
+        }
+
+        return [];
     }
 
     /**

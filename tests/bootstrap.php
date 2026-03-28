@@ -14,6 +14,8 @@ if (!defined('DS')) {
 
 define('ROOT', dirname(__DIR__));
 define('APP_DIR', 'src');
+define('APP', ROOT . DS . APP_DIR . DS);
+define('TESTS', ROOT . DS . 'tests' . DS);
 
 define('TMP', sys_get_temp_dir() . DS);
 define('LOGS', TMP . 'logs' . DS);

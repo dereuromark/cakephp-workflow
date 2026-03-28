@@ -126,6 +126,11 @@ class WorkflowTimeoutsCommand extends Command
 
     private function getRegistry(): WorkflowRegistry
     {
-        return Configure::read('Workflow.registry');
+        $registry = Configure::read('Workflow.registry');
+        if (!$registry instanceof WorkflowRegistry) {
+            throw new \RuntimeException('Workflow registry not configured');
+        }
+
+        return $registry;
     }
 }

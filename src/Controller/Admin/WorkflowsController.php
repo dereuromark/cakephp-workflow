@@ -8,13 +8,17 @@ use Workflow\Service\WorkflowRegistry;
 
 class WorkflowsController extends WorkflowAppController
 {
-    private ?WorkflowRegistry $registry = null;
+    private WorkflowRegistry $registry;
 
     public function initialize(): void
     {
         parent::initialize();
 
-        $this->registry = $this->getRegistry();
+        $registry = Configure::read('Workflow.registry');
+        if (!$registry instanceof WorkflowRegistry) {
+            throw new \RuntimeException('Workflow registry not configured');
+        }
+        $this->registry = $registry;
     }
 
     /**
@@ -65,15 +69,5 @@ class WorkflowsController extends WorkflowAppController
             ->toArray();
 
         $this->set(compact('definition', 'recentTransitions', 'pendingTimeouts'));
-    }
-
-    /**
-     * Get the workflow registry.
-     */
-    private function getRegistry(): WorkflowRegistry
-    {
-        // This would typically be injected via DI
-        // For now, create from configuration
-        return Configure::read('Workflow.registry');
     }
 }

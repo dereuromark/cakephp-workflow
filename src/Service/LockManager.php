@@ -30,6 +30,7 @@ class LockManager
         EntityInterface $entity,
         ?string $lockedBy = null,
     ): ?WorkflowLock {
+        /** @var \Workflow\Model\Table\WorkflowLocksTable $table */
         $table = $this->fetchTable('Workflow.WorkflowLocks');
         $entityId = (string) $entity->get('id');
 

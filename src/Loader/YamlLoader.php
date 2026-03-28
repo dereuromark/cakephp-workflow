@@ -43,7 +43,7 @@ class YamlLoader implements LoaderInterface
             throw new WorkflowException("Workflow '{$workflowName}' not found in YAML files");
         }
 
-        $content = file_get_contents($this->files[$workflowName]);
+        $content = (string)file_get_contents($this->files[$workflowName]);
         $data = Yaml::parse($content);
 
         if (!isset($data[$workflowName])) {

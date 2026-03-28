@@ -145,6 +145,6 @@ final class Definition
             ),
         ];
 
-        return substr(md5(json_encode($data)), 0, 8);
+        return substr(md5((string)json_encode($data)), 0, 8);
     }
 }

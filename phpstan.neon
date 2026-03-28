@@ -7,3 +7,6 @@ parameters:
 	ignoreErrors:
 		- identifier: missingType.iterableValue
 		- identifier: missingType.generics
+		-
+			message: '#Trait .* is used zero times#'
+			path: src/Test/WorkflowTestTrait.php

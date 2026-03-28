@@ -45,6 +45,7 @@ class WorkflowTimeoutsCommand extends Command
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $registry = $this->getRegistry();
 
+        /** @var array<\Workflow\Model\Entity\WorkflowTimeout> $pendingTimeouts */
         $pendingTimeouts = $timeoutsTable->find('due', limit: $limit)->toArray();
 
         if (empty($pendingTimeouts)) {

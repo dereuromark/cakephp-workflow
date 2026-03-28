@@ -37,6 +37,7 @@ class WorkflowShowCommand extends Command
 
     public function execute(Arguments $args, ConsoleIo $io): int
     {
+        /** @var string $name */
         $name = $args->getArgument('name');
         $registry = $this->getRegistry();
 

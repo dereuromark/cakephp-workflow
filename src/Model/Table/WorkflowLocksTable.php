@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Model\Table;
@@ -60,6 +61,7 @@ class WorkflowLocksTable extends Table
     /**
      * Find active lock for entity.
      *
+     * @param \Cake\ORM\Query\SelectQuery $query
      * @param array<string, mixed> $options
      */
     public function findActiveLock(SelectQuery $query, array $options): SelectQuery

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Engine\Definition;
@@ -6,9 +7,12 @@ namespace Workflow\Engine\Definition;
 final class Transition
 {
     /**
-     * @param array<string> $from
-     * @param array<string> $guards
-     * @param array<string> $commands
+     * @param string $name Transition name
+     * @param array<string> $from Source states
+     * @param string $to Target state
+     * @param bool $happy Whether this is a happy path transition
+     * @param array<string> $guards Guard method names
+     * @param array<string> $commands Command method names
      */
     public function __construct(
         private string $name,

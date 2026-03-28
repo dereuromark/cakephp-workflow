@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Exception;
@@ -11,6 +12,7 @@ class TransitionBlockedException extends WorkflowException
     private array $blockedBy;
 
     /**
+     * @param string $transition
      * @param array<string, string> $blockedBy
      */
     public function __construct(string $transition, array $blockedBy)

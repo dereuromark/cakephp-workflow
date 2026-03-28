@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Engine\Definition;
@@ -6,6 +7,12 @@ namespace Workflow\Engine\Definition;
 final class State
 {
     /**
+     * @param string $name
+     * @param string|null $label
+     * @param string|null $color
+     * @param bool $initial
+     * @param bool $final
+     * @param bool $failed
      * @param array<string> $flags
      */
     public function __construct(

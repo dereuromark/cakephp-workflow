@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Model\Table;
@@ -70,6 +71,7 @@ class WorkflowTransitionsTable extends Table
     /**
      * Find transitions for a specific entity.
      *
+     * @param \Cake\ORM\Query\SelectQuery $query
      * @param array<string, mixed> $options
      */
     public function findForEntity(SelectQuery $query, array $options): SelectQuery
@@ -86,6 +88,7 @@ class WorkflowTransitionsTable extends Table
     /**
      * Find recent transitions across all entities.
      *
+     * @param \Cake\ORM\Query\SelectQuery $query
      * @param array<string, mixed> $options
      */
     public function findRecent(SelectQuery $query, array $options): SelectQuery

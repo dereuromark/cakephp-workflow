@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Engine;
@@ -14,6 +15,7 @@ use Workflow\Exception\WorkflowException;
 class StateMachineEngine implements EngineInterface
 {
     /**
+     * @param \Cake\Event\EventManager $eventManager
      * @param array<string, callable> $guards
      * @param array<string, callable> $commands
      */
@@ -68,7 +70,7 @@ class StateMachineEngine implements EngineInterface
         // Check guards
         $blockedBy = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
 
-        return empty($blockedBy);
+        return !$blockedBy;
     }
 
     public function apply(
@@ -109,7 +111,7 @@ class StateMachineEngine implements EngineInterface
 
         // Check guards
         $blockedBy = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
-        if (!empty($blockedBy)) {
+        if ($blockedBy) {
             // Fire blocked event
             $blockedEvent = new WorkflowEvent(
                 WorkflowEvent::TRANSITION_BLOCKED,
@@ -216,7 +218,9 @@ class StateMachineEngine implements EngineInterface
      * Evaluate guards and return any that blocked.
      *
      * @param array<string> $guardNames
+     * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
+     *
      * @return array<string, string>
      */
     private function evaluateGuards(array $guardNames, EntityInterface $entity, array $context): array
@@ -241,6 +245,7 @@ class StateMachineEngine implements EngineInterface
      * Execute command callbacks.
      *
      * @param array<string> $commandNames
+     * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
      */
     private function executeCommands(array $commandNames, EntityInterface $entity, array $context): void

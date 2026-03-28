@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Event;
@@ -9,12 +10,33 @@ use Workflow\Engine\Definition\Definition;
 
 class WorkflowEvent extends Event
 {
+    /**
+     * @var string
+     */
     public const BEFORE_TRANSITION = 'Workflow.beforeTransition';
+
+    /**
+     * @var string
+     */
     public const AFTER_TRANSITION = 'Workflow.afterTransition';
+
+    /**
+     * @var string
+     */
     public const TRANSITION_BLOCKED = 'Workflow.transitionBlocked';
+
+    /**
+     * @var string
+     */
     public const TRANSITION_ERROR = 'Workflow.transitionError';
 
     /**
+     * @param string $name
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
+     * @param string $fromState
+     * @param string|null $toState
      * @param array<string, mixed> $context
      */
     public function __construct(

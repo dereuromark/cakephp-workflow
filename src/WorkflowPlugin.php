@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow;
@@ -21,7 +22,9 @@ use Workflow\Service\WorkflowRegistry;
 class WorkflowPlugin extends BasePlugin
 {
     protected bool $bootstrapEnabled = true;
+
     protected bool $routesEnabled = true;
+
     protected bool $consoleEnabled = true;
 
     public function bootstrap(PluginApplicationInterface $app): void
@@ -78,7 +81,7 @@ class WorkflowPlugin extends BasePlugin
         $loaders = [];
 
         $namespaces = $config['loader']['namespaces'] ?? [];
-        if (!empty($namespaces)) {
+        if ($namespaces) {
             $loaders[] = new AttributeLoader($namespaces);
         }
 
@@ -87,7 +90,7 @@ class WorkflowPlugin extends BasePlugin
             $loaders[] = new YamlLoader($yamlPath);
         }
 
-        if (empty($loaders)) {
+        if (!$loaders) {
             return;
         }
 

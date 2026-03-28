@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Command;
@@ -9,6 +10,8 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Exception;
+use RuntimeException;
 use Workflow\Service\WorkflowRegistry;
 
 class WorkflowTimeoutsCommand extends Command
@@ -39,7 +42,7 @@ class WorkflowTimeoutsCommand extends Command
 
     public function execute(Arguments $args, ConsoleIo $io): int
     {
-        $limit = (int) $args->getOption('limit');
+        $limit = (int)$args->getOption('limit');
         $dryRun = $args->getOption('dry-run');
 
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
@@ -48,7 +51,7 @@ class WorkflowTimeoutsCommand extends Command
         /** @var array<\Workflow\Model\Entity\WorkflowTimeout> $pendingTimeouts */
         $pendingTimeouts = $timeoutsTable->find('due', limit: $limit)->toArray();
 
-        if (empty($pendingTimeouts)) {
+        if (!$pendingTimeouts) {
             $io->success('No pending timeouts to process.');
 
             return self::CODE_SUCCESS;
@@ -74,6 +77,7 @@ class WorkflowTimeoutsCommand extends Command
 
             if ($dryRun) {
                 $processed++;
+
                 continue;
             }
 
@@ -91,6 +95,7 @@ class WorkflowTimeoutsCommand extends Command
                     ));
                     $timeout->processed = true;
                     $timeoutsTable->save($timeout);
+
                     continue;
                 }
 
@@ -112,7 +117,7 @@ class WorkflowTimeoutsCommand extends Command
                     $io->warning('  Transition blocked: ' . json_encode($result->getBlockedBy()));
                     $errors++;
                 }
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $io->error('  Error: ' . $e->getMessage());
                 $errors++;
             }
@@ -128,7 +133,7 @@ class WorkflowTimeoutsCommand extends Command
     {
         $registry = Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
-            throw new \RuntimeException('Workflow registry not configured');
+            throw new RuntimeException('Workflow registry not configured');
         }
 
         return $registry;

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Engine;
@@ -11,6 +12,9 @@ interface EngineInterface
     /**
      * Check if a transition can be applied to the entity.
      *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
      * @param array<string, mixed> $context
      */
     public function can(
@@ -23,6 +27,9 @@ interface EngineInterface
     /**
      * Apply a transition to the entity.
      *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
      * @param array<string, mixed> $context
      */
     public function apply(

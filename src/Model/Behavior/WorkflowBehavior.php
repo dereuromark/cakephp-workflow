@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Model\Behavior;
@@ -20,6 +21,7 @@ class WorkflowBehavior extends Behavior
     ];
 
     private ?Definition $definition = null;
+
     private ?EngineInterface $engine = null;
 
     public function initialize(array $config): void
@@ -60,6 +62,8 @@ class WorkflowBehavior extends Behavior
     /**
      * Check if a transition can be applied.
      *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
      * @param array<string, mixed> $context
      */
     public function canTransition(EntityInterface $entity, string $transition, array $context = []): bool
@@ -75,6 +79,8 @@ class WorkflowBehavior extends Behavior
     /**
      * Apply a transition to the entity.
      *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
      * @param array<string, mixed> $context
      */
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
@@ -143,6 +149,9 @@ class WorkflowBehavior extends Behavior
 
     /**
      * Get the workflow registry.
+     *
+     * @throws \Workflow\Exception\WorkflowException
+     * @throws \Workflow\Exception\WorkflowException
      */
     protected function getRegistry(): WorkflowRegistry
     {

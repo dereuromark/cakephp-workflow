@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Command;
@@ -8,6 +9,7 @@ use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
+use RuntimeException;
 use Workflow\Service\WorkflowRegistry;
 
 class WorkflowListCommand extends Command
@@ -35,7 +37,7 @@ class WorkflowListCommand extends Command
         $registry = $this->getRegistry();
         $names = $registry->getWorkflowNames();
 
-        if (empty($names)) {
+        if (!$names) {
             $io->warning('No workflows configured.');
 
             return self::CODE_SUCCESS;
@@ -63,7 +65,7 @@ class WorkflowListCommand extends Command
                     if ($state->isFinal()) {
                         $markers[] = 'final';
                     }
-                    $markerStr = !empty($markers) ? ' (' . implode(', ', $markers) . ')' : '';
+                    $markerStr = (bool)$markers ? ' (' . implode(', ', $markers) . ')' : '';
                     $io->out(sprintf('    - %s%s', $state->getName(), $markerStr));
                 }
             }
@@ -78,7 +80,7 @@ class WorkflowListCommand extends Command
     {
         $registry = Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
-            throw new \RuntimeException('Workflow registry not configured');
+            throw new RuntimeException('Workflow registry not configured');
         }
 
         return $registry;

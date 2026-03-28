@@ -1,9 +1,11 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Controller\Admin;
 
 use Cake\Core\Configure;
+use RuntimeException;
 use Workflow\Service\WorkflowRegistry;
 
 class WorkflowsController extends WorkflowAppController
@@ -16,7 +18,7 @@ class WorkflowsController extends WorkflowAppController
 
         $registry = Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
-            throw new \RuntimeException('Workflow registry not configured');
+            throw new RuntimeException('Workflow registry not configured');
         }
         $this->registry = $registry;
     }

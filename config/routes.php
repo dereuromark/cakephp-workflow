@@ -1,9 +1,9 @@
 <?php
+
 declare(strict_types=1);
 
 use Cake\Routing\RouteBuilder;
 
-/** @var \Cake\Routing\RouteBuilder $routes */
 $routes->plugin('Workflow', ['path' => '/admin/workflow'], function (RouteBuilder $builder): void {
     $builder->prefix('Admin', function (RouteBuilder $builder): void {
         $builder->connect('/', ['controller' => 'Workflows', 'action' => 'index']);

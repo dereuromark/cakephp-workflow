@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Loader;
@@ -11,17 +12,20 @@ use Workflow\Exception\WorkflowException;
 
 class YamlLoader implements LoaderInterface
 {
-    /** @var array<string, Definition> */
+    /**
+     * @var array<string, \Workflow\Engine\Definition\Definition>
+     */
     private array $definitions = [];
 
-    /** @var array<string, string> */
+    /**
+     * @var array<string, string>
+     */
     private array $files = [];
 
     private bool $scanned = false;
 
-    public function __construct(
-        private string $path,
-    ) {
+    public function __construct(private string $path)
+    {
     }
 
     public function supports(string $workflowName): bool
@@ -89,7 +93,11 @@ class YamlLoader implements LoaderInterface
     }
 
     /**
+     * @param string $name
      * @param array<string, mixed> $data
+     *
+     * @throws \Workflow\Exception\WorkflowException
+     * @throws \Workflow\Exception\WorkflowException
      */
     private function buildDefinition(string $name, array $data): Definition
     {
@@ -115,6 +123,7 @@ class YamlLoader implements LoaderInterface
     }
 
     /**
+     * @param string $name
      * @param array<string, mixed> $data
      */
     private function buildState(string $name, array $data): State
@@ -131,7 +140,11 @@ class YamlLoader implements LoaderInterface
     }
 
     /**
+     * @param string $name
      * @param array<string, mixed> $data
+     *
+     * @throws \Workflow\Exception\WorkflowException
+     * @throws \Workflow\Exception\WorkflowException
      */
     private function buildTransition(string $name, array $data): Transition
     {

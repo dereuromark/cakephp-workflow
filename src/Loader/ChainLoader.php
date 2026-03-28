@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Loader;
@@ -9,11 +10,10 @@ use Workflow\Exception\WorkflowException;
 class ChainLoader implements LoaderInterface
 {
     /**
-     * @param array<LoaderInterface> $loaders Loaders in priority order (first = highest)
+     * @param array<\Workflow\Loader\LoaderInterface> $loaders Loaders in priority order (first = highest)
      */
-    public function __construct(
-        private array $loaders,
-    ) {
+    public function __construct(private array $loaders)
+    {
     }
 
     public function supports(string $workflowName): bool

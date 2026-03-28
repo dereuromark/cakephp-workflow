@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Command;
@@ -9,6 +10,8 @@ use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Exception;
+use RuntimeException;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Service\WorkflowRegistry;
 
@@ -50,6 +53,7 @@ class WorkflowValidateCommand extends Command
             if (!$registry->hasWorkflow($workflowName)) {
                 $io->error("Workflow '{$workflowName}' not found.");
                 $hasErrors = true;
+
                 continue;
             }
 
@@ -58,7 +62,7 @@ class WorkflowValidateCommand extends Command
 
             // Check for unreachable states
             $unreachable = $this->findUnreachableStates($definition);
-            if (!empty($unreachable)) {
+            if ($unreachable) {
                 $io->warning('  Unreachable states (no incoming transitions):');
                 foreach ($unreachable as $state) {
                     $io->out("    - <warning>{$state}</warning>");
@@ -68,7 +72,7 @@ class WorkflowValidateCommand extends Command
 
             // Check for dead-end states (non-final with no outgoing transitions)
             $deadEnds = $this->findDeadEndStates($definition);
-            if (!empty($deadEnds)) {
+            if ($deadEnds) {
                 $io->warning('  Dead-end states (non-final with no outgoing transitions):');
                 foreach ($deadEnds as $state) {
                     $io->out("    - <warning>{$state}</warning>");
@@ -79,14 +83,14 @@ class WorkflowValidateCommand extends Command
             // Check for missing initial state
             try {
                 $definition->getInitialState();
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $io->error('  No initial state defined!');
                 $hasErrors = true;
             }
 
             // Check for orphaned transitions (to non-existent states)
             $orphanedTransitions = $this->findOrphanedTransitions($definition);
-            if (!empty($orphanedTransitions)) {
+            if ($orphanedTransitions) {
                 $io->error('  Transitions to non-existent states:');
                 foreach ($orphanedTransitions as $t) {
                     $io->out("    - <error>{$t}</error>");
@@ -97,7 +101,7 @@ class WorkflowValidateCommand extends Command
             // Check database for obsolete states
             if ($checkData) {
                 $obsolete = $this->findObsoleteStates($definition);
-                if (!empty($obsolete)) {
+                if ($obsolete) {
                     $io->warning('  Obsolete states found in database:');
                     foreach ($obsolete as $state => $count) {
                         $io->out("    - <warning>{$state}</warning> ({$count} entities)");
@@ -129,7 +133,7 @@ class WorkflowValidateCommand extends Command
 
         // BFS to find all reachable states
         $queue = [$initial];
-        while (!empty($queue)) {
+        while ((bool)$queue) {
             $current = array_shift($queue);
             $transitions = $definition->getTransitionsFromState($current);
 
@@ -169,7 +173,7 @@ class WorkflowValidateCommand extends Command
             }
 
             $transitions = $definition->getTransitionsFromState($state->getName());
-            if (empty($transitions)) {
+            if (!$transitions) {
                 $deadEnds[] = $state->getName();
             }
         }
@@ -214,7 +218,7 @@ class WorkflowValidateCommand extends Command
 
         try {
             $table = $this->fetchTable($tableName);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             return [];
         }
 
@@ -242,7 +246,7 @@ class WorkflowValidateCommand extends Command
     {
         $registry = Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
-            throw new \RuntimeException('Workflow registry not configured');
+            throw new RuntimeException('Workflow registry not configured');
         }
 
         return $registry;

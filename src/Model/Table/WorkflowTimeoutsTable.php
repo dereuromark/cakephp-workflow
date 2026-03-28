@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Model\Table;
@@ -72,6 +73,7 @@ class WorkflowTimeoutsTable extends Table
     /**
      * Find pending timeouts that are due.
      *
+     * @param \Cake\ORM\Query\SelectQuery $query
      * @param array<string, mixed> $options
      */
     public function findDue(SelectQuery $query, array $options): SelectQuery
@@ -90,6 +92,7 @@ class WorkflowTimeoutsTable extends Table
     /**
      * Find timeouts for a specific entity.
      *
+     * @param \Cake\ORM\Query\SelectQuery $query
      * @param array<string, mixed> $options
      */
     public function findForEntity(SelectQuery $query, array $options): SelectQuery

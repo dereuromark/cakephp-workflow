@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Service;
@@ -6,7 +7,6 @@ namespace Workflow\Service;
 use Cake\Datasource\EntityInterface;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Workflow\Engine\TransitionResult;
-use Workflow\Model\Entity\WorkflowTransition;
 
 class TransitionLogger
 {
@@ -15,7 +15,13 @@ class TransitionLogger
     /**
      * Log a transition result.
      *
+     * @param string $workflowName
+     * @param string $entityTable
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param \Workflow\Engine\TransitionResult $result
+     * @param string $transitionName
      * @param array<string, mixed> $context
+     * @param string|null $workflowVersion
      */
     public function log(
         string $workflowName,
@@ -35,13 +41,13 @@ class TransitionLogger
         $transition = $table->newEntity([
             'workflow_name' => $workflowName,
             'entity_table' => $entityTable,
-            'entity_id' => (string) $entity->get('id'),
+            'entity_id' => (string)$entity->get('id'),
             'transition_name' => $transitionName,
             'from_state' => $result->getFromState(),
             'to_state' => $result->getToState(),
             'user_id' => $context['user_id'] ?? null,
             'reason' => $context['reason'] ?? null,
-            'context' => !empty($context) ? json_encode($context) : null,
+            'context' => (bool)$context ? json_encode($context) : null,
             'workflow_version' => $workflowVersion,
         ]);
 
@@ -51,7 +57,7 @@ class TransitionLogger
     /**
      * Get transition history for an entity.
      *
-     * @return array<WorkflowTransition>
+     * @return array<\Workflow\Model\Entity\WorkflowTransition>
      */
     public function getHistory(
         string $workflowName,

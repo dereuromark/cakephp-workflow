@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Service;
@@ -12,7 +13,9 @@ use Workflow\Loader\LoaderInterface;
 
 class WorkflowRegistry
 {
-    /** @var array<string, EngineInterface> */
+    /**
+     * @var array<string, \Workflow\Engine\EngineInterface>
+     */
     private array $engines = [];
 
     public function __construct(

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Loader;
@@ -25,10 +26,14 @@ use Workflow\State\AbstractState;
 
 class AttributeLoader implements LoaderInterface
 {
-    /** @var array<string, Definition> */
+    /**
+     * @var array<string, \Workflow\Engine\Definition\Definition>
+     */
     private array $definitions = [];
 
-    /** @var array<string, array{baseClass: class-string, stateClasses: array<class-string>, smAttr: StateMachine}> */
+    /**
+     * @var array<string, array{baseClass: class-string, stateClasses: array<class-string>, smAttr: \Workflow\Attribute\StateMachine}>
+     */
     private array $discovered = [];
 
     private bool $scanned = false;
@@ -36,9 +41,8 @@ class AttributeLoader implements LoaderInterface
     /**
      * @param array<string> $namespaces Namespaces to scan for state classes
      */
-    public function __construct(
-        private array $namespaces,
-    ) {
+    public function __construct(private array $namespaces)
+    {
     }
 
     public function supports(string $workflowName): bool
@@ -167,7 +171,7 @@ class AttributeLoader implements LoaderInterface
     private function findStateMachineAttribute(ReflectionClass $reflection): ?StateMachine
     {
         $attrs = $reflection->getAttributes(StateMachine::class);
-        if (!empty($attrs)) {
+        if ($attrs) {
             return $attrs[0]->newInstance();
         }
 
@@ -193,7 +197,8 @@ class AttributeLoader implements LoaderInterface
     }
 
     /**
-     * @param array{baseClass: class-string, stateClasses: array<class-string>, smAttr: StateMachine} $info
+     * @param string $name
+     * @param array{baseClass: class-string, stateClasses: array<class-string>, smAttr: \Workflow\Attribute\StateMachine} $info
      */
     private function buildDefinition(string $name, array $info): Definition
     {
@@ -224,15 +229,15 @@ class AttributeLoader implements LoaderInterface
 
     private function buildState(ReflectionClass $reflection, string $stateName): State
     {
-        $isInitial = !empty($reflection->getAttributes(InitialState::class));
-        $isFinal = !empty($reflection->getAttributes(FinalState::class));
-        $isFailed = !empty($reflection->getAttributes(FailedState::class));
+        $isInitial = (bool)$reflection->getAttributes(InitialState::class);
+        $isFinal = (bool)$reflection->getAttributes(FinalState::class);
+        $isFailed = (bool)$reflection->getAttributes(FailedState::class);
 
         $colorAttr = $reflection->getAttributes(Color::class);
-        $color = !empty($colorAttr) ? $colorAttr[0]->newInstance()->color : null;
+        $color = (bool)$colorAttr ? $colorAttr[0]->newInstance()->color : null;
 
         $labelAttr = $reflection->getAttributes(Label::class);
-        $label = !empty($labelAttr) ? $labelAttr[0]->newInstance()->label : null;
+        $label = (bool)$labelAttr ? $labelAttr[0]->newInstance()->label : null;
 
         $flagAttrs = $reflection->getAttributes(Flag::class);
         $flags = array_map(fn ($attr) => $attr->newInstance()->name, $flagAttrs);
@@ -249,8 +254,11 @@ class AttributeLoader implements LoaderInterface
     }
 
     /**
+     * @param \ReflectionClass $reflection
+     * @param string $fromState
      * @param array<class-string> $allStateClasses
-     * @return array<Transition>
+     *
+     * @return array<\Workflow\Engine\Definition\Transition>
      */
     private function buildTransitions(ReflectionClass $reflection, string $fromState, array $allStateClasses): array
     {
@@ -289,7 +297,11 @@ class AttributeLoader implements LoaderInterface
     }
 
     /**
+     * @param string $targetClass
      * @param array<class-string> $allStateClasses
+     *
+     * @throws \Workflow\Exception\WorkflowException
+     * @throws \Workflow\Exception\WorkflowException
      */
     private function classToStateName(string $targetClass, array $allStateClasses): string
     {
@@ -301,8 +313,9 @@ class AttributeLoader implements LoaderInterface
     }
 
     /**
-     * @param array<Transition> $transitions
-     * @return array<Transition>
+     * @param array<\Workflow\Engine\Definition\Transition> $transitions
+     *
+     * @return array<\Workflow\Engine\Definition\Transition>
      */
     private function mergeTransitions(array $transitions): array
     {

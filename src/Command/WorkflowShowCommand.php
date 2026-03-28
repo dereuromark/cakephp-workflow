@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Command;
@@ -8,6 +9,7 @@ use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
+use RuntimeException;
 use Workflow\Renderer\MermaidRenderer;
 use Workflow\Service\WorkflowRegistry;
 
@@ -74,7 +76,7 @@ class WorkflowShowCommand extends Command
             foreach ($state->getFlags() as $flag) {
                 $flags[] = "<info>{$flag}</info>";
             }
-            $flagStr = !empty($flags) ? ' [' . implode(', ', $flags) . ']' : '';
+            $flagStr = (bool)$flags ? ' [' . implode(', ', $flags) . ']' : '';
 
             $io->out(sprintf('  %s%s', $state->getName(), $flagStr));
             if ($state->getLabel()) {
@@ -97,10 +99,10 @@ class WorkflowShowCommand extends Command
                 $transition->getTo(),
             ));
 
-            if (!empty($transition->getGuards())) {
+            if ($transition->getGuards()) {
                 $io->out(sprintf('    Guards: %s', implode(', ', $transition->getGuards())));
             }
-            if (!empty($transition->getCommands())) {
+            if ($transition->getCommands()) {
                 $io->out(sprintf('    Commands: %s', implode(', ', $transition->getCommands())));
             }
         }
@@ -112,7 +114,7 @@ class WorkflowShowCommand extends Command
     {
         $registry = Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
-            throw new \RuntimeException('Workflow registry not configured');
+            throw new RuntimeException('Workflow registry not configured');
         }
 
         return $registry;

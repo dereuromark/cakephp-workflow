@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Engine\Definition;
@@ -7,12 +8,19 @@ use Workflow\Exception\WorkflowException;
 
 final class Definition
 {
-    /** @var array<string, State> */
+    /**
+     * @var array<string, \Workflow\Engine\Definition\State>
+     */
     private array $stateMap = [];
 
     /**
-     * @param array<State> $states
-     * @param array<Transition> $transitions
+     * @param string $name
+     * @param string $table
+     * @param string $field
+     * @param array<\Workflow\Engine\Definition\State> $states
+     * @param array<\Workflow\Engine\Definition\Transition> $transitions
+     * @param string|null $description
+     * @param string|null $label
      */
     public function __construct(
         private string $name,
@@ -54,7 +62,7 @@ final class Definition
     }
 
     /**
-     * @return array<State>
+     * @return array<\Workflow\Engine\Definition\State>
      */
     public function getStates(): array
     {
@@ -62,7 +70,7 @@ final class Definition
     }
 
     /**
-     * @return array<Transition>
+     * @return array<\Workflow\Engine\Definition\Transition>
      */
     public function getTransitions(): array
     {
@@ -95,7 +103,7 @@ final class Definition
     }
 
     /**
-     * @return array<State>
+     * @return array<\Workflow\Engine\Definition\State>
      */
     public function getFinalStates(): array
     {
@@ -103,7 +111,7 @@ final class Definition
     }
 
     /**
-     * @return array<Transition>
+     * @return array<\Workflow\Engine\Definition\Transition>
      */
     public function getTransitionsFromState(string $stateName): array
     {
@@ -125,7 +133,7 @@ final class Definition
     }
 
     /**
-     * @return array<State>
+     * @return array<\Workflow\Engine\Definition\State>
      */
     public function getStatesWithFlag(string $flag): array
     {

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Renderer;
@@ -10,10 +11,13 @@ use Workflow\Engine\Definition\Transition;
 class MermaidRenderer implements RendererInterface
 {
     // Default colors for state types (can be overridden via config)
+    /**
+     * @var array
+     */
     private const DEFAULT_COLORS = [
-        'initial' => '#90EE90',    // Light green
-        'final' => '#87CEEB',      // Light blue
-        'failed' => '#FF6B6B',     // Light red
+        'initial' => '#90EE90', // Light green
+        'final' => '#87CEEB', // Light blue
+        'failed' => '#FF6B6B', // Light red
         'unreachable' => '#D3D3D3', // Light gray
     ];
 
@@ -25,9 +29,8 @@ class MermaidRenderer implements RendererInterface
     /**
      * @param array<string, string> $colors Custom colors for state types
      */
-    public function __construct(
-        array $colors = [],
-    ) {
+    public function __construct(array $colors = [])
+    {
         $this->colors = array_merge(self::DEFAULT_COLORS, $colors);
     }
 
@@ -121,6 +124,7 @@ class MermaidRenderer implements RendererInterface
             $color = $state->getColor();
             if ($color !== null) {
                 $lines[] = "    style {$name} fill:{$color}";
+
                 continue;
             }
 
@@ -140,6 +144,7 @@ class MermaidRenderer implements RendererInterface
     /**
      * Render with unreachable states highlighted.
      *
+     * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string> $unreachableStates
      */
     public function renderWithAnalysis(Definition $definition, array $unreachableStates = []): string

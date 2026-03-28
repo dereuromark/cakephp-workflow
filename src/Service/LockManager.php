@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Service;
@@ -32,7 +33,7 @@ class LockManager
     ): ?WorkflowLock {
         /** @var \Workflow\Model\Table\WorkflowLocksTable $table */
         $table = $this->fetchTable('Workflow.WorkflowLocks');
-        $entityId = (string) $entity->get('id');
+        $entityId = (string)$entity->get('id');
 
         // Clean up expired locks first
         $table->deleteExpired();
@@ -85,7 +86,7 @@ class LockManager
         $lock = $table->find('activeLock', [
             'workflow' => $workflowName,
             'table' => $entityTable,
-            'id' => (string) $entity->get('id'),
+            'id' => (string)$entity->get('id'),
         ])->first();
 
         return $lock !== null;
@@ -104,7 +105,7 @@ class LockManager
         $table->deleteAll([
             'workflow_name' => $workflowName,
             'entity_table' => $entityTable,
-            'entity_id' => (string) $entity->get('id'),
+            'entity_id' => (string)$entity->get('id'),
         ]);
     }
 }

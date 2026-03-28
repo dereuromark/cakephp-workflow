@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\View\Helper;
@@ -20,6 +21,7 @@ class WorkflowHelper extends Helper
     /**
      * Render a Mermaid diagram for a workflow.
      *
+     * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string, mixed> $options
      */
     public function diagram(Definition $definition, array $options = []): string
@@ -41,6 +43,7 @@ class WorkflowHelper extends Helper
     /**
      * Render available transitions as buttons.
      *
+     * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string> $transitions
      * @param array<string, mixed> $options
      */
@@ -49,7 +52,7 @@ class WorkflowHelper extends Helper
         array $transitions,
         array $options = [],
     ): string {
-        if (empty($transitions)) {
+        if (!$transitions) {
             return '';
         }
 
@@ -75,6 +78,8 @@ class WorkflowHelper extends Helper
     /**
      * Render the current state as a badge.
      *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param string $state
      * @param array<string, mixed> $options
      */
     public function stateBadge(Definition $definition, string $state, array $options = []): string
@@ -99,8 +104,8 @@ class WorkflowHelper extends Helper
      */
     public function includeMermaid(): string
     {
-        return '<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>' .
-            '<script>mermaid.initialize({startOnLoad:true});</script>';
+        return '<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>'
+            . '<script>mermaid.initialize({startOnLoad:true});</script>';
     }
 
     private function getMermaidRenderer(): MermaidRenderer

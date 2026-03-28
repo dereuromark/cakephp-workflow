@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Engine;
@@ -7,13 +8,32 @@ use Throwable;
 
 final class TransitionResult
 {
+    /**
+     * @var string
+     */
     private const STATUS_SUCCESS = 'success';
+
+    /**
+     * @var string
+     */
     private const STATUS_BLOCKED = 'blocked';
+
+    /**
+     * @var string
+     */
     private const STATUS_LOCKED = 'locked';
+
+    /**
+     * @var string
+     */
     private const STATUS_ERROR = 'error';
 
     /**
+     * @param string $status
+     * @param string $fromState
+     * @param string|null $toState
      * @param array<string, string> $blockedBy
+     * @param \Throwable|null $error
      */
     private function __construct(
         private string $status,
@@ -30,6 +50,7 @@ final class TransitionResult
     }
 
     /**
+     * @param string $fromState
      * @param array<string, string> $blockedBy
      */
     public static function blocked(string $fromState, array $blockedBy): self

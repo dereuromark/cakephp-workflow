@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Attribute;
@@ -11,8 +12,7 @@ final class RequireReason
     /**
      * @param array<string> $for Transition names that require a reason
      */
-    public function __construct(
-        public array $for,
-    ) {
+    public function __construct(public array $for)
+    {
     }
 }

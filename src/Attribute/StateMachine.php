@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Attribute;
@@ -9,6 +10,9 @@ use Attribute;
 final class StateMachine
 {
     /**
+     * @param string $name
+     * @param string $table
+     * @param string $field
      * @param array<string, class-string>|null $states Optional state name overrides
      */
     public function __construct(

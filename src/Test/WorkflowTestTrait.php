@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow\Test;
@@ -21,15 +22,16 @@ trait WorkflowTestTrait
     /**
      * Create a simple test workflow definition.
      *
-     * @param array<State> $states
-     * @param array<Transition> $transitions
+     * @param string $name
+     * @param array<\Workflow\Engine\Definition\State> $states
+     * @param array<\Workflow\Engine\Definition\Transition> $transitions
      */
     protected function createTestWorkflow(
         string $name = 'test',
         array $states = [],
         array $transitions = [],
     ): Definition {
-        if (empty($states)) {
+        if (!$states) {
             $states = [
                 new State('pending', initial: true),
                 new State('approved'),
@@ -37,7 +39,7 @@ trait WorkflowTestTrait
             ];
         }
 
-        if (empty($transitions)) {
+        if (!$transitions) {
             $transitions = [
                 new Transition('approve', ['pending'], 'approved'),
                 new Transition('complete', ['approved'], 'completed'),

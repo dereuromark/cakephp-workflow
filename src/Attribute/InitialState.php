@@ -1,0 +1,14 @@
+<?php
+declare(strict_types=1);
+
+namespace Workflow\Attribute;
+
+use Attribute;
+
+#[Attribute(Attribute::TARGET_CLASS)]
+final class InitialState
+{
+    public function __construct()
+    {
+    }
+}

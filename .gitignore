@@ -1,0 +1,10 @@
+/vendor/
+/tmp/
+/logs/
+.phpunit.result.cache
+.phpunit.cache/
+phpcs-cache.json
+phpstan/
+.idea/
+.vscode/
+*.lock

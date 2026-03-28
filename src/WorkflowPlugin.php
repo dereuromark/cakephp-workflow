@@ -10,12 +10,15 @@ use Cake\Core\Configure;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Event\EventManager;
 use Cake\Routing\RouteBuilder;
+use Nette\Neon\Neon;
+use Symfony\Component\Yaml\Yaml;
 use Workflow\Command\WorkflowListCommand;
 use Workflow\Command\WorkflowShowCommand;
 use Workflow\Command\WorkflowTimeoutsCommand;
 use Workflow\Command\WorkflowValidateCommand;
 use Workflow\Loader\AttributeLoader;
 use Workflow\Loader\ChainLoader;
+use Workflow\Loader\NeonLoader;
 use Workflow\Loader\YamlLoader;
 use Workflow\Service\WorkflowRegistry;
 
@@ -66,7 +69,7 @@ class WorkflowPlugin extends BasePlugin
             'maxEventRepeats' => 10,
             'loader' => [
                 'namespaces' => [],
-                'yamlPath' => CONFIG . 'workflows',
+                'configPath' => CONFIG . 'workflows',
             ],
         ];
 
@@ -85,9 +88,14 @@ class WorkflowPlugin extends BasePlugin
             $loaders[] = new AttributeLoader($namespaces);
         }
 
-        $yamlPath = $config['loader']['yamlPath'] ?? null;
-        if ($yamlPath && is_dir($yamlPath)) {
-            $loaders[] = new YamlLoader($yamlPath);
+        $configPath = $config['loader']['configPath'] ?? null;
+        if ($configPath && is_dir($configPath)) {
+            if (class_exists(Yaml::class)) {
+                $loaders[] = new YamlLoader($configPath);
+            }
+            if (class_exists(Neon::class)) {
+                $loaders[] = new NeonLoader($configPath);
+            }
         }
 
         if (!$loaders) {

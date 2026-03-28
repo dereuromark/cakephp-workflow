@@ -11,10 +11,8 @@ $defaults = [
     'dynamicWorkflows' => false,
     'maxEventRepeats' => 10,
     'loader' => [
-        'attributes' => true,
-        'yaml' => true,
-        'yamlPath' => CONFIG . 'workflows',
-        'cache' => true,
+        'namespaces' => [],
+        'configPath' => CONFIG . 'workflows',
     ],
     'versioning' => [
         'enabled' => true,

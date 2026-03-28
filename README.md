@@ -1,6 +1,6 @@
 # CakePHP Workflow Plugin
 
-State machine and workflow engine for CakePHP 5.x with PHP 8 Attributes, YAML support, and admin UI.
+State machine and workflow engine for CakePHP 5.x with PHP 8 Attributes, YAML/NEON config support, and admin UI.
 
 ## Requirements
 
@@ -39,7 +39,7 @@ Configure the plugin in your `config/app.php`:
         'namespaces' => [
             'App\\Workflow',
         ],
-        'yamlPath' => CONFIG . 'workflows',
+        'configPath' => CONFIG . 'workflows',
     ],
     'logging' => true,
     'locking' => true,
@@ -107,10 +107,40 @@ class PayState extends AbstractState
 
 ### Using YAML
 
+Install symfony/yaml: `composer require symfony/yaml`
+
 Create workflow files in `config/workflows/`:
 
 ```yaml
 # config/workflows/order.yaml
+order:
+  table: Orders
+  field: state
+  states:
+    pending:
+      initial: true
+    paid:
+      color: '#00AA00'
+    completed:
+      final: true
+  transitions:
+    pay:
+      from: [pending]
+      to: paid
+      happy: true
+    complete:
+      from: [paid]
+      to: completed
+```
+
+### Using NEON
+
+Install nette/neon: `composer require nette/neon`
+
+Create workflow files in `config/workflows/`:
+
+```neon
+# config/workflows/order.neon
 order:
   table: Orders
   field: state
@@ -210,7 +240,7 @@ Use the helper in your templates:
 ## Features
 
 - **PHP 8 Attributes**: Define workflows declaratively using modern PHP
-- **YAML Support**: Alternative configuration via YAML files
+- **YAML/NEON Support**: Alternative configuration via YAML or NEON files
 - **State Types**: Initial, final, and failed state types
 - **Guards**: Conditional transitions with guard methods
 - **Commands**: Execute actions on state transitions

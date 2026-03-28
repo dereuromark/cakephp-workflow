@@ -1,6 +1,6 @@
 # CakePHP Workflow Plugin
 
-State machine and workflow engine for CakePHP 5.x with PHP 8 Attributes, YAML/NEON config support, and admin UI.
+State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON config support, and admin UI.
 
 ## Requirements
 
@@ -253,6 +253,3 @@ Use the helper in your templates:
 - **CLI Tools**: Workflow management and validation commands
 - **Validation**: Detect unreachable states and dead ends
 
-## License
-
-MIT License

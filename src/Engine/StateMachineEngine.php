@@ -18,12 +18,25 @@ class StateMachineEngine implements EngineInterface
      * @param \Cake\Event\EventManager $eventManager
      * @param array<string, callable> $guards
      * @param array<string, callable> $commands
+     * @param bool $strictMode When true, throws exception for missing guards/commands
      */
     public function __construct(
         private EventManager $eventManager,
         private array $guards = [],
         private array $commands = [],
+        private bool $strictMode = false,
     ) {
+    }
+
+    /**
+     * Enable or disable strict mode.
+     *
+     * When enabled, missing guards or commands will throw an exception
+     * instead of being silently ignored.
+     */
+    public function setStrictMode(bool $strict): void
+    {
+        $this->strictMode = $strict;
     }
 
     /**
@@ -109,6 +122,17 @@ class StateMachineEngine implements EngineInterface
             );
         }
 
+        // Check if reason is required for this transition
+        if ($stateObj->requiresReasonFor($transition)) {
+            $reason = $context['reason'] ?? null;
+            if ($reason === null || (is_string($reason) && trim($reason) === '')) {
+                return TransitionResult::blocked(
+                    $currentState,
+                    ['reason' => "Transition '{$transition}' requires a reason. Provide 'reason' in context."],
+                );
+            }
+        }
+
         // Check guards
         $blockedBy = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
         if ($blockedBy) {
@@ -127,6 +151,7 @@ class StateMachineEngine implements EngineInterface
         }
 
         $toState = $transitionObj->getTo();
+        $toStateObj = $definition->getState($toState);
 
         // Fire before event
         $beforeEvent = new WorkflowEvent(
@@ -140,27 +165,50 @@ class StateMachineEngine implements EngineInterface
         );
         $this->eventManager->dispatch($beforeEvent);
 
+        // Execute onExit callbacks for current state
+        try {
+            $this->executeCallbacks($stateObj->getOnExit(), $entity, $context);
+        } catch (WorkflowException $e) {
+            // Configuration errors should propagate (e.g., missing callbacks in strict mode)
+            throw $e;
+        } catch (Throwable $e) {
+            $this->dispatchErrorEvent($definition, $entity, $transition, $currentState, $toState, $context);
+
+            return TransitionResult::error($currentState, $e);
+        }
+
         // Execute commands
         try {
             $this->executeCommands($transitionObj->getCommands(), $entity, $context);
+        } catch (CommandException $e) {
+            // Command runtime failures should return error result
+            $this->dispatchErrorEvent($definition, $entity, $transition, $currentState, $toState, $context);
+
+            return TransitionResult::error($currentState, $e);
+        } catch (WorkflowException $e) {
+            // Configuration errors should propagate (e.g., missing commands in strict mode)
+            throw $e;
         } catch (Throwable $e) {
-            // Fire error event
-            $errorEvent = new WorkflowEvent(
-                WorkflowEvent::TRANSITION_ERROR,
-                $definition,
-                $entity,
-                $transition,
-                $currentState,
-                $toState,
-                $context,
-            );
-            $this->eventManager->dispatch($errorEvent);
+            $this->dispatchErrorEvent($definition, $entity, $transition, $currentState, $toState, $context);
 
             return TransitionResult::error($currentState, $e);
         }
 
         // Apply the transition
         $entity->set($field, $toState);
+
+        // Execute onEnter callbacks for new state
+        try {
+            $this->executeCallbacks($toStateObj->getOnEnter(), $entity, $context);
+        } catch (WorkflowException $e) {
+            // Configuration errors should propagate (e.g., missing callbacks in strict mode)
+            throw $e;
+        } catch (Throwable $e) {
+            // Note: State was already changed, but we report the error
+            $this->dispatchErrorEvent($definition, $entity, $transition, $currentState, $toState, $context);
+
+            return TransitionResult::error($currentState, $e);
+        }
 
         // Fire after event
         $afterEvent = new WorkflowEvent(
@@ -175,6 +223,60 @@ class StateMachineEngine implements EngineInterface
         $this->eventManager->dispatch($afterEvent);
 
         return TransitionResult::success($currentState, $toState);
+    }
+
+    /**
+     * Dispatch error event for transition failures.
+     *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
+     * @param string $fromState
+     * @param string $toState
+     * @param array<string, mixed> $context
+     */
+    private function dispatchErrorEvent(
+        Definition $definition,
+        EntityInterface $entity,
+        string $transition,
+        string $fromState,
+        string $toState,
+        array $context,
+    ): void {
+        $errorEvent = new WorkflowEvent(
+            WorkflowEvent::TRANSITION_ERROR,
+            $definition,
+            $entity,
+            $transition,
+            $fromState,
+            $toState,
+            $context,
+        );
+        $this->eventManager->dispatch($errorEvent);
+    }
+
+    /**
+     * Execute lifecycle callbacks (onEnter/onExit).
+     *
+     * @param array<string> $callbackNames
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param array<string, mixed> $context
+     *
+     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and callback is not found
+     */
+    private function executeCallbacks(array $callbackNames, EntityInterface $entity, array $context): void
+    {
+        foreach ($callbackNames as $callbackName) {
+            if (!isset($this->commands[$callbackName])) {
+                if ($this->strictMode) {
+                    throw new WorkflowException("Lifecycle callback '{$callbackName}' is not registered.");
+                }
+
+                continue;
+            }
+
+            ($this->commands[$callbackName])($entity, $context);
+        }
     }
 
     /**
@@ -221,6 +323,8 @@ class StateMachineEngine implements EngineInterface
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
      *
+     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and guard is not found
+     *
      * @return array<string, string>
      */
     private function evaluateGuards(array $guardNames, EntityInterface $entity, array $context): array
@@ -229,6 +333,10 @@ class StateMachineEngine implements EngineInterface
 
         foreach ($guardNames as $guardName) {
             if (!isset($this->guards[$guardName])) {
+                if ($this->strictMode) {
+                    throw new WorkflowException("Guard '{$guardName}' is not registered. Check for typos in guard name or ensure the guard is properly configured.");
+                }
+
                 continue;
             }
 
@@ -247,11 +355,18 @@ class StateMachineEngine implements EngineInterface
      * @param array<string> $commandNames
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
+     *
+     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and command is not found
+     * @throws \Workflow\Exception\CommandException When command execution fails
      */
     private function executeCommands(array $commandNames, EntityInterface $entity, array $context): void
     {
         foreach ($commandNames as $commandName) {
             if (!isset($this->commands[$commandName])) {
+                if ($this->strictMode) {
+                    throw new WorkflowException("Command '{$commandName}' is not registered. Check for typos in command name or ensure the command is properly configured.");
+                }
+
                 continue;
             }
 

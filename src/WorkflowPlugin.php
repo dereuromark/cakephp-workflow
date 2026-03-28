@@ -67,14 +67,16 @@ class WorkflowPlugin extends BasePlugin
             'timeouts' => true,
             'lockDuration' => 30,
             'maxEventRepeats' => 10,
+            'strictMode' => false,
             'loader' => [
                 'namespaces' => [],
                 'configPath' => CONFIG . 'workflows' . DS,
+                'pathMap' => [],
             ],
         ];
 
         $config = Configure::read('Workflow', []);
-        Configure::write('Workflow', array_merge($defaults, $config));
+        Configure::write('Workflow', array_replace_recursive($defaults, $config));
     }
 
     private function registerServices(): void
@@ -84,8 +86,9 @@ class WorkflowPlugin extends BasePlugin
         $loaders = [];
 
         $namespaces = $config['loader']['namespaces'] ?? [];
+        $pathMap = $config['loader']['pathMap'] ?? [];
         if ($namespaces) {
-            $loaders[] = new AttributeLoader($namespaces);
+            $loaders[] = new AttributeLoader($namespaces, $pathMap);
         }
 
         $configPath = $config['loader']['configPath'] ?? null;

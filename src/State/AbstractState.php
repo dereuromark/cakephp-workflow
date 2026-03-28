@@ -32,8 +32,12 @@ abstract class AbstractState
         }
 
         // Convert PascalCase to snake_case
-        $snake = (string)preg_replace('/([a-z])([A-Z])/', '$1_$2', $className);
+        $result = preg_replace('/([a-z])([A-Z])/', '$1_$2', $className);
+        if ($result === null) {
+            // Fallback to lowercase class name if regex fails
+            return strtolower($className);
+        }
 
-        return strtolower($snake);
+        return strtolower($result);
     }
 }

@@ -14,6 +14,9 @@ final class State
      * @param bool $final
      * @param bool $failed
      * @param array<string> $flags
+     * @param array<string> $onEnter Callback names to invoke when entering this state
+     * @param array<string> $onExit Callback names to invoke when exiting this state
+     * @param array<string> $requireReasonFor Transition names that require a reason when leaving this state
      */
     public function __construct(
         private string $name,
@@ -23,6 +26,9 @@ final class State
         private bool $final = false,
         private bool $failed = false,
         private array $flags = [],
+        private array $onEnter = [],
+        private array $onExit = [],
+        private array $requireReasonFor = [],
     ) {
     }
 
@@ -75,5 +81,43 @@ final class State
     public function hasFlag(string $flag): bool
     {
         return in_array($flag, $this->flags, true);
+    }
+
+    /**
+     * Get callback names to invoke when entering this state.
+     *
+     * @return array<string>
+     */
+    public function getOnEnter(): array
+    {
+        return $this->onEnter;
+    }
+
+    /**
+     * Get callback names to invoke when exiting this state.
+     *
+     * @return array<string>
+     */
+    public function getOnExit(): array
+    {
+        return $this->onExit;
+    }
+
+    /**
+     * Get transition names that require a reason when leaving this state.
+     *
+     * @return array<string>
+     */
+    public function getRequireReasonFor(): array
+    {
+        return $this->requireReasonFor;
+    }
+
+    /**
+     * Check if a specific transition requires a reason.
+     */
+    public function requiresReasonFor(string $transition): bool
+    {
+        return in_array($transition, $this->requireReasonFor, true);
     }
 }

@@ -8,21 +8,15 @@ $defaults = [
     'logging' => true,
     'locking' => true,
     'timeouts' => true,
-    'dynamicWorkflows' => false,
+    'lockDuration' => 30,
     'maxEventRepeats' => 10,
+    'strictMode' => false,
     'loader' => [
         'namespaces' => [],
         'configPath' => CONFIG . 'workflows' . DS,
-    ],
-    'versioning' => [
-        'enabled' => true,
-        'field' => 'state_workflow_version',
-        'strictMode' => false,
-    ],
-    'multiTenancy' => [
-        'enabled' => false,
+        'pathMap' => [],
     ],
 ];
 
 $config = Configure::read('Workflow', []);
-Configure::write('Workflow', array_merge($defaults, $config));
+Configure::write('Workflow', array_replace_recursive($defaults, $config));

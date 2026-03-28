@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Workflow\Model\Behavior;
 
+use ArrayObject;
 use Cake\Datasource\EntityInterface;
+use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\EngineInterface;
@@ -14,10 +16,18 @@ use Workflow\Service\WorkflowRegistry;
 
 class WorkflowBehavior extends Behavior
 {
+    /**
+     * Marker to track entities that have gone through applyTransition
+     *
+     * @var string
+     */
+    private const TRANSITION_MARKER = '_workflow_transition_applied';
+
     protected array $_defaultConfig = [
         'workflow' => null,
         'registry' => null,
         'field' => null,
+        'validateOnSave' => true,
     ];
 
     private ?Definition $definition = null;
@@ -31,6 +41,62 @@ class WorkflowBehavior extends Behavior
         if ($this->getConfig('workflow') === null) {
             throw new WorkflowException('WorkflowBehavior requires a workflow name');
         }
+    }
+
+    /**
+     * Validate state changes on save.
+     *
+     * Prevents direct state field modifications that bypass the workflow system.
+     *
+     * @param \Cake\Event\EventInterface $event
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param \ArrayObject $options
+     *
+     * @throws \Workflow\Exception\WorkflowException When state is changed directly without using applyTransition
+     */
+    public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
+    {
+        if (!$this->getConfig('validateOnSave')) {
+            return;
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+
+        // Check if state field was changed
+        if (!$entity->isDirty($field)) {
+            return;
+        }
+
+        // Check if this change came through applyTransition
+        if ($entity->get(self::TRANSITION_MARKER) === true) {
+            // Clear the marker
+            $entity->unset(self::TRANSITION_MARKER);
+
+            return;
+        }
+
+        // For new entities, allow setting initial state
+        if ($entity->isNew()) {
+            $initialState = $this->getWorkflowDefinition()->getInitialState()->getName();
+            $newState = $entity->get($field);
+
+            // Allow setting to initial state or leaving empty (will default to initial)
+            if ($newState === null || $newState === '' || $newState === $initialState) {
+                return;
+            }
+
+            throw new WorkflowException(
+                "Cannot set initial state to '{$newState}'. New entities must start in the initial state '{$initialState}'.",
+            );
+        }
+
+        // For existing entities, direct state changes are not allowed
+        $originalState = $entity->getOriginal($field);
+        $newState = $entity->get($field);
+
+        throw new WorkflowException(
+            "Direct state changes are not allowed. Use applyTransition() to change state from '{$originalState}' to '{$newState}'.",
+        );
     }
 
     /**
@@ -85,12 +151,19 @@ class WorkflowBehavior extends Behavior
      */
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
     {
-        return $this->getWorkflowEngine()->apply(
+        $result = $this->getWorkflowEngine()->apply(
             $this->getWorkflowDefinition(),
             $entity,
             $transition,
             $context,
         );
+
+        // Mark the entity so beforeSave knows this change came through the workflow
+        if ($result->isSuccess()) {
+            $entity->set(self::TRANSITION_MARKER, true);
+        }
+
+        return $result;
     }
 
     /**

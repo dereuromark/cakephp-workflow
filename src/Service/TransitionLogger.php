@@ -47,7 +47,7 @@ class TransitionLogger
             'to_state' => $result->getToState(),
             'user_id' => $context['user_id'] ?? null,
             'reason' => $context['reason'] ?? null,
-            'context' => (bool)$context ? json_encode($context) : null,
+            'context' => $context ? $this->encodeContext($context) : null,
             'workflow_version' => $workflowVersion,
         ]);
 
@@ -75,5 +75,21 @@ class TransitionLogger
         ])->toArray();
 
         return $result;
+    }
+
+    /**
+     * Encode context array to JSON string.
+     *
+     * @param array<string, mixed> $context
+     */
+    private function encodeContext(array $context): ?string
+    {
+        $json = json_encode($context);
+        if ($json === false) {
+            // Fallback: try encoding with error handling
+            $json = json_encode($context, JSON_PARTIAL_OUTPUT_ON_ERROR);
+        }
+
+        return $json !== false ? $json : null;
     }
 }

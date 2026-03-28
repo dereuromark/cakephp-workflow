@@ -29,6 +29,15 @@ class WorkflowRegistry
         return $this->loader->supports($name);
     }
 
+    /**
+     * Get a workflow definition by name.
+     *
+     * @param string $name
+     *
+     * @throws \Workflow\Exception\WorkflowException When workflow is not found
+     *
+     * @return \Workflow\Engine\Definition\Definition
+     */
     public function getWorkflow(string $name): Definition
     {
         if (!$this->loader->supports($name)) {

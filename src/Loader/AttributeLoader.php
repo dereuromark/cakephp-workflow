@@ -16,6 +16,9 @@ use Workflow\Attribute\Flag;
 use Workflow\Attribute\Guard as GuardAttr;
 use Workflow\Attribute\InitialState;
 use Workflow\Attribute\Label;
+use Workflow\Attribute\OnEnter;
+use Workflow\Attribute\OnExit;
+use Workflow\Attribute\RequireReason;
 use Workflow\Attribute\StateMachine;
 use Workflow\Attribute\Transition as TransitionAttr;
 use Workflow\Engine\Definition\Definition;
@@ -40,9 +43,12 @@ class AttributeLoader implements LoaderInterface
 
     /**
      * @param array<string> $namespaces Namespaces to scan for state classes
+     * @param array<string, string> $pathMap Namespace prefix to path mapping (e.g., ['App\\' => APP])
      */
-    public function __construct(private array $namespaces)
-    {
+    public function __construct(
+        private array $namespaces,
+        private array $pathMap = [],
+    ) {
     }
 
     public function supports(string $workflowName): bool
@@ -52,6 +58,15 @@ class AttributeLoader implements LoaderInterface
         return isset($this->discovered[$workflowName]);
     }
 
+    /**
+     * Load a workflow definition by name.
+     *
+     * @param string $workflowName
+     *
+     * @throws \Workflow\Exception\WorkflowException When workflow is not found
+     *
+     * @return \Workflow\Engine\Definition\Definition
+     */
     public function load(string $workflowName): Definition
     {
         if (isset($this->definitions[$workflowName])) {
@@ -144,13 +159,26 @@ class AttributeLoader implements LoaderInterface
     {
         $namespace = trim($namespace, '\\');
 
-        if (str_starts_with($namespace, 'Workflow\\Test\\TestApp\\')) {
+        // Check custom path mappings first
+        foreach ($this->pathMap as $prefix => $basePath) {
+            $prefix = trim($prefix, '\\');
+            if (str_starts_with($namespace, $prefix . '\\') || $namespace === $prefix) {
+                $relative = substr($namespace, strlen($prefix));
+                $relative = ltrim($relative, '\\');
+
+                return rtrim($basePath, DS) . DS . str_replace('\\', DS, $relative);
+            }
+        }
+
+        // Default mappings for test environment
+        if (defined('TESTS') && str_starts_with($namespace, 'Workflow\\Test\\TestApp\\')) {
             $relative = substr($namespace, strlen('Workflow\\Test\\TestApp\\'));
 
             return TESTS . 'test_app' . DS . str_replace('\\', DS, $relative);
         }
 
-        if (str_starts_with($namespace, 'App\\')) {
+        // Default App namespace mapping
+        if (defined('APP') && str_starts_with($namespace, 'App\\')) {
             $relative = substr($namespace, strlen('App\\'));
 
             return APP . str_replace('\\', DS, $relative);
@@ -234,13 +262,29 @@ class AttributeLoader implements LoaderInterface
         $isFailed = (bool)$reflection->getAttributes(FailedState::class);
 
         $colorAttr = $reflection->getAttributes(Color::class);
-        $color = (bool)$colorAttr ? $colorAttr[0]->newInstance()->color : null;
+        $color = $colorAttr ? $colorAttr[0]->newInstance()->color : null;
 
         $labelAttr = $reflection->getAttributes(Label::class);
-        $label = (bool)$labelAttr ? $labelAttr[0]->newInstance()->label : null;
+        $label = $labelAttr ? $labelAttr[0]->newInstance()->label : null;
 
         $flagAttrs = $reflection->getAttributes(Flag::class);
         $flags = array_map(fn ($attr) => $attr->newInstance()->name, $flagAttrs);
+
+        // Collect OnEnter/OnExit method names
+        $onEnter = [];
+        $onExit = [];
+        foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            if ($method->getAttributes(OnEnter::class)) {
+                $onEnter[] = $method->getName();
+            }
+            if ($method->getAttributes(OnExit::class)) {
+                $onExit[] = $method->getName();
+            }
+        }
+
+        // Get RequireReason attribute
+        $requireReasonAttr = $reflection->getAttributes(RequireReason::class);
+        $requireReasonFor = $requireReasonAttr ? $requireReasonAttr[0]->newInstance()->for : [];
 
         return new State(
             name: $stateName,
@@ -250,6 +294,9 @@ class AttributeLoader implements LoaderInterface
             final: $isFinal,
             failed: $isFailed,
             flags: $flags,
+            onEnter: $onEnter,
+            onExit: $onExit,
+            requireReasonFor: $requireReasonFor,
         );
     }
 

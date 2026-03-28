@@ -82,6 +82,15 @@ final class Definition
         return isset($this->stateMap[$name]);
     }
 
+    /**
+     * Get a state by name.
+     *
+     * @param string $name
+     *
+     * @throws \Workflow\Exception\WorkflowException When state is not found
+     *
+     * @return \Workflow\Engine\Definition\State
+     */
     public function getState(string $name): State
     {
         if (!isset($this->stateMap[$name])) {
@@ -91,6 +100,13 @@ final class Definition
         return $this->stateMap[$name];
     }
 
+    /**
+     * Get the initial state of the workflow.
+     *
+     * @throws \Workflow\Exception\WorkflowException When no initial state is defined
+     *
+     * @return \Workflow\Engine\Definition\State
+     */
     public function getInitialState(): State
     {
         foreach ($this->states as $state) {
@@ -121,6 +137,15 @@ final class Definition
         ));
     }
 
+    /**
+     * Get a transition by name.
+     *
+     * @param string $name
+     *
+     * @throws \Workflow\Exception\WorkflowException When transition is not found
+     *
+     * @return \Workflow\Engine\Definition\Transition
+     */
     public function getTransition(string $name): Transition
     {
         foreach ($this->transitions as $transition) {
@@ -153,6 +178,12 @@ final class Definition
             ),
         ];
 
-        return substr(md5((string)json_encode($data)), 0, 8);
+        $json = json_encode($data);
+        if ($json === false) {
+            // Fallback to serialization if JSON encoding fails
+            $json = serialize($data);
+        }
+
+        return substr(md5($json), 0, 8);
     }
 }

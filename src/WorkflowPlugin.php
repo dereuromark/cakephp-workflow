@@ -69,7 +69,7 @@ class WorkflowPlugin extends BasePlugin
             'maxEventRepeats' => 10,
             'loader' => [
                 'namespaces' => [],
-                'configPath' => CONFIG . 'workflows',
+                'configPath' => CONFIG . 'workflows' . DS,
             ],
         ];
 

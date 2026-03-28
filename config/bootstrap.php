@@ -12,7 +12,7 @@ $defaults = [
     'maxEventRepeats' => 10,
     'loader' => [
         'namespaces' => [],
-        'configPath' => CONFIG . 'workflows',
+        'configPath' => CONFIG . 'workflows' . DS,
     ],
     'versioning' => [
         'enabled' => true,

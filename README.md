@@ -39,7 +39,7 @@ Configure the plugin in your `config/app.php`:
         'namespaces' => [
             'App\\Workflow',
         ],
-        'configPath' => CONFIG . 'workflows',
+        'configPath' => CONFIG . 'workflows' . DS,
     ],
     'logging' => true,
     'locking' => true,

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Test\TestCase\Loader;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Yaml\Yaml;
 use Workflow\Exception\WorkflowException;
 use Workflow\Loader\YamlLoader;
 
@@ -20,7 +21,7 @@ class YamlLoaderTest extends TestCase
         parent::setUp();
 
         // Skip tests if symfony/yaml is not installed
-        if (!class_exists(\Symfony\Component\Yaml\Yaml::class)) {
+        if (!class_exists(Yaml::class)) {
             $this->markTestSkipped('symfony/yaml is required for these tests');
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Model\Behavior;
 
+use ArrayObject;
 use Cake\Event\EventManager;
 use Cake\ORM\Entity;
 use Cake\ORM\Table;
@@ -12,6 +13,7 @@ use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Exception\WorkflowException;
+use Workflow\Loader\LoaderInterface;
 use Workflow\Model\Behavior\WorkflowBehavior;
 use Workflow\Service\WorkflowRegistry;
 
@@ -68,7 +70,7 @@ class WorkflowBehaviorTest extends TestCase
 
     private function createMockRegistry(): WorkflowRegistry
     {
-        $loader = $this->createMock(\Workflow\Loader\LoaderInterface::class);
+        $loader = $this->createMock(LoaderInterface::class);
         $loader->method('supports')->willReturn(true);
         $loader->method('load')->willReturn($this->definition);
 
@@ -214,7 +216,7 @@ class WorkflowBehaviorTest extends TestCase
 
         $this->table->dispatchEvent('Model.beforeSave', [
             'entity' => $entity,
-            'options' => new \ArrayObject(),
+            'options' => new ArrayObject(),
         ]);
     }
 
@@ -228,7 +230,7 @@ class WorkflowBehaviorTest extends TestCase
         // Should not throw
         $this->table->dispatchEvent('Model.beforeSave', [
             'entity' => $entity,
-            'options' => new \ArrayObject(),
+            'options' => new ArrayObject(),
         ]);
 
         $this->assertTrue(true);
@@ -246,7 +248,7 @@ class WorkflowBehaviorTest extends TestCase
 
         $this->table->dispatchEvent('Model.beforeSave', [
             'entity' => $entity,
-            'options' => new \ArrayObject(),
+            'options' => new ArrayObject(),
         ]);
     }
 
@@ -264,7 +266,7 @@ class WorkflowBehaviorTest extends TestCase
         // Should not throw during beforeSave
         $this->table->dispatchEvent('Model.beforeSave', [
             'entity' => $entity,
-            'options' => new \ArrayObject(),
+            'options' => new ArrayObject(),
         ]);
 
         $this->assertSame('paid', $entity->get('state'));
@@ -284,7 +286,7 @@ class WorkflowBehaviorTest extends TestCase
         // Should not throw when validation is disabled
         $this->table->dispatchEvent('Model.beforeSave', [
             'entity' => $entity,
-            'options' => new \ArrayObject(),
+            'options' => new ArrayObject(),
         ]);
 
         $this->assertTrue(true);

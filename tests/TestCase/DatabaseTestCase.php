@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase;
 
-use Cake\Database\Schema\TableSchemaInterface;
 use Cake\Datasource\ConnectionManager;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\TestSuite\TestCase;

@@ -6,7 +6,6 @@ namespace Workflow\Renderer;
 
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
-use Workflow\Engine\Definition\Transition;
 
 class MermaidRenderer implements RendererInterface
 {
@@ -34,45 +33,46 @@ class MermaidRenderer implements RendererInterface
         $this->colors = array_merge(self::DEFAULT_COLORS, $colors);
     }
 
-    public function render(Definition $definition): string
+    /**
+     * Render the workflow diagram.
+     *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param string|null $currentState Current state to highlight
+     */
+    public function render(Definition $definition, ?string $currentState = null): string
     {
-        $lines = ['stateDiagram-v2'];
+        $lines = ['flowchart TD'];
+        $linkIndex = 0;
+        $happyLinkIndices = [];
 
-        // Add state definitions
+        // Add state node definitions
         foreach ($definition->getStates() as $state) {
             $lines[] = $this->renderState($state);
         }
 
-        // Add initial state marker
-        $initial = $definition->getInitialState();
-        $lines[] = "    [*] --> {$initial->getName()}";
-
-        // Add transitions (happy path first for visual emphasis)
-        $happyTransitions = [];
-        $normalTransitions = [];
-
+        // Add transitions and track happy path indices
         foreach ($definition->getTransitions() as $transition) {
-            if ($transition->isHappy()) {
-                $happyTransitions[] = $transition;
-            } else {
-                $normalTransitions[] = $transition;
+            $name = $transition->getName();
+            $to = $transition->getTo();
+            $isHappy = $transition->isHappy();
+
+            foreach ($transition->getFrom() as $from) {
+                $lines[] = "    {$from} -->|{$name}| {$to}";
+                if ($isHappy) {
+                    $happyLinkIndices[] = $linkIndex;
+                }
+                $linkIndex++;
             }
         }
 
-        foreach ($happyTransitions as $transition) {
-            $lines = array_merge($lines, $this->renderTransition($transition, true));
-        }
-        foreach ($normalTransitions as $transition) {
-            $lines = array_merge($lines, $this->renderTransition($transition, false));
-        }
-
-        // Add final state markers
-        foreach ($definition->getFinalStates() as $state) {
-            $lines[] = "    {$state->getName()} --> [*]";
-        }
-
         // Add styling for state types
-        $lines = array_merge($lines, $this->renderStyles($definition));
+        $lines = array_merge($lines, $this->renderStyles($definition, $currentState));
+
+        // Style happy path links green
+        if ($happyLinkIndices) {
+            $indices = implode(',', $happyLinkIndices);
+            $lines[] = "    linkStyle {$indices} stroke:#2e7d32,stroke-width:2px";
+        }
 
         return implode("\n", $lines);
     }
@@ -82,59 +82,43 @@ class MermaidRenderer implements RendererInterface
         $name = $state->getName();
         $label = $state->getDisplayName();
 
-        if ($label !== $name) {
-            return "    {$name}: {$label}";
-        }
-
-        return "    state {$name}";
+        // Use stadium shape for states (rounded rectangle)
+        return "    {$name}([{$label}])";
     }
 
     /**
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param string|null $currentState State to highlight as current
+     *
      * @return array<string>
      */
-    private function renderTransition(Transition $transition, bool $isHappy): array
+    private function renderStyles(Definition $definition, ?string $currentState = null): array
     {
         $lines = [];
-        $name = $transition->getName();
-        $to = $transition->getTo();
 
-        foreach ($transition->getFrom() as $from) {
-            if ($isHappy) {
-                // Use thick arrow for happy path
-                $lines[] = "    {$from} ==> {$to}: {$name}";
-            } else {
-                $lines[] = "    {$from} --> {$to}: {$name}";
-            }
-        }
-
-        return $lines;
-    }
-
-    /**
-     * @return array<string>
-     */
-    private function renderStyles(Definition $definition): array
-    {
-        $lines = [];
+        // Define class definitions
+        $lines[] = '    classDef current fill:#ffc107,stroke:#ff9800,stroke-width:3px,font-weight:bold';
+        $lines[] = '    classDef initial fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px';
+        $lines[] = '    classDef final fill:#e8f5e9,stroke:#4caf50,stroke-width:2px';
+        $lines[] = '    classDef failed fill:#ffebee,stroke:#f44336,stroke-width:2px';
 
         foreach ($definition->getStates() as $state) {
             $name = $state->getName();
 
-            // Use explicit color if set
-            $color = $state->getColor();
-            if ($color !== null) {
-                $lines[] = "    style {$name} fill:{$color}";
+            // Current state gets special highlight (overrides all other styling)
+            if ($currentState !== null && $name === $currentState) {
+                $lines[] = "    class {$name} current";
 
                 continue;
             }
 
-            // Apply type-based default colors
+            // Assign class based on state type
             if ($state->isFailed()) {
-                $lines[] = "    style {$name} fill:{$this->colors['failed']},stroke:#CC0000,stroke-width:2px";
+                $lines[] = "    class {$name} failed";
             } elseif ($state->isFinal()) {
-                $lines[] = "    style {$name} fill:{$this->colors['final']}";
+                $lines[] = "    class {$name} final";
             } elseif ($state->isInitial()) {
-                $lines[] = "    style {$name} fill:{$this->colors['initial']},stroke:#228B22,stroke-width:2px";
+                $lines[] = "    class {$name} initial";
             }
         }
 
@@ -149,33 +133,45 @@ class MermaidRenderer implements RendererInterface
      */
     public function renderWithAnalysis(Definition $definition, array $unreachableStates = []): string
     {
-        $lines = ['stateDiagram-v2'];
+        $lines = ['flowchart TD'];
+        $linkIndex = 0;
+        $happyLinkIndices = [];
 
-        // Add state definitions
+        // Add state node definitions
         foreach ($definition->getStates() as $state) {
             $lines[] = $this->renderState($state);
         }
 
-        // Add initial state marker
-        $initial = $definition->getInitialState();
-        $lines[] = "    [*] --> {$initial->getName()}";
-
-        // Add transitions
+        // Add transitions and track happy path indices
         foreach ($definition->getTransitions() as $transition) {
-            $lines = array_merge($lines, $this->renderTransition($transition, $transition->isHappy()));
-        }
+            $name = $transition->getName();
+            $to = $transition->getTo();
+            $isHappy = $transition->isHappy();
 
-        // Add final state markers
-        foreach ($definition->getFinalStates() as $state) {
-            $lines[] = "    {$state->getName()} --> [*]";
+            foreach ($transition->getFrom() as $from) {
+                $lines[] = "    {$from} -->|{$name}| {$to}";
+                if ($isHappy) {
+                    $happyLinkIndices[] = $linkIndex;
+                }
+                $linkIndex++;
+            }
         }
 
         // Add styling
         $lines = array_merge($lines, $this->renderStyles($definition));
 
+        // Style happy path links green
+        if ($happyLinkIndices) {
+            $indices = implode(',', $happyLinkIndices);
+            $lines[] = "    linkStyle {$indices} stroke:#2e7d32,stroke-width:2px";
+        }
+
         // Mark unreachable states
-        foreach ($unreachableStates as $stateName) {
-            $lines[] = "    style {$stateName} fill:{$this->colors['unreachable']},stroke:#999,stroke-dasharray:5";
+        if ($unreachableStates) {
+            $lines[] = "    classDef unreachable fill:{$this->colors['unreachable']},stroke:#999,stroke-dasharray:5 5";
+            foreach ($unreachableStates as $stateName) {
+                $lines[] = "    class {$stateName} unreachable";
+            }
         }
 
         return implode("\n", $lines);

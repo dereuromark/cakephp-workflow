@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Loader;
 
+use Nette\Neon\Neon;
 use PHPUnit\Framework\TestCase;
 use Workflow\Exception\WorkflowException;
 use Workflow\Loader\NeonLoader;
@@ -17,7 +18,7 @@ class NeonLoaderTest extends TestCase
         parent::setUp();
 
         // Skip tests if nette/neon is not installed
-        if (!class_exists(\Nette\Neon\Neon::class)) {
+        if (!class_exists(Neon::class)) {
             $this->markTestSkipped('nette/neon is required for these tests');
         }
 

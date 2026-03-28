@@ -9,6 +9,7 @@ use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Event\EventManager;
+use Cake\Log\Log;
 use Cake\Routing\RouteBuilder;
 use Nette\Neon\Neon;
 use Symfony\Component\Yaml\Yaml;
@@ -103,6 +104,12 @@ class WorkflowPlugin extends BasePlugin
         }
 
         if (!$loaders) {
+            Log::warning(
+                'Workflow plugin: No loaders configured. Set Workflow.loader.namespaces for PHP attributes, '
+                . 'or ensure Workflow.loader.configPath directory exists with YAML/NEON files and '
+                . 'symfony/yaml or nette/neon is installed.',
+            );
+
             return;
         }
 

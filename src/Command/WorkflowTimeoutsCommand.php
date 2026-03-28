@@ -82,16 +82,20 @@ class WorkflowTimeoutsCommand extends Command
             }
 
             try {
+                // Get workflow definition first to know the correct field name
+                $definition = $registry->getWorkflow($timeout->workflow_name);
+                $field = $definition->getField();
+
                 // Load the entity
                 $entityTable = $this->fetchTable($timeout->entity_table);
                 $entity = $entityTable->get($timeout->entity_id);
 
                 // Verify entity is still in expected state
-                if ($entity->get('state') !== $timeout->current_state) {
+                if ($entity->get($field) !== $timeout->current_state) {
                     $io->warning(sprintf(
                         '  Entity state changed from %s to %s, skipping.',
                         $timeout->current_state,
-                        $entity->get('state'),
+                        $entity->get($field),
                     ));
                     $timeout->processed = true;
                     $timeoutsTable->save($timeout);
@@ -100,7 +104,6 @@ class WorkflowTimeoutsCommand extends Command
                 }
 
                 // Apply the transition
-                $definition = $registry->getWorkflow($timeout->workflow_name);
                 $engine = $registry->getEngine($timeout->workflow_name);
 
                 $result = $engine->apply($definition, $entity, $timeout->transition_name, [

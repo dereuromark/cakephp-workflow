@@ -154,22 +154,42 @@ class YamlLoader implements LoaderInterface
      * @param array<string, mixed> $data
      *
      * @throws \Workflow\Exception\WorkflowException
-     * @throws \Workflow\Exception\WorkflowException
      */
     private function buildTransition(string $name, array $data): Transition
     {
         $from = $data['from'] ?? [];
         if (is_string($from)) {
             $from = [$from];
+        } elseif (is_array($from)) {
+            $from = array_map(fn ($v) => is_string($v) ? $v : (string)$v, $from);
+        } else {
+            $from = [(string)$from];
+        }
+
+        $to = $data['to'] ?? throw new WorkflowException("Missing 'to' in transition '{$name}'");
+        if (!is_string($to)) {
+            $to = (string)$to;
+        }
+
+        $guard = $data['guard'] ?? null;
+        $guards = [];
+        if ($guard !== null) {
+            $guards = [is_string($guard) ? $guard : (string)$guard];
+        }
+
+        $command = $data['command'] ?? null;
+        $commands = [];
+        if ($command !== null) {
+            $commands = [is_string($command) ? $command : (string)$command];
         }
 
         return new Transition(
             name: $name,
             from: $from,
-            to: $data['to'] ?? throw new WorkflowException("Missing 'to' in transition '{$name}'"),
-            happy: $data['happy'] ?? false,
-            guards: isset($data['guard']) ? [$data['guard']] : [],
-            commands: isset($data['command']) ? [$data['command']] : [],
+            to: $to,
+            happy: (bool)($data['happy'] ?? false),
+            guards: $guards,
+            commands: $commands,
         );
     }
 }

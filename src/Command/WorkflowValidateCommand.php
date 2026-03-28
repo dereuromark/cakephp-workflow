@@ -229,7 +229,9 @@ class WorkflowValidateCommand extends Command
             ->groupBy([$field]);
 
         $obsolete = [];
-        foreach ($query->toArray() as $row) {
+        /** @var array<\Cake\Datasource\EntityInterface> $rows */
+        $rows = $query->toArray();
+        foreach ($rows as $row) {
             $obsolete[$row->get($field)] = $row->get('count');
         }
 

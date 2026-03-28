@@ -56,6 +56,7 @@ class LockManager
         ]);
 
         // Create new lock
+        /** @var \Workflow\Model\Entity\WorkflowLock $lock */
         $lock = $table->newEntity([
             'workflow_name' => $workflowName,
             'entity_table' => $entityTable,

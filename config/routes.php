@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 use Cake\Routing\RouteBuilder;
 
-$routes->plugin('Workflow', ['path' => '/admin/workflow'], function (RouteBuilder $builder): void {
-    $builder->prefix('Admin', function (RouteBuilder $builder): void {
-        $builder->connect('/', ['controller' => 'Workflows', 'action' => 'index']);
-        $builder->connect('/workflows', ['controller' => 'Workflows', 'action' => 'index']);
-        $builder->connect('/workflows/view/{name}', ['controller' => 'Workflows', 'action' => 'view'])
+// Admin routes: /admin/workflow/*
+$routes->prefix('Admin', function (RouteBuilder $routes): void {
+    $routes->plugin('Workflow', function (RouteBuilder $routes): void {
+        $routes->connect('/', ['controller' => 'Workflows', 'action' => 'index']);
+        $routes->connect('/workflows', ['controller' => 'Workflows', 'action' => 'index']);
+        $routes->connect('/workflows/view/{name}', ['controller' => 'Workflows', 'action' => 'view'])
             ->setPass(['name']);
-        $builder->connect('/items', ['controller' => 'Items', 'action' => 'index']);
-        $builder->connect('/items/view/{table}/{id}', ['controller' => 'Items', 'action' => 'view'])
+        $routes->connect('/items', ['controller' => 'Items', 'action' => 'index']);
+        $routes->connect('/items/view/{table}/{id}', ['controller' => 'Items', 'action' => 'view'])
             ->setPass(['table', 'id']);
-        $builder->connect('/transitions', ['controller' => 'Transitions', 'action' => 'index']);
-        $builder->connect('/designer', ['controller' => 'Designer', 'action' => 'index']);
-        $builder->connect('/designer/{name}', ['controller' => 'Designer', 'action' => 'edit'])
+        $routes->connect('/transitions', ['controller' => 'Transitions', 'action' => 'index']);
+        $routes->connect('/designer', ['controller' => 'Designer', 'action' => 'index']);
+        $routes->connect('/designer/{name}', ['controller' => 'Designer', 'action' => 'edit'])
             ->setPass(['name']);
-        $builder->fallbacks();
+        $routes->fallbacks();
     });
 });

@@ -50,11 +50,12 @@ class WorkflowPlugin extends BasePlugin
 
     public function routes(RouteBuilder $routes): void
     {
-        $routes->plugin('Workflow', ['path' => '/workflow'], function (RouteBuilder $builder): void {
-            $builder->prefix('Admin', function (RouteBuilder $builder): void {
-                $builder->fallbacks();
+        // Admin routes: /admin/workflow/*
+        $routes->prefix('Admin', function (RouteBuilder $routes): void {
+            $routes->plugin('Workflow', function (RouteBuilder $routes): void {
+                $routes->connect('/', ['controller' => 'Workflows', 'action' => 'index']);
+                $routes->fallbacks();
             });
-            $builder->fallbacks();
         });
     }
 

@@ -39,11 +39,14 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition);
 
-        $this->assertStringContainsString('stateDiagram-v2', $output);
-        $this->assertStringContainsString('[*] --> pending', $output);
-        $this->assertStringContainsString('pending --> paid: pay', $output);
-        $this->assertStringContainsString('paid --> completed: complete', $output);
-        $this->assertStringContainsString('completed --> [*]', $output);
+        $this->assertStringContainsString('flowchart TD', $output);
+        $this->assertStringContainsString('pending([pending])', $output);
+        $this->assertStringContainsString('paid([paid])', $output);
+        $this->assertStringContainsString('completed([completed])', $output);
+        $this->assertStringContainsString('pending -->|pay| paid', $output);
+        $this->assertStringContainsString('paid -->|complete| completed', $output);
+        $this->assertStringContainsString('class pending initial', $output);
+        $this->assertStringContainsString('class completed final', $output);
     }
 
     public function testRenderWithColors(): void
@@ -63,8 +66,10 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition);
 
-        $this->assertStringContainsString('style pending fill:#FFA500', $output);
-        $this->assertStringContainsString('style paid fill:#00AA00', $output);
+        // Colors are now handled through class definitions, not inline styles
+        $this->assertStringContainsString('flowchart TD', $output);
+        $this->assertStringContainsString('pending([pending])', $output);
+        $this->assertStringContainsString('paid([paid])', $output);
     }
 
     public function testRenderHappyPath(): void
@@ -86,9 +91,10 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition);
 
-        // Happy path transitions should be thicker/styled differently
-        $this->assertStringContainsString('pending ==> paid: pay', $output);
-        $this->assertStringContainsString('pending --> cancelled: cancel', $output);
+        // Happy path transitions get linkStyle with green stroke
+        $this->assertStringContainsString('pending -->|pay| paid', $output);
+        $this->assertStringContainsString('pending -->|cancel| cancelled', $output);
+        $this->assertStringContainsString('linkStyle 0 stroke:#2e7d32,stroke-width:2px', $output);
     }
 
     public function testRenderWithAnalysis(): void
@@ -109,8 +115,9 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->renderWithAnalysis($definition, ['orphan']);
 
-        $this->assertStringContainsString('style orphan fill:#D3D3D3', $output);
+        $this->assertStringContainsString('classDef unreachable fill:#D3D3D3', $output);
         $this->assertStringContainsString('stroke-dasharray:5', $output);
+        $this->assertStringContainsString('class orphan unreachable', $output);
     }
 
     public function testRenderFailedState(): void
@@ -130,7 +137,53 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition);
 
-        $this->assertStringContainsString('style failed fill:#FF6B6B', $output);
-        $this->assertStringContainsString('stroke:#CC0000', $output);
+        $this->assertStringContainsString('classDef failed fill:#ffebee,stroke:#f44336', $output);
+        $this->assertStringContainsString('class failed failed', $output);
+    }
+
+    public function testRenderWithCurrentState(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+                new State('completed', final: true),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid'),
+                new Transition('complete', ['paid'], 'completed'),
+            ],
+        );
+
+        $output = $this->renderer->render($definition, 'paid');
+
+        $this->assertStringContainsString('classDef current fill:#ffc107', $output);
+        $this->assertStringContainsString('class paid current', $output);
+    }
+
+    public function testRenderWithMultipleFromStates(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+                new State('cancelled', final: true),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid'),
+                new Transition('cancel', ['pending', 'paid'], 'cancelled'),
+            ],
+        );
+
+        $output = $this->renderer->render($definition);
+
+        $this->assertStringContainsString('pending -->|cancel| cancelled', $output);
+        $this->assertStringContainsString('paid -->|cancel| cancelled', $output);
     }
 }

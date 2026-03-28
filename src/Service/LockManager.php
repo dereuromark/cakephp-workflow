@@ -56,14 +56,14 @@ class LockManager
             'entity_id' => $entityId,
         ]);
 
-        // Create new lock
+        // Create new lock with UTC timestamp for consistent timezone handling
         /** @var \Workflow\Model\Entity\WorkflowLock $lock */
         $lock = $table->newEntity([
             'workflow_name' => $workflowName,
             'entity_table' => $entityTable,
             'entity_id' => $entityId,
             'locked_by' => $lockedBy,
-            'expires_at' => DateTime::now()->addSeconds($this->lockDurationSeconds),
+            'expires_at' => DateTime::now('UTC')->addSeconds($this->lockDurationSeconds),
         ]);
 
         if ($table->save($lock)) {

@@ -71,7 +71,7 @@ class WorkflowLocksTable extends Table
                 'workflow_name' => $options['workflow'],
                 'entity_table' => $options['table'],
                 'entity_id' => $options['id'],
-                'expires_at >' => DateTime::now(),
+                'expires_at >=' => $this->getCurrentTime(),
             ]);
     }
 
@@ -81,7 +81,18 @@ class WorkflowLocksTable extends Table
     public function deleteExpired(): int
     {
         return $this->deleteAll([
-            'expires_at <' => DateTime::now(),
+            'expires_at <' => $this->getCurrentTime(),
         ]);
+    }
+
+    /**
+     * Get current time for lock comparisons.
+     *
+     * Uses UTC to ensure consistent behavior regardless of app timezone.
+     * The database should store timestamps in UTC for this to work correctly.
+     */
+    protected function getCurrentTime(): DateTime
+    {
+        return DateTime::now('UTC');
     }
 }

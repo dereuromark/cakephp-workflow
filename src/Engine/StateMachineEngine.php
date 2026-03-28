@@ -15,10 +15,15 @@ use Workflow\Exception\WorkflowException;
 class StateMachineEngine implements EngineInterface
 {
     /**
+     * @var array<string, callable>
+     */
+    private array $conditions = [];
+
+    /**
      * @param \Cake\Event\EventManager $eventManager
      * @param array<string, callable> $guards
      * @param array<string, callable> $commands
-     * @param bool $strictMode When true, throws exception for missing guards/commands
+     * @param bool $strictMode When true, throws exception for missing guards/commands/conditions
      */
     public function __construct(
         private EventManager $eventManager,
@@ -53,6 +58,17 @@ class StateMachineEngine implements EngineInterface
     public function addCommand(string $name, callable $callback): void
     {
         $this->commands[$name] = $callback;
+    }
+
+    /**
+     * Register a condition callback for automatic branching.
+     *
+     * Conditions are evaluated when processing automatic transitions
+     * to determine which branch to take. They should return true/false.
+     */
+    public function addCondition(string $name, callable $callback): void
+    {
+        $this->conditions[$name] = $callback;
     }
 
     public function can(
@@ -222,7 +238,159 @@ class StateMachineEngine implements EngineInterface
         );
         $this->eventManager->dispatch($afterEvent);
 
+        // Process automatic transitions from the new state
+        $autoResult = $this->processAutomaticTransitions($definition, $entity, $context);
+        if ($autoResult !== null) {
+            // Return the final result after automatic transitions
+            return TransitionResult::success($currentState, $autoResult->getToState() ?? $toState);
+        }
+
         return TransitionResult::success($currentState, $toState);
+    }
+
+    /**
+     * Process automatic transitions from the current state.
+     *
+     * Automatic transitions are evaluated without an explicit event trigger.
+     * When multiple automatic transitions exist from a state, conditions
+     * determine which one to take. The first transition with a passing
+     * condition (or no condition) wins.
+     *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param array<string, mixed> $context
+     *
+     * @return \Workflow\Engine\TransitionResult|null Result if automatic transition occurred, null otherwise
+     */
+    public function processAutomaticTransitions(
+        Definition $definition,
+        EntityInterface $entity,
+        array $context = [],
+    ): ?TransitionResult {
+        $currentState = $this->getCurrentState($definition, $entity);
+        $field = $definition->getField();
+
+        // Get automatic transitions from current state
+        $autoTransitions = $definition->getAutomaticTransitionsFromState($currentState);
+        if (!$autoTransitions) {
+            return null;
+        }
+
+        // Find the first matching transition (first with passing condition or no condition)
+        $selectedTransition = null;
+        foreach ($autoTransitions as $transition) {
+            $condition = $transition->getCondition();
+
+            if ($condition === null) {
+                // No condition - this is the fallback/else branch
+                // Only select if we haven't found a conditional match yet
+                if ($selectedTransition === null) {
+                    $selectedTransition = $transition;
+                }
+
+                continue;
+            }
+
+            // Evaluate condition
+            if ($this->evaluateCondition($condition, $entity, $context)) {
+                $selectedTransition = $transition;
+
+                break; // First matching condition wins
+            }
+        }
+
+        if ($selectedTransition === null) {
+            return null; // No automatic transition to apply
+        }
+
+        $toState = $selectedTransition->getTo();
+        $toStateObj = $definition->getState($toState);
+        $transitionName = $selectedTransition->getName();
+
+        // Fire before event for automatic transition
+        $beforeEvent = new WorkflowEvent(
+            WorkflowEvent::BEFORE_TRANSITION,
+            $definition,
+            $entity,
+            $transitionName,
+            $currentState,
+            $toState,
+            array_merge($context, ['automatic' => true]),
+        );
+        $this->eventManager->dispatch($beforeEvent);
+
+        // Execute onExit for current state
+        $currentStateObj = $definition->getState($currentState);
+        try {
+            $this->executeCallbacks($currentStateObj->getOnExit(), $entity, $context);
+        } catch (Throwable $e) {
+            return TransitionResult::error($currentState, $e);
+        }
+
+        // Execute commands for the automatic transition
+        try {
+            $this->executeCommands($selectedTransition->getCommands(), $entity, $context);
+        } catch (Throwable $e) {
+            return TransitionResult::error($currentState, $e);
+        }
+
+        // Apply the state change
+        $entity->set($field, $toState);
+
+        // Execute onEnter for new state
+        try {
+            $this->executeCallbacks($toStateObj->getOnEnter(), $entity, $context);
+        } catch (Throwable $e) {
+            return TransitionResult::error($currentState, $e);
+        }
+
+        // Fire after event
+        $afterEvent = new WorkflowEvent(
+            WorkflowEvent::AFTER_TRANSITION,
+            $definition,
+            $entity,
+            $transitionName,
+            $currentState,
+            $toState,
+            array_merge($context, ['automatic' => true]),
+        );
+        $this->eventManager->dispatch($afterEvent);
+
+        // Recursively process further automatic transitions
+        $furtherResult = $this->processAutomaticTransitions($definition, $entity, $context);
+        if ($furtherResult !== null) {
+            return $furtherResult;
+        }
+
+        return TransitionResult::success($currentState, $toState);
+    }
+
+    /**
+     * Evaluate a condition callback.
+     *
+     * @param string $conditionName
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param array<string, mixed> $context
+     *
+     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and condition is not found
+     *
+     * @return bool True if condition passes, false otherwise
+     */
+    private function evaluateCondition(string $conditionName, EntityInterface $entity, array $context): bool
+    {
+        if (!isset($this->conditions[$conditionName])) {
+            if ($this->strictMode) {
+                throw new WorkflowException(
+                    "Condition '{$conditionName}' is not registered. "
+                    . 'Check for typos in condition name or ensure the condition is properly configured.',
+                );
+            }
+
+            // In non-strict mode, missing conditions evaluate to false
+            return false;
+        }
+
+        return (bool)($this->conditions[$conditionName])($entity, $context);
     }
 
     /**

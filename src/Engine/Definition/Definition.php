@@ -138,6 +138,30 @@ final class Definition
     }
 
     /**
+     * Get automatic (event-less) transitions from a state.
+     *
+     * These are transitions that happen automatically when an entity
+     * enters a state, used for conditional branching.
+     *
+     * @return array<\Workflow\Engine\Definition\Transition>
+     */
+    public function getAutomaticTransitionsFromState(string $stateName): array
+    {
+        return array_values(array_filter(
+            $this->transitions,
+            fn (Transition $t) => $t->isAllowedFrom($stateName) && $t->isAutomatic(),
+        ));
+    }
+
+    /**
+     * Check if a state has automatic transitions.
+     */
+    public function hasAutomaticTransitions(string $stateName): bool
+    {
+        return count($this->getAutomaticTransitionsFromState($stateName)) > 0;
+    }
+
+    /**
      * Get a transition by name.
      *
      * @param string $name

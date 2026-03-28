@@ -183,6 +183,11 @@ class YamlLoader implements LoaderInterface
             $commands = [is_string($command) ? $command : (string)$command];
         }
 
+        $condition = $data['condition'] ?? null;
+        if ($condition !== null && !is_string($condition)) {
+            $condition = (string)$condition;
+        }
+
         return new Transition(
             name: $name,
             from: $from,
@@ -190,6 +195,8 @@ class YamlLoader implements LoaderInterface
             happy: (bool)($data['happy'] ?? false),
             guards: $guards,
             commands: $commands,
+            condition: $condition,
+            automatic: (bool)($data['automatic'] ?? false),
         );
     }
 }

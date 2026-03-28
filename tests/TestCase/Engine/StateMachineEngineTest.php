@@ -405,4 +405,178 @@ class StateMachineEngineTest extends TestCase
 
         $this->assertTrue($exited);
     }
+
+    public function testAutomaticTransitionWithCondition(): void
+    {
+        // Register condition that checks if payment is sufficient
+        $this->engine->addCondition('isPaid', function ($entity, $context) {
+            return $entity->get('payment_received') === true;
+        });
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processing'),
+                new State('shipped'),
+                new State('waiting_payment'),
+            ],
+            transitions: [
+                new Transition('process', ['pending'], 'processing'),
+                // Automatic transitions from processing state
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_wait', ['processing'], 'waiting_payment', automatic: true), // Fallback
+            ],
+        );
+
+        // Entity with payment received - should auto-transition to shipped
+        $entity = new Entity(['state' => 'pending', 'payment_received' => true]);
+        $result = $this->engine->apply($definition, $entity, 'process');
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('shipped', $entity->get('state'));
+    }
+
+    public function testAutomaticTransitionFallbackBranch(): void
+    {
+        // Register condition that checks if payment is sufficient
+        $this->engine->addCondition('isPaid', function ($entity, $context) {
+            return $entity->get('payment_received') === true;
+        });
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processing'),
+                new State('shipped'),
+                new State('waiting_payment'),
+            ],
+            transitions: [
+                new Transition('process', ['pending'], 'processing'),
+                // Automatic transitions from processing state
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_wait', ['processing'], 'waiting_payment', automatic: true), // Fallback
+            ],
+        );
+
+        // Entity without payment - should auto-transition to waiting_payment (fallback)
+        $entity = new Entity(['state' => 'pending', 'payment_received' => false]);
+        $result = $this->engine->apply($definition, $entity, 'process');
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('waiting_payment', $entity->get('state'));
+    }
+
+    public function testProcessAutomaticTransitionsManually(): void
+    {
+        $this->engine->addCondition('isApproved', function ($entity, $context) {
+            return $entity->get('approved') === true;
+        });
+
+        $definition = new Definition(
+            name: 'approval',
+            table: 'Items',
+            field: 'status',
+            states: [
+                new State('review', initial: true),
+                new State('approved'),
+                new State('rejected'),
+            ],
+            transitions: [
+                new Transition('auto_approve', ['review'], 'approved', automatic: true, condition: 'isApproved'),
+                new Transition('auto_reject', ['review'], 'rejected', automatic: true),
+            ],
+        );
+
+        $entity = new Entity(['status' => 'review', 'approved' => true]);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNotNull($result);
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('approved', $entity->get('status'));
+    }
+
+    public function testNoAutomaticTransitionsFromState(): void
+    {
+        $definition = new Definition(
+            name: 'simple',
+            table: 'Items',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('done', final: true),
+            ],
+            transitions: [
+                new Transition('finish', ['pending'], 'done'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNull($result);
+        $this->assertSame('pending', $entity->get('state')); // Unchanged
+    }
+
+    public function testChainedAutomaticTransitions(): void
+    {
+        $this->engine->addCondition('isUrgent', fn ($e, $c) => $e->get('urgent') === true);
+        $this->engine->addCondition('isReady', fn ($e, $c) => $e->get('ready') === true);
+
+        $definition = new Definition(
+            name: 'pipeline',
+            table: 'Items',
+            field: 'state',
+            states: [
+                new State('start', initial: true),
+                new State('step1'),
+                new State('step2'),
+                new State('done', final: true),
+            ],
+            transitions: [
+                new Transition('begin', ['start'], 'step1'),
+                // Auto from step1 to step2 if urgent
+                new Transition('auto_step2', ['step1'], 'step2', automatic: true, condition: 'isUrgent'),
+                // Auto from step2 to done if ready
+                new Transition('auto_done', ['step2'], 'done', automatic: true, condition: 'isReady'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'start', 'urgent' => true, 'ready' => true]);
+        $result = $this->engine->apply($definition, $entity, 'begin');
+
+        $this->assertTrue($result->isSuccess());
+        // Should chain through: start -> step1 -> step2 -> done
+        $this->assertSame('done', $entity->get('state'));
+    }
+
+    public function testStrictModeThrowsForMissingCondition(): void
+    {
+        $this->engine->setStrictMode(true);
+
+        $definition = new Definition(
+            name: 'test',
+            table: 'Items',
+            field: 'state',
+            states: [
+                new State('a', initial: true),
+                new State('b'),
+            ],
+            transitions: [
+                new Transition('auto_b', ['a'], 'b', automatic: true, condition: 'nonexistentCondition'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'a']);
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage("Condition 'nonexistentCondition' is not registered");
+
+        $this->engine->processAutomaticTransitions($definition, $entity);
+    }
 }

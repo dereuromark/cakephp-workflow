@@ -1,6 +1,6 @@
 {
     "name": "dereuromark/cakephp-workflow",
-    "description": "State machine and workflow engine for CakePHP 5.x with PHP 8 Attributes, YAML support, and admin UI",
+    "description": "State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML support, and admin UI",
     "type": "cakephp-plugin",
     "license": "MIT",
     "require": {
@@ -9,7 +9,7 @@
         "symfony/yaml": "^6.0 || ^7.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.1 || ^11.0",
+        "phpunit/phpunit": "^11.5 || ^12.5 || ^13.0",
         "cakephp/cakephp-codesniffer": "^5.0"
     },
     "autoload": {

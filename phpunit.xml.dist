@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.1/phpunit.xsd"
          colors="true"
-         bootstrap="tests/bootstrap.php">
+         bootstrap="tests/bootstrap.php"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.4/phpunit.xsd"
+         cacheDirectory=".phpunit.cache"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+>
+    <coverage/>
+    <php>
+        <ini name="memory_limit" value="-1"/>
+        <env name="FIXTURE_SCHEMA_METADATA" value="tests/schema.php"/>
+    </php>
     <testsuites>
-        <testsuite name="Workflow Plugin Tests">
+        <testsuite name="Workflow Test Suite">
             <directory>tests/TestCase/</directory>
         </testsuite>
     </testsuites>
+    <extensions>
+        <bootstrap class="Cake\TestSuite\Fixture\Extension\PHPUnitExtension"/>
+    </extensions>
     <source>
         <include>
             <directory suffix=".php">src/</directory>

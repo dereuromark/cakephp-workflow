@@ -75,17 +75,29 @@ $this->addBehavior('Workflow.Workflow', [
 - `useLocking`: `true` forces locks, `false` disables them, `null` auto-detects from the lock table
 - `useTransaction`: Wrap transition, save, and logging in one DB transaction
 
+## Transaction Safety
+
+::: warning Important
+The `applyTransition()` / `apply()` methods only change the entity **in memory**. The database state is not modified until you call `save()`.
+
+If save fails after apply succeeds, the entity object will have the new state but the database will have the old state. This is by design—it lets you control persistence—but you must handle failures appropriately.
+:::
+
+For atomic operations, use `transition()` with `transaction: true` (the default). This wraps apply + save + log in a single database transaction. If any step fails, everything rolls back.
+
 ## When to use which API
 
-Use `applyTransition()` when:
+Use `applyTransition()` / `apply()` when:
 
 - you already control the save transaction elsewhere
 - you need a purely in-memory state change
 - you want to defer persistence or logging
+- you handle save failures and re-fetch the entity if needed
 
 Use `transition()` when:
 
 - application code should express the full workflow operation in one call
+- you want atomicity: apply + save + log in one transaction
 - you want a clear default path for save/log/lock orchestration
 - you want to override orchestration behavior per call without mutating behavior config
 

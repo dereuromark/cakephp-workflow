@@ -154,16 +154,14 @@ public function initialize(array $config): void
 }
 ```
 
-Then use the Workflow object:
+Apply transitions:
 
 ```php
-$workflow = $this->workflowRegistry->get($order);
+$behavior = $this->Orders->getBehavior('Workflow');
 
-if ($workflow->can('pay')) {
-    $result = $workflow->apply('pay', ['user_id' => $userId]);
-    if ($result->isSuccess()) {
-        $this->Orders->saveOrFail($order);
-    }
+if ($behavior->canTransition($order, 'pay')) {
+    // Atomic: applies transition, saves entity, logs - all in one transaction
+    $result = $behavior->transition($order, 'pay', ['user_id' => $userId]);
 }
 ```
 

@@ -22,6 +22,9 @@ $workflow = $registry->get($order, 'order');
 // Check if transition is allowed
 if ($workflow->can('pay')) {
     $result = $workflow->apply('pay', ['user_id' => $userId]);
+    if ($result->isSuccess()) {
+        $this->Orders->saveOrFail($order);
+    }
 }
 
 // Query state
@@ -40,6 +43,10 @@ $workflow->getDefinition();          // Definition object
 $workflow->getEntity();              // The entity
 $workflow->getName();                // 'order'
 ```
+
+::: tip Transaction Safety
+The `apply()` method only changes the entity in memory. You must call `save()` to persist. For atomic operations where apply + save must succeed or fail together, use the behavior's `transition()` method instead. See [Persisted Transitions](/integration/persisted-transitions).
+:::
 
 ## ORM Behavior API
 

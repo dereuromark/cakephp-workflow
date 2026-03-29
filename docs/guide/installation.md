@@ -23,7 +23,7 @@ composer require --dev cakephp/bake
 
 In `src/Application.php`:
 
-```php
+```php [src/Application.php]
 public function bootstrap(): void
 {
     parent::bootstrap();
@@ -34,7 +34,7 @@ public function bootstrap(): void
 
 If you want to use `bin/cake bake workflow_state`, also load Bake:
 
-```php
+```php [src/Application.php]
 public function bootstrap(): void
 {
     parent::bootstrap();
@@ -56,7 +56,7 @@ bin/cake migrations migrate --plugin Workflow
 
 Configure the plugin in `config/app.php`:
 
-```php
+```php [config/app.php]
 'Workflow' => [
     'loader' => [
         'namespaces' => [

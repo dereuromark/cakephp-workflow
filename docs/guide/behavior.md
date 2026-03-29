@@ -4,7 +4,7 @@ The main application API is the `Workflow.Workflow` ORM behavior.
 
 ## Configuration
 
-```php
+```php [src/Model/Table/OrdersTable.php]
 $this->addBehavior('Workflow.Workflow', [
     'workflow' => 'order',
     'validateOnSave' => true,

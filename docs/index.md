@@ -31,7 +31,7 @@ features:
     details: Inspect workflows, validate graphs, review orphans, and explore matrices and diagrams.
   - icon: 🧱
     title: Multiple Definition Formats
-    details: Use PHP attributes, YAML, or NEON depending on project style and deployment needs.
+    details: Use PHP attributes or NEON/YAML depending on project style and deployment needs.
   - icon: 📝
     title: Logging and Timeouts
     details: Record transition history, manage locks, and process due transitions with CLI tooling.

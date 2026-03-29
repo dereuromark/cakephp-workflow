@@ -143,8 +143,6 @@ order:
 
 ## Using the Workflow
 
-### In Models
-
 Add the behavior to your table:
 
 ```php
@@ -156,88 +154,40 @@ public function initialize(array $config): void
 }
 ```
 
-Then use it:
+Then use the Workflow object:
 
 ```php
-// Check if transition is allowed
-$canPay = $ordersTable->canTransition($order, 'pay');
+$workflow = $this->workflowRegistry->get($order);
 
-// Apply transition
-$result = $ordersTable->applyTransition($order, 'pay', [
-    'user_id' => $userId,
-    'reason' => 'Payment received',
-]);
-
-if ($result->isSuccess()) {
-    $ordersTable->save($order);
+if ($workflow->can('pay')) {
+    $result = $workflow->apply('pay', ['user_id' => $userId]);
+    if ($result->isSuccess()) {
+        $this->Orders->save($order);
+    }
 }
-
-// Get available transitions
-$transitions = $ordersTable->getAvailableTransitions($order);
 ```
 
-For the persisted orchestration API (`transition()`), behavior options, and
-transaction/logging/locking details, see `docs/guide/persisted-transitions.md`.
-
-## Admin Dashboard
-
-Access the admin dashboard at `/workflow/admin/workflows`.
+See the [documentation](https://dereuromark.github.io/cakephp-workflow/) for the full API.
 
 ## CLI Commands
 
 ```bash
-# Scaffold a new attribute-based workflow
-bin/cake workflow init order Orders
-
-# Add another state class to an existing workflow (requires cakephp/bake)
-bin/cake bake workflow_state Order/Shipped --transition-to Delivered --transition-name deliver
-
-# List all workflows
-bin/cake workflow list
-
-# Show workflow details
-bin/cake workflow show order
-
-# Output Mermaid diagram
-bin/cake workflow show order --mermaid
-
-# Validate workflow definitions
-bin/cake workflow validate
-
-# Process pending timeouts
-bin/cake workflow timeouts
-```
-
-## View Helper
-
-Use the helper in your templates:
-
-```php
-// Include Mermaid.js
-<?= $this->Workflow->includeMermaid() ?>
-
-// Render workflow diagram
-<?= $this->Workflow->diagram($definition) ?>
-
-// Render state badge
-<?= $this->Workflow->stateBadge($definition, $entity->state) ?>
-
-// Render transition buttons
-<?= $this->Workflow->transitionButtons($entity, $availableTransitions) ?>
+bin/cake workflow init order Orders    # Scaffold new workflow
+bin/cake workflow list                 # List all workflows
+bin/cake workflow show order           # Show workflow details
+bin/cake workflow validate             # Validate definitions
 ```
 
 ## Features
 
-- **PHP 8 Attributes**: Define workflows declaratively using modern PHP
-- **NEON/YAML Support**: Alternative configuration via NEON or YAML files
-- **State Types**: Initial, final, and failed state types
-- **Guards**: Conditional transitions with guard methods
-- **Commands**: Execute actions on state transitions
-- **Happy Path**: Visual emphasis on primary workflow paths
-- **State Flags**: Custom metadata on states
-- **Audit Trail**: Full transition logging with user tracking
-- **Locking**: Prevent concurrent transitions
-- **Timeouts**: Automatic time-based transitions
-- **Admin UI**: Visual dashboard with Mermaid.js diagrams
-- **CLI Tools**: Workflow management and validation commands
-- **Validation**: Detect unreachable states and dead ends
+- PHP 8 Attributes or NEON/YAML definitions
+- Guards, commands, and lifecycle callbacks
+- Audit logging with user tracking
+- Pessimistic locking for concurrent transitions
+- Automatic timeouts
+- Admin UI with Mermaid.js diagrams
+- CLI tools for management and validation
+
+## Documentation
+
+Full documentation: https://dereuromark.github.io/cakephp-workflow/

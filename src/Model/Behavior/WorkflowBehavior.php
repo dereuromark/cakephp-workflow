@@ -42,6 +42,7 @@ class WorkflowBehavior extends Behavior
         'validateOnSave' => true,
         'autoSave' => false,
         'autoLog' => false,
+        'logAllOutcomes' => true, // When true, also log blocked/error transitions for audit trail
         'entityTable' => null, // Auto-detected if not set
         'useLocking' => null, // null=auto-detect, true=force on, false=force off
         'useTimeouts' => null, // null=auto-detect, true=force on, false=force off
@@ -290,7 +291,7 @@ class WorkflowBehavior extends Behavior
                 $this->_table->saveOrFail($entity);
             }
 
-            // Auto-log if enabled - within same transaction
+            // Auto-log successful transitions within same transaction
             if ($this->getConfig('autoLog')) {
                 $this->logTransition($entity, $result, $transition, $context);
             }
@@ -301,6 +302,11 @@ class WorkflowBehavior extends Behavior
 
             return $result;
         });
+
+        // Log non-successful transitions outside the transaction for audit trail
+        if (!$result->isSuccess() && $this->getConfig('autoLog') && $this->getConfig('logAllOutcomes')) {
+            $this->logTransition($entity, $result, $transition, $context);
+        }
 
         return $result;
     }
@@ -341,7 +347,7 @@ class WorkflowBehavior extends Behavior
                 );
             }
 
-            // If not using transaction, handle save/log here (original behavior)
+            // If not using transaction, handle save/log here
             if (!$this->getConfig('useTransaction')) {
                 if ($this->getConfig('autoSave')) {
                     $this->_table->saveOrFail($entity);
@@ -355,6 +361,9 @@ class WorkflowBehavior extends Behavior
                     $this->syncTimeouts($entity);
                 }
             }
+        } elseif (!$this->getConfig('useTransaction') && $this->getConfig('autoLog') && $this->getConfig('logAllOutcomes')) {
+            // Log non-successful transitions for audit trail when not using transactions
+            $this->logTransition($entity, $result, $transition, $context);
         }
 
         return $result;

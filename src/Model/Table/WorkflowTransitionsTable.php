@@ -7,6 +7,7 @@ namespace Workflow\Model\Table;
 use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\Table;
 use Cake\Validation\Validator;
+use Workflow\Service\TransitionLogger;
 
 class WorkflowTransitionsTable extends Table
 {
@@ -65,6 +66,18 @@ class WorkflowTransitionsTable extends Table
             ->requirePresence('to_state', 'create')
             ->notEmptyString('to_state');
 
+        $validator
+            ->scalar('status')
+            ->maxLength('status', 16)
+            ->requirePresence('status', 'create')
+            ->notEmptyString('status')
+            ->inList('status', [
+                TransitionLogger::STATUS_SUCCESS,
+                TransitionLogger::STATUS_BLOCKED,
+                TransitionLogger::STATUS_LOCKED,
+                TransitionLogger::STATUS_ERROR,
+            ]);
+
         return $validator;
     }
 
@@ -75,16 +88,28 @@ class WorkflowTransitionsTable extends Table
      * @param string $workflow
      * @param string $table
      * @param string $id
+     * @param bool $successOnly If true, only return successful transitions
      */
-    public function findForEntity(SelectQuery $query, string $workflow, string $table, string $id): SelectQuery
-    {
-        return $query
+    public function findForEntity(
+        SelectQuery $query,
+        string $workflow,
+        string $table,
+        string $id,
+        bool $successOnly = false,
+    ): SelectQuery {
+        $query = $query
             ->where([
                 'workflow_name' => $workflow,
                 'entity_table' => $table,
                 'entity_id' => $id,
             ])
             ->orderBy(['id' => 'DESC']);
+
+        if ($successOnly) {
+            $query = $query->where(['status' => TransitionLogger::STATUS_SUCCESS]);
+        }
+
+        return $query;
     }
 
     /**
@@ -92,11 +117,47 @@ class WorkflowTransitionsTable extends Table
      *
      * @param \Cake\ORM\Query\SelectQuery $query
      * @param int $limit
+     * @param string|null $status Filter by status (success, blocked, locked, error)
      */
-    public function findRecent(SelectQuery $query, int $limit = 50): SelectQuery
+    public function findRecent(SelectQuery $query, int $limit = 50, ?string $status = null): SelectQuery
     {
-        return $query
+        $query = $query
             ->orderBy(['id' => 'DESC'])
             ->limit($limit);
+
+        if ($status !== null) {
+            $query = $query->where(['status' => $status]);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Find transitions by status.
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     * @param string $status One of: success, blocked, locked, error
+     */
+    public function findByStatus(SelectQuery $query, string $status): SelectQuery
+    {
+        return $query
+            ->where(['status' => $status])
+            ->orderBy(['id' => 'DESC']);
+    }
+
+    /**
+     * Find failed transitions (blocked, locked, or error).
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     */
+    public function findFailed(SelectQuery $query): SelectQuery
+    {
+        return $query
+            ->where(['status IN' => [
+                TransitionLogger::STATUS_BLOCKED,
+                TransitionLogger::STATUS_LOCKED,
+                TransitionLogger::STATUS_ERROR,
+            ]])
+            ->orderBy(['id' => 'DESC']);
     }
 }

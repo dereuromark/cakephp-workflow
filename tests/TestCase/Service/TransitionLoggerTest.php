@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Test\TestCase\Service;
 
 use Cake\ORM\Entity;
+use RuntimeException;
 use Workflow\Engine\TransitionResult;
 use Workflow\Service\TransitionLogger;
 use Workflow\Test\TestCase\DatabaseTestCase;
@@ -44,10 +45,12 @@ class TransitionLoggerTest extends DatabaseTestCase
         $this->assertSame('pay', $transition->transition_name);
         $this->assertSame('pending', $transition->from_state);
         $this->assertSame('paid', $transition->to_state);
+        $this->assertSame('success', $transition->status);
         $this->assertSame('user-1', $transition->user_id);
+        $this->assertTrue($transition->isSuccess());
     }
 
-    public function testLogDoesNotLogFailedTransition(): void
+    public function testLogBlockedTransition(): void
     {
         $entity = new Entity(['id' => '123']);
         $result = TransitionResult::blocked('pending', ['guard' => 'Permission denied']);
@@ -61,9 +64,62 @@ class TransitionLoggerTest extends DatabaseTestCase
         );
 
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
-        $count = $table->find()->count();
+        $transition = $table->find()->first();
 
-        $this->assertSame(0, $count);
+        $this->assertNotNull($transition);
+        $this->assertSame('blocked', $transition->status);
+        $this->assertSame('pending', $transition->from_state);
+        $this->assertSame('pending', $transition->to_state); // Stays in same state
+        $this->assertTrue($transition->isBlocked());
+        $this->assertSame(['guard' => 'Permission denied'], $transition->getBlockedBy());
+    }
+
+    public function testLogLockedTransition(): void
+    {
+        $entity = new Entity(['id' => '123']);
+        $result = TransitionResult::locked('pending');
+
+        $this->logger->log(
+            'order',
+            'Orders',
+            $entity,
+            $result,
+            'pay',
+        );
+
+        $table = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transition = $table->find()->first();
+
+        $this->assertNotNull($transition);
+        $this->assertSame('locked', $transition->status);
+        $this->assertTrue($transition->isLocked());
+    }
+
+    public function testLogErrorTransition(): void
+    {
+        $entity = new Entity(['id' => '123']);
+        $exception = new RuntimeException('Command failed');
+        $result = TransitionResult::error('pending', 'paid', $exception);
+
+        $this->logger->log(
+            'order',
+            'Orders',
+            $entity,
+            $result,
+            'pay',
+        );
+
+        $table = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transition = $table->find()->first();
+
+        $this->assertNotNull($transition);
+        $this->assertSame('error', $transition->status);
+        $this->assertTrue($transition->isError());
+
+        $errorDetails = $transition->getErrorDetails();
+        $this->assertNotNull($errorDetails);
+        $this->assertSame('Command failed', $errorDetails['message']);
+        $this->assertSame(RuntimeException::class, $errorDetails['class']);
     }
 
     public function testLogWithReason(): void
@@ -199,6 +255,66 @@ class TransitionLoggerTest extends DatabaseTestCase
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
         $transition = $table->find()->first();
 
+        // Empty context with no runtime metadata results in null
         $this->assertNull($transition->context);
+    }
+
+    public function testGetHistorySuccessOnly(): void
+    {
+        $entity = new Entity(['id' => '123']);
+
+        // Log success
+        $result1 = TransitionResult::success('pending', 'paid');
+        $this->logger->log('order', 'Orders', $entity, $result1, 'pay');
+
+        // Log blocked
+        $result2 = TransitionResult::blocked('paid', ['guard' => 'Not allowed']);
+        $this->logger->log('order', 'Orders', $entity, $result2, 'ship');
+
+        // Log another success
+        $result3 = TransitionResult::success('paid', 'shipped');
+        $this->logger->log('order', 'Orders', $entity, $result3, 'ship');
+
+        // Get all history
+        $allHistory = $this->logger->getHistory('order', 'Orders', '123');
+        $this->assertCount(3, $allHistory);
+
+        // Get success only
+        $successHistory = $this->logger->getHistory('order', 'Orders', '123', successOnly: true);
+        $this->assertCount(2, $successHistory);
+        foreach ($successHistory as $t) {
+            $this->assertTrue($t->isSuccess());
+        }
+    }
+
+    public function testLogWithRuntimeMetadata(): void
+    {
+        $entity = new Entity(['id' => '123']);
+
+        // Create result with runtime metadata
+        $result = TransitionResult::success('pending', 'paid')
+            ->withGuardEvaluated('checkBalance')
+            ->withGuardEvaluated('checkInventory')
+            ->withCommandExecuted('sendEmail')
+            ->withUsedLock(true);
+
+        $this->logger->log(
+            'order',
+            'Orders',
+            $entity,
+            $result,
+            'pay',
+        );
+
+        $table = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transition = $table->find()->first();
+
+        $this->assertNotNull($transition);
+        $runtime = $transition->getRuntime();
+        $this->assertNotNull($runtime);
+        $this->assertContains('checkBalance', $transition->getGuardsEvaluated());
+        $this->assertContains('checkInventory', $transition->getGuardsEvaluated());
+        $this->assertContains('sendEmail', $transition->getCommandsExecuted());
+        $this->assertTrue($transition->usedLock());
     }
 }

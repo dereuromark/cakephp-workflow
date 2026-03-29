@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Model\Entity;
 
 use Cake\ORM\Entity;
+use Workflow\Service\TransitionLogger;
 
 /**
  * @property int $id
@@ -14,6 +15,7 @@ use Cake\ORM\Entity;
  * @property string $transition_name
  * @property string $from_state
  * @property string $to_state
+ * @property string $status
  * @property string|null $user_id
  * @property string|null $reason
  * @property array<string, mixed>|null $context
@@ -29,12 +31,65 @@ class WorkflowTransition extends Entity
         'transition_name' => true,
         'from_state' => true,
         'to_state' => true,
+        'status' => true,
         'user_id' => true,
         'reason' => true,
         'context' => true,
         'workflow_version' => true,
         'created' => true,
     ];
+
+    /**
+     * Check if this was a successful transition.
+     */
+    public function isSuccess(): bool
+    {
+        return $this->status === TransitionLogger::STATUS_SUCCESS;
+    }
+
+    /**
+     * Check if this transition was blocked.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->status === TransitionLogger::STATUS_BLOCKED;
+    }
+
+    /**
+     * Check if this transition was locked out.
+     */
+    public function isLocked(): bool
+    {
+        return $this->status === TransitionLogger::STATUS_LOCKED;
+    }
+
+    /**
+     * Check if this transition had an error.
+     */
+    public function isError(): bool
+    {
+        return $this->status === TransitionLogger::STATUS_ERROR;
+    }
+
+    /**
+     * Get blocked reasons if this was a blocked transition.
+     *
+     * @return array<string, string>
+     */
+    public function getBlockedBy(): array
+    {
+        return $this->context['_blocked_by'] ?? [];
+    }
+
+    /**
+     * Get error details if this was an error transition.
+     *
+     * @return array{message?: string|null, class?: string|null, file?: string|null, line?: int|null}|null
+     */
+    public function getErrorDetails(): ?array
+    {
+        return $this->context['_error'] ?? null;
+    }
 
     /**
      * Get runtime metadata from context.

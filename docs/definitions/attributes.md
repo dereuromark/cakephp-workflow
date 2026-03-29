@@ -148,6 +148,8 @@ public function cleanupResources(): void
 | `#[OnExit]` | Callback when leaving this state |
 | `#[Timeout('1 hour', 'expire')]` | Auto-transition after duration |
 
+Timeout durations support ISO-8601 intervals like `PT30M` and relative strings like `2 hours`.
+
 ### Transition-level
 
 ```php

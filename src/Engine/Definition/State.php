@@ -17,6 +17,7 @@ final class State
      * @param array<string> $onEnter Callback names to invoke when entering this state
      * @param array<string> $onExit Callback names to invoke when exiting this state
      * @param array<string> $requireReasonFor Transition names that require a reason when leaving this state
+     * @param array<\Workflow\Engine\Definition\StateTimeout> $timeouts Time-based transitions to schedule while in this state
      */
     public function __construct(
         private string $name,
@@ -29,6 +30,7 @@ final class State
         private array $onEnter = [],
         private array $onExit = [],
         private array $requireReasonFor = [],
+        private array $timeouts = [],
     ) {
     }
 
@@ -119,5 +121,18 @@ final class State
     public function requiresReasonFor(string $transition): bool
     {
         return in_array($transition, $this->requireReasonFor, true);
+    }
+
+    /**
+     * @return array<\Workflow\Engine\Definition\StateTimeout>
+     */
+    public function getTimeouts(): array
+    {
+        return $this->timeouts;
+    }
+
+    public function hasTimeouts(): bool
+    {
+        return $this->timeouts !== [];
     }
 }

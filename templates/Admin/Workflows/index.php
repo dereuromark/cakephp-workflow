@@ -18,6 +18,13 @@ $this->assign('title', 'Workflows');
             </ol>
         </nav>
     </div>
+    <div>
+        <?= $this->Html->link(
+            '<i class="bi bi-plus-lg me-1"></i>New Workflow',
+            ['action' => 'create'],
+            ['class' => 'btn btn-primary', 'escapeTitle' => false],
+        ) ?>
+    </div>
 </div>
 
 <?php if (empty($workflows)) { ?>

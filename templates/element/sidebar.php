@@ -106,4 +106,18 @@ $currentAction = $this->request->getParam('action');
             ) ?>
         </li>
     </ul>
+
+    <div class="sidebar-section">Tools</div>
+    <ul class="sidebar-nav">
+        <li>
+            <?= $this->Html->link(
+                '<i class="bi bi-pencil-square"></i> Designer',
+                ['plugin' => 'Workflow', 'controller' => 'Workflows', 'action' => 'create', 'prefix' => 'Admin'],
+                [
+                    'class' => 'nav-link' . ($currentController === 'Workflows' && $currentAction === 'create' ? ' active' : ''),
+                    'escapeTitle' => false,
+                ],
+            ) ?>
+        </li>
+    </ul>
 </nav>

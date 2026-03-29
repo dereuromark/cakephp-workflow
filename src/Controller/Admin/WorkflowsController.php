@@ -104,6 +104,10 @@ class WorkflowsController extends WorkflowAppController
         // Check available export formats
         $exportFormats = static::getAvailableExportFormats();
 
+        $analyzer = new WorkflowAnalyzer();
+        $issues = $analyzer->analyze($definition);
+        $issuesBySeverity = $analyzer->getIssuesBySeverity();
+
         $this->set(compact(
             'definition',
             'stateCounts',
@@ -112,6 +116,8 @@ class WorkflowsController extends WorkflowAppController
             'transitionsToday',
             'pendingTimeouts',
             'exportFormats',
+            'issues',
+            'issuesBySeverity',
         ));
     }
 
@@ -439,5 +445,156 @@ class WorkflowsController extends WorkflowAppController
             'neon' => class_exists(Neon::class),
             'yaml' => class_exists(Yaml::class),
         ];
+    }
+
+    /**
+     * Create a new workflow using the visual designer.
+     *
+     * @throws \RuntimeException
+     *
+     * @return \Cake\Http\Response|null
+     */
+    public function create(): ?Response
+    {
+        $exportFormats = static::getAvailableExportFormats();
+
+        if ($this->request->is('post')) {
+            $data = $this->request->getData();
+
+            // Build definition structure from form data
+            $workflowData = $this->buildWorkflowDataFromForm($data);
+
+            $format = $data['export_format'] ?? 'neon';
+            if ($format === 'neon' && !$exportFormats['neon']) {
+                $format = 'yaml';
+            }
+            if ($format === 'yaml' && !$exportFormats['yaml']) {
+                throw new RuntimeException('No export format available. Install nette/neon or symfony/yaml.');
+            }
+
+            if ($format === 'neon') {
+                $content = Neon::encode($workflowData, true);
+                $contentType = 'text/plain';
+                $extension = 'neon';
+            } else {
+                $content = Yaml::dump($workflowData, 6, 2);
+                $contentType = 'text/yaml';
+                $extension = 'yaml';
+            }
+
+            $workflowName = $data['name'] ?? 'workflow';
+
+            return $this->response
+                ->withType($contentType)
+                ->withHeader('Content-Disposition', 'attachment; filename="' . $workflowName . '.' . $extension . '"')
+                ->withStringBody($content);
+        }
+
+        $this->set(compact('exportFormats'));
+
+        return null;
+    }
+
+    /**
+     * Build workflow data structure from form submission.
+     *
+     * @param array<string, mixed> $data Form data
+     *
+     * @return array<string, mixed>
+     */
+    private function buildWorkflowDataFromForm(array $data): array
+    {
+        $workflowName = $data['name'] ?? 'new_workflow';
+
+        $workflowData = [
+            $workflowName => [
+                'table' => $data['table'] ?? 'Items',
+                'field' => $data['field'] ?? 'state',
+            ],
+        ];
+
+        $workflow = &$workflowData[$workflowName];
+
+        // Add metadata if provided
+        if (!empty($data['label']) || !empty($data['description'])) {
+            $workflow['metadata'] = [];
+            if (!empty($data['label'])) {
+                $workflow['metadata']['label'] = $data['label'];
+            }
+            if (!empty($data['description'])) {
+                $workflow['metadata']['description'] = $data['description'];
+            }
+        }
+
+        // Add version if provided
+        if (!empty($data['version'])) {
+            $workflow['version'] = $data['version'];
+        }
+
+        // Process states
+        $workflow['states'] = [];
+        if (!empty($data['states']) && is_array($data['states'])) {
+            foreach ($data['states'] as $state) {
+                if (empty($state['name'])) {
+                    continue;
+                }
+                $stateData = [];
+                if (!empty($state['label'])) {
+                    $stateData['label'] = $state['label'];
+                }
+                if (!empty($state['color'])) {
+                    $stateData['color'] = $state['color'];
+                }
+                if (!empty($state['initial'])) {
+                    $stateData['initial'] = true;
+                }
+                if (!empty($state['final'])) {
+                    $stateData['final'] = true;
+                }
+                if (!empty($state['failed'])) {
+                    $stateData['failed'] = true;
+                }
+                if (!empty($state['flags'])) {
+                    $flags = array_filter(array_map('trim', explode(',', $state['flags'])));
+                    if ($flags) {
+                        $stateData['flags'] = $flags;
+                    }
+                }
+                $workflow['states'][$state['name']] = $stateData ?: null;
+            }
+        }
+
+        // Process transitions
+        $workflow['transitions'] = [];
+        if (!empty($data['transitions']) && is_array($data['transitions'])) {
+            foreach ($data['transitions'] as $transition) {
+                if (empty($transition['name'])) {
+                    continue;
+                }
+                $transitionData = [];
+                if (!empty($transition['from'])) {
+                    $from = array_filter(array_map('trim', explode(',', $transition['from'])));
+                    $transitionData['from'] = $from;
+                }
+                if (!empty($transition['to'])) {
+                    $transitionData['to'] = $transition['to'];
+                }
+                if (!empty($transition['happy'])) {
+                    $transitionData['happy'] = true;
+                }
+                if (!empty($transition['automatic'])) {
+                    $transitionData['automatic'] = true;
+                }
+                if (!empty($transition['guard'])) {
+                    $transitionData['guard'] = $transition['guard'];
+                }
+                if (!empty($transition['command'])) {
+                    $transitionData['command'] = $transition['command'];
+                }
+                $workflow['transitions'][$transition['name']] = $transitionData;
+            }
+        }
+
+        return $workflowData;
     }
 }

@@ -9,6 +9,7 @@ $routes->prefix('Admin', function (RouteBuilder $routes): void {
     $routes->plugin('Workflow', function (RouteBuilder $routes): void {
         $routes->connect('/', ['controller' => 'Workflow', 'action' => 'index']);
         $routes->connect('/workflows', ['controller' => 'Workflows', 'action' => 'index']);
+        $routes->connect('/workflows/create', ['controller' => 'Workflows', 'action' => 'create']);
         $routes->connect('/workflows/view/{name}', ['controller' => 'Workflows', 'action' => 'view'])
             ->setPass(['name']);
         $routes->connect('/transitions', ['controller' => 'Transitions', 'action' => 'index']);

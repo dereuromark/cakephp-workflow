@@ -35,6 +35,7 @@ class WorkflowAnalyzer
         $this->checkUnreachableStates($definition);
         $this->checkDeadEndStates($definition);
         $this->checkTransitionTargets($definition);
+        $this->checkOutgoingTransitionsFromFinalStates($definition);
         $this->checkDuplicateTransitions($definition);
         $this->checkHappyPath($definition);
 
@@ -167,6 +168,40 @@ class WorkflowAnalyzer
                         ['transition' => $transition->getName(), 'source' => $from],
                     );
                 }
+            }
+        }
+    }
+
+    /**
+     * Check for transitions leaving terminal states.
+     *
+     * Final and failed states are treated as terminal by the engine, so
+     * declaring outgoing transitions from them creates unreachable paths.
+     */
+    private function checkOutgoingTransitionsFromFinalStates(Definition $definition): void
+    {
+        foreach ($definition->getTransitions() as $transition) {
+            foreach ($transition->getFrom() as $from) {
+                if (!$definition->hasState($from)) {
+                    continue;
+                }
+
+                $state = $definition->getState($from);
+                if (!$state->isFinal()) {
+                    continue;
+                }
+
+                $kind = $state->isFailed() ? 'failed' : 'final';
+                $this->addIssue(
+                    'terminal_state_outgoing_transition',
+                    'error',
+                    "Transition '{$transition->getName()}' starts from {$kind} state '{$from}', but terminal states cannot have outgoing transitions",
+                    [
+                        'transition' => $transition->getName(),
+                        'state' => $from,
+                        'stateType' => $kind,
+                    ],
+                );
             }
         }
     }

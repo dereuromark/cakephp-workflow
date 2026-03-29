@@ -104,6 +104,17 @@ class WorkflowValidateCommand extends Command
                 $hasErrors = true;
             }
 
+            // Check for impossible transitions leaving terminal states
+            $terminalOutgoingTransitions = $this->findOutgoingTransitionsFromTerminalStates($definition);
+            if ($terminalOutgoingTransitions) {
+                $io->error('  Transitions from terminal states:');
+                foreach ($terminalOutgoingTransitions as $transition) {
+                    $io->out("    - <error>{$transition}</error>");
+                }
+                $workflowHasErrors = true;
+                $hasErrors = true;
+            }
+
             // Check database for obsolete states
             if ($checkData) {
                 $obsolete = $this->findObsoleteStates($definition);
@@ -211,6 +222,34 @@ class WorkflowValidateCommand extends Command
         }
 
         return $orphaned;
+    }
+
+    /**
+     * Find transitions that start from final or failed states.
+     *
+     * @return array<string>
+     */
+    private function findOutgoingTransitionsFromTerminalStates(Definition $definition): array
+    {
+        $terminalOutgoingTransitions = [];
+
+        foreach ($definition->getTransitions() as $transition) {
+            foreach ($transition->getFrom() as $from) {
+                if (!$definition->hasState($from)) {
+                    continue;
+                }
+
+                $state = $definition->getState($from);
+                if (!$state->isFinal()) {
+                    continue;
+                }
+
+                $kind = $state->isFailed() ? 'failed' : 'final';
+                $terminalOutgoingTransitions[] = "{$transition->getName()} from {$kind} state {$from}";
+            }
+        }
+
+        return $terminalOutgoingTransitions;
     }
 
     /**

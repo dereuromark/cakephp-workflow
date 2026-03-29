@@ -146,12 +146,6 @@ $this->assign('title', 'Orphaned Items');
     </div>
 
     <?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
-        <?php
-        $definition = null;
-        if ($this->getRequest()->getQuery('workflow') && isset($this->viewBuilder()->getVar('workflowRegistry'))) {
-            // Get valid states for bulk fix dropdown
-        }
-        ?>
         <div class="card-footer">
             <div class="row align-items-end">
                 <div class="col-md-4">

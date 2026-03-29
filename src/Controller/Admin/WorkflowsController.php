@@ -645,13 +645,9 @@ class WorkflowsController extends WorkflowAppController
             // Try to get detailed guard results
             $guardResults = [];
             foreach ($t->getGuards() as $guardName) {
-                try {
-                    // We can't easily get individual guard results without modifying the engine,
-                    // so we'll just indicate whether the overall transition can be applied
-                    $guardResults[$guardName] = $canApply ? 'passed' : 'unknown';
-                } catch (Throwable $e) {
-                    $guardResults[$guardName] = 'error: ' . $e->getMessage();
-                }
+                // We can't easily get individual guard results without modifying the engine,
+                // so we'll just indicate whether the overall transition can be applied
+                $guardResults[$guardName] = $canApply ? 'passed' : 'unknown';
             }
 
             $simulationResults[] = [

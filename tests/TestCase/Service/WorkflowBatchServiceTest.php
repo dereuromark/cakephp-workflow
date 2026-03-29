@@ -201,6 +201,15 @@ class WorkflowBatchServiceTest extends TestCase
                 return $this->workflowEngine->apply($this->workflowDefinition, $entity, $transition, $context);
             }
 
+            public function transition(
+                EntityInterface $entity,
+                string $transition,
+                array $context = [],
+                array $options = [],
+            ): TransitionResult {
+                return $this->applyTransition($entity, $transition, $context);
+            }
+
             public function canTransition(EntityInterface $entity, string $transition, array $context = []): bool
             {
                 return $this->workflowEngine->can($this->workflowDefinition, $entity, $transition, $context);

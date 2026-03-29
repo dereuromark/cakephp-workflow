@@ -57,4 +57,7 @@ This command:
 - reloads the affected entity
 - verifies the entity is still in the expected state
 - applies the transition if still valid
+- marks the processed timeout entry
+- schedules the next state's timeouts when applicable
 
+For persisted transition orchestration details, see [Timeout Orchestration](./timeout-orchestration).

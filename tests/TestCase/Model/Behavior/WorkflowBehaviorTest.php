@@ -13,6 +13,7 @@ use Cake\TestSuite\TestCase;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\StateTimeout;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Engine\TransitionResult;
 use Workflow\Exception\WorkflowException;
@@ -20,6 +21,7 @@ use Workflow\Loader\LoaderInterface;
 use Workflow\Model\Behavior\WorkflowBehavior;
 use Workflow\Model\Entity\WorkflowLock;
 use Workflow\Service\LockManager;
+use Workflow\Service\TimeoutScheduler;
 use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
 
@@ -61,7 +63,7 @@ class WorkflowBehaviorTest extends TestCase
             field: 'state',
             states: [
                 new State('pending', initial: true),
-                new State('paid'),
+                new State('paid', timeouts: [new StateTimeout('PT1H', 'ship')]),
                 new State('shipped'),
                 new State('completed', final: true, flags: ['done']),
                 new State('cancelled', final: true, failed: true),
@@ -181,7 +183,7 @@ class WorkflowBehaviorTest extends TestCase
         };
         $behavior->setLogger($logger);
 
-        $entity = new Entity(['state' => 'pending']);
+        $entity = new Entity(['id' => 1, 'state' => 'pending']);
         $result = $behavior->transition($entity, 'pay', [], [
             'save' => true,
             'log' => true,
@@ -246,6 +248,94 @@ class WorkflowBehaviorTest extends TestCase
         $this->assertTrue($result->isSuccess());
         $this->assertSame(1, $lockManager->acquireCalls);
         $this->assertSame(1, $lockManager->releaseCalls);
+    }
+
+    public function testTransitionUsesInjectedTimeoutSchedulerWhenPersisting(): void
+    {
+        $table = new class (['table' => 'orders', 'alias' => 'Orders']) extends Table {
+            public function saveOrFail(
+                EntityInterface $entity,
+                array $options = [],
+            ): EntityInterface {
+                return $entity;
+            }
+        };
+
+        $this->table = $table;
+        $behavior = $this->addBehavior([
+            'autoSave' => false,
+            'autoLog' => false,
+            'useTransaction' => false,
+            'useLocking' => false,
+            'useTimeouts' => false,
+        ]);
+
+        $scheduler = new class () extends TimeoutScheduler {
+            public int $calls = 0;
+
+            public ?string $stateName = null;
+
+            public function syncStateTimeouts(
+                string $workflowName,
+                string $entityTable,
+                EntityInterface $entity,
+                State $state,
+            ): void {
+                $this->calls++;
+                $this->stateName = $state->getName();
+            }
+        };
+        $behavior->setTimeoutScheduler($scheduler);
+
+        $entity = new Entity(['id' => 1, 'state' => 'pending']);
+        $result = $behavior->transition($entity, 'pay', [], [
+            'save' => true,
+            'log' => false,
+            'lock' => false,
+            'timeouts' => true,
+            'transaction' => false,
+        ]);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame(1, $scheduler->calls);
+        $this->assertSame('paid', $scheduler->stateName);
+    }
+
+    public function testTransitionDoesNotScheduleTimeoutsWithoutPersistence(): void
+    {
+        $behavior = $this->addBehavior([
+            'autoSave' => false,
+            'autoLog' => false,
+            'useTransaction' => false,
+            'useLocking' => false,
+            'useTimeouts' => false,
+        ]);
+
+        $scheduler = new class () extends TimeoutScheduler {
+            public int $calls = 0;
+
+            public function syncStateTimeouts(
+                string $workflowName,
+                string $entityTable,
+                EntityInterface $entity,
+                State $state,
+            ): void {
+                $this->calls++;
+            }
+        };
+        $behavior->setTimeoutScheduler($scheduler);
+
+        $entity = new Entity(['id' => 1, 'state' => 'pending']);
+        $result = $behavior->transition($entity, 'pay', [], [
+            'save' => false,
+            'log' => false,
+            'lock' => false,
+            'timeouts' => true,
+            'transaction' => false,
+        ]);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame(0, $scheduler->calls);
     }
 
     public function testApplyTransitionFails(): void

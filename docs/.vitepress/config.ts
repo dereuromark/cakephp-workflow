@@ -52,6 +52,7 @@ export default defineConfig({
             { text: 'Behavior Integration', link: '/guide/behavior' },
             { text: 'View Helper', link: '/guide/view-helper' },
             { text: 'Persisted Transitions', link: '/guide/persisted-transitions' },
+            { text: 'Timeout Orchestration', link: '/guide/timeout-orchestration' },
             { text: 'Controller Component', link: '/guide/component' },
             { text: 'Events, Logging, and Locks', link: '/guide/runtime' },
           ],

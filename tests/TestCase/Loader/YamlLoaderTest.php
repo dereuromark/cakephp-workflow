@@ -377,6 +377,43 @@ YAML;
         $this->assertTrue($transition->isHappy());
     }
 
+    public function testLoadWithStateTimeouts(): void
+    {
+        $yaml = <<<YAML
+timed:
+  table: Orders
+  states:
+    pending:
+      initial: true
+      timeouts:
+        - after: PT30M
+          transition: cancel
+        - after: 2 hours
+          transition: remind
+    cancelled:
+      final: true
+    reminded:
+  transitions:
+    cancel:
+      from: pending
+      to: cancelled
+    remind:
+      from: pending
+      to: reminded
+YAML;
+        $this->createYamlFile('timed', $yaml);
+
+        $loader = new YamlLoader($this->tempDir);
+        $definition = $loader->load('timed');
+
+        $pending = $definition->getState('pending');
+        $this->assertCount(2, $pending->getTimeouts());
+        $this->assertSame('PT30M', $pending->getTimeouts()[0]->getAfter());
+        $this->assertSame('cancel', $pending->getTimeouts()[0]->getTransition());
+        $this->assertSame('2 hours', $pending->getTimeouts()[1]->getAfter());
+        $this->assertSame('remind', $pending->getTimeouts()[1]->getTransition());
+    }
+
     private function createYamlFile(string $name, string $content): void
     {
         file_put_contents($this->tempDir . '/' . $name . '.yaml', $content);

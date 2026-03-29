@@ -7,9 +7,11 @@ namespace TestApp\Workflow\Order;
 use Workflow\Attribute\Command;
 use Workflow\Attribute\Guard;
 use Workflow\Attribute\InitialState;
+use Workflow\Attribute\Timeout;
 use Workflow\Attribute\Transition;
 
 #[InitialState]
+#[Timeout('PT1H', 'pay')]
 #[Transition(to: PaidState::class, name: 'pay')]
 class PendingState extends BaseOrderState
 {

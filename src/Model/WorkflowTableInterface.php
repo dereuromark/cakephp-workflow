@@ -38,6 +38,21 @@ interface WorkflowTableInterface
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult;
 
     /**
+     * Apply, persist, and orchestrate a transition.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
+     * @param array<string, mixed> $context
+     * @param array{save?: bool, log?: bool, lock?: bool|null, timeouts?: bool|null, transaction?: bool} $options
+     */
+    public function transition(
+        EntityInterface $entity,
+        string $transition,
+        array $context = [],
+        array $options = [],
+    ): TransitionResult;
+
+    /**
      * Check if a transition can be applied.
      *
      * @param \Cake\Datasource\EntityInterface $entity

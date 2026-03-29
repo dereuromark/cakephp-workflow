@@ -43,6 +43,9 @@ $result = $this->Orders->transition($order, 'pay', [
 For the full persisted API, per-call options, and default orchestration config,
 see [Persisted Transitions](./persisted-transitions).
 
+For automatic timeout scheduling/cancellation during persisted transitions,
+see [Timeout Orchestration](./timeout-orchestration).
+
 ### Get available transitions
 
 ```php

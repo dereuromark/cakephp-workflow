@@ -7,6 +7,7 @@ namespace Workflow\Loader;
 use Symfony\Component\Yaml\Yaml;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\StateTimeout;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Exception\WorkflowException;
 
@@ -147,7 +148,38 @@ class YamlLoader implements LoaderInterface
             onEnter: isset($data['onEnter']) && is_array($data['onEnter']) ? $data['onEnter'] : [],
             onExit: isset($data['onExit']) && is_array($data['onExit']) ? $data['onExit'] : [],
             requireReasonFor: isset($data['requireReasonFor']) && is_array($data['requireReasonFor']) ? $data['requireReasonFor'] : [],
+            timeouts: $this->buildTimeouts(isset($data['timeouts']) && is_array($data['timeouts']) ? $data['timeouts'] : []),
         );
+    }
+
+    /**
+     * @param array<mixed> $data
+     *
+     * @return array<\Workflow\Engine\Definition\StateTimeout>
+     */
+    private function buildTimeouts(array $data): array
+    {
+        $timeouts = [];
+
+        foreach ($data as $key => $timeoutData) {
+            if (is_array($timeoutData)) {
+                $after = $timeoutData['after'] ?? null;
+                $transition = $timeoutData['transition'] ?? null;
+            } elseif (is_string($key) && is_string($timeoutData)) {
+                $after = $key;
+                $transition = $timeoutData;
+            } else {
+                continue;
+            }
+
+            if (!is_string($after) || !is_string($transition) || $after === '' || $transition === '') {
+                continue;
+            }
+
+            $timeouts[] = new StateTimeout($after, $transition);
+        }
+
+        return $timeouts;
     }
 
     /**

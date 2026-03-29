@@ -12,6 +12,7 @@ use Cake\Core\Configure;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 use RuntimeException;
+use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
 
 class WorkflowTimeoutsCommand extends Command
@@ -103,21 +104,59 @@ class WorkflowTimeoutsCommand extends Command
                     continue;
                 }
 
-                // Apply the transition
+                // Apply the transition with transaction wrapping
                 $engine = $registry->getEngine($timeout->workflow_name);
-
-                $result = $engine->apply($definition, $entity, $timeout->transition_name, [
+                $connection = $entityTable->getConnection();
+                $context = [
                     'triggered_by' => 'timeout',
-                ]);
+                    'timeout_id' => $timeout->id,
+                ];
+                $result = null;
 
-                if ($result->isSuccess()) {
+                $success = $connection->transactional(function () use (
+                    $engine,
+                    $definition,
+                    $entity,
+                    $timeout,
+                    $entityTable,
+                    $timeoutsTable,
+                    $context,
+                    &$result,
+                ): bool {
+                    $result = $engine->apply($definition, $entity, $timeout->transition_name, $context);
+
+                    if (!$result->isSuccess()) {
+                        return false;
+                    }
+
+                    // Save entity
                     $entityTable->saveOrFail($entity);
+
+                    // Log the transition
+                    $logger = new TransitionLogger();
+                    $logger->log(
+                        $timeout->workflow_name,
+                        $timeout->entity_table,
+                        $entity,
+                        $result,
+                        $timeout->transition_name,
+                        $context,
+                        (string)$definition->getVersion(),
+                    );
+
+                    // Mark timeout as processed
                     $timeout->processed = true;
-                    $timeoutsTable->save($timeout);
+                    $timeoutsTable->saveOrFail($timeout);
+
+                    return true;
+                });
+
+                if ($success) {
                     $processed++;
-                    $io->success('  Transition applied successfully.');
+                    $io->success('  Transition applied and logged successfully.');
                 } else {
-                    $io->warning('  Transition blocked: ' . json_encode($result->getBlockedBy()));
+                    $blockedBy = $result !== null ? $result->getBlockedBy() : ['unknown' => 'Transaction failed'];
+                    $io->warning('  Transition blocked: ' . json_encode($blockedBy));
                     $errors++;
                 }
             } catch (Exception $e) {

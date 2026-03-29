@@ -163,7 +163,7 @@ class StateMachineEngine implements EngineInterface
         // Check guards
         $guardResult = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
         if ($guardResult['blocked']) {
-            // Fire blocked event
+            // Fire blocked event (safe - listener errors shouldn't affect blocked result)
             $blockedEvent = new WorkflowEvent(
                 WorkflowEvent::TRANSITION_BLOCKED,
                 $definition,
@@ -172,7 +172,7 @@ class StateMachineEngine implements EngineInterface
                 $currentState,
                 context: $context,
             );
-            $this->eventManager->dispatch($blockedEvent);
+            $this->safeDispatch($blockedEvent);
 
             return TransitionResult::blocked($currentState, $guardResult['blocked']);
         }
@@ -242,7 +242,7 @@ class StateMachineEngine implements EngineInterface
             return TransitionResult::error($currentState, $e);
         }
 
-        // Fire after event
+        // Fire after event (safe - listener errors shouldn't roll back the transition)
         $afterEvent = new WorkflowEvent(
             WorkflowEvent::AFTER_TRANSITION,
             $definition,
@@ -252,7 +252,7 @@ class StateMachineEngine implements EngineInterface
             $toState,
             $context,
         );
-        $this->eventManager->dispatch($afterEvent);
+        $this->safeDispatch($afterEvent);
 
         // Process automatic transitions from the new state
         $autoResult = $this->processAutomaticTransitions($definition, $entity, $context);
@@ -391,7 +391,7 @@ class StateMachineEngine implements EngineInterface
             return TransitionResult::error($currentState, $e);
         }
 
-        // Fire after event
+        // Fire after event (safe - listener errors shouldn't roll back the transition)
         $afterEvent = new WorkflowEvent(
             WorkflowEvent::AFTER_TRANSITION,
             $definition,
@@ -401,7 +401,7 @@ class StateMachineEngine implements EngineInterface
             $toState,
             array_merge($context, ['automatic' => true]),
         );
-        $this->eventManager->dispatch($afterEvent);
+        $this->safeDispatch($afterEvent);
 
         // Recursively process further automatic transitions
         $furtherResult = $this->processAutomaticTransitionsInternal($definition, $entity, $context, $processedCount + 1);
@@ -427,6 +427,9 @@ class StateMachineEngine implements EngineInterface
     /**
      * Evaluate a condition callback.
      *
+     * Conditions that throw exceptions are treated as returning false (condition not met).
+     * This prevents buggy conditions from crashing automatic transition processing.
+     *
      * @param string $conditionName
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
@@ -449,7 +452,24 @@ class StateMachineEngine implements EngineInterface
             return false;
         }
 
-        return (bool)($this->conditions[$conditionName])($entity, $context);
+        try {
+            return (bool)($this->conditions[$conditionName])($entity, $context);
+        } catch (WorkflowException $e) {
+            // Configuration errors should propagate
+            throw $e;
+        } catch (Throwable $e) {
+            // Condition runtime exceptions are treated as condition not met
+            // Log or handle as needed - for now, silently return false
+            if ($this->strictMode) {
+                throw new WorkflowException(
+                    "Condition '{$conditionName}' threw exception: " . $e->getMessage(),
+                    0,
+                    $e,
+                );
+            }
+
+            return false;
+        }
     }
 
     /**
@@ -479,7 +499,31 @@ class StateMachineEngine implements EngineInterface
             $toState,
             $context,
         );
-        $this->eventManager->dispatch($errorEvent);
+        $this->safeDispatch($errorEvent);
+    }
+
+    /**
+     * Safely dispatch an event, catching listener exceptions.
+     *
+     * Exceptions from event listeners should not crash the transition process,
+     * especially for non-critical events like AFTER_TRANSITION or ERROR events.
+     *
+     * @param \Workflow\Event\WorkflowEvent $event
+     * @param bool $throwOnError If true, rethrows exceptions; if false, silently ignores them
+     *
+     * @throws \Throwable When $throwOnError is true and a listener throws
+     */
+    private function safeDispatch(WorkflowEvent $event, bool $throwOnError = false): void
+    {
+        try {
+            $this->eventManager->dispatch($event);
+        } catch (Throwable $e) {
+            if ($throwOnError) {
+                throw $e;
+            }
+            // For non-critical events, swallow the exception
+            // In production, you might want to log this
+        }
     }
 
     /**
@@ -547,6 +591,8 @@ class StateMachineEngine implements EngineInterface
     /**
      * Evaluate guards and return both blocked guards and all evaluated guards.
      *
+     * Guards that throw exceptions are treated as blocking the transition.
+     *
      * @param array<string> $guardNames
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
@@ -569,9 +615,18 @@ class StateMachineEngine implements EngineInterface
             }
 
             $evaluated[] = $guardName;
-            $result = $this->invokeHandler($handler, $entity, $context);
-            if ($result !== true) {
-                $blocked[$guardName] = is_string($result) ? $result : "Guard '{$guardName}' returned false";
+
+            try {
+                $result = $this->invokeHandler($handler, $entity, $context);
+                if ($result !== true) {
+                    $blocked[$guardName] = is_string($result) ? $result : "Guard '{$guardName}' returned false";
+                }
+            } catch (WorkflowException $e) {
+                // Configuration errors should propagate
+                throw $e;
+            } catch (Throwable $e) {
+                // Guard runtime exceptions block the transition with the error message
+                $blocked[$guardName] = "Guard '{$guardName}' threw exception: " . $e->getMessage();
             }
         }
 

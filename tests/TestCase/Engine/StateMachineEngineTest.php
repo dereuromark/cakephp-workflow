@@ -680,4 +680,143 @@ class StateMachineEngineTest extends TestCase
 
         $this->engine->processAutomaticTransitions($definition, $entity);
     }
+
+    public function testGuardExceptionBlocksTransition(): void
+    {
+        $this->engine->addGuard('throwingGuard', function ($entity, $context) {
+            throw new RuntimeException('Guard failed unexpectedly');
+        });
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', guards: ['throwingGuard']),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->apply($definition, $entity, 'pay');
+
+        $this->assertFalse($result->isSuccess());
+        $this->assertTrue($result->isBlocked());
+        $this->assertArrayHasKey('throwingGuard', $result->getBlockedBy());
+        $this->assertStringContainsString('threw exception', $result->getBlockedBy()['throwingGuard']);
+        $this->assertSame('pending', $entity->get('state')); // State unchanged
+    }
+
+    public function testConditionExceptionReturnsFalseInNonStrictMode(): void
+    {
+        $this->engine->addCondition('throwingCondition', function ($entity, $context) {
+            throw new RuntimeException('Condition failed unexpectedly');
+        });
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processed'),
+                new State('fallback'),
+            ],
+            transitions: [
+                new Transition('auto_process', ['pending'], 'processed', automatic: true, condition: 'throwingCondition'),
+                new Transition('auto_fallback', ['pending'], 'fallback', automatic: true), // No condition = fallback
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        // Exception causes condition to return false, so fallback is taken
+        $this->assertNotNull($result);
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('fallback', $entity->get('state'));
+    }
+
+    public function testConditionExceptionThrowsInStrictMode(): void
+    {
+        $this->engine->setStrictMode(true);
+        $this->engine->addCondition('throwingCondition', function ($entity, $context) {
+            throw new RuntimeException('Condition failed unexpectedly');
+        });
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processed'),
+            ],
+            transitions: [
+                new Transition('auto_process', ['pending'], 'processed', automatic: true, condition: 'throwingCondition'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage("Condition 'throwingCondition' threw exception");
+
+        $this->engine->processAutomaticTransitions($definition, $entity);
+    }
+
+    public function testTransitionResultTracksGuardsEvaluated(): void
+    {
+        $this->engine->addGuard('guard1', fn ($e, $c) => true);
+        $this->engine->addGuard('guard2', fn ($e, $c) => true);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', guards: ['guard1', 'guard2']),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->apply($definition, $entity, 'pay');
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertContains('guard1', $result->getGuardsEvaluated());
+        $this->assertContains('guard2', $result->getGuardsEvaluated());
+    }
+
+    public function testTransitionResultTracksCommandsExecuted(): void
+    {
+        $this->engine->addCommand('cmd1', fn ($e, $c) => null);
+        $this->engine->addCommand('cmd2', fn ($e, $c) => null);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', commands: ['cmd1', 'cmd2']),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->apply($definition, $entity, 'pay');
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertContains('cmd1', $result->getCommandsExecuted());
+        $this->assertContains('cmd2', $result->getCommandsExecuted());
+    }
 }

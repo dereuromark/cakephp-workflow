@@ -85,6 +85,8 @@ class WorkflowBehaviorTest extends TestCase
             'className' => WorkflowBehavior::class,
             'workflow' => 'order',
             'registry' => $this->registry,
+            'useTransaction' => false, // No DB connection in mock tests
+            'useLocking' => false, // No DB connection in mock tests
         ];
 
         $this->table->addBehavior('Workflow', array_merge($defaultConfig, $config));

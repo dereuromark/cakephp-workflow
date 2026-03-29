@@ -11,7 +11,9 @@ use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Throwable;
 use Workflow\Engine\Definition\Definition;
+use Workflow\Engine\TransitionResult;
 use Workflow\Engine\WorkflowAnalyzer;
+use Workflow\Service\TransitionLogger;
 
 class WorkflowsController extends WorkflowAppController
 {
@@ -596,5 +598,224 @@ class WorkflowsController extends WorkflowAppController
         }
 
         return $workflowData;
+    }
+
+    /**
+     * Simulate a transition to see what would happen (dry-run).
+     *
+     * Shows which guards would block, what the target state would be, etc.
+     *
+     * @param string $name Workflow name
+     * @param string $entityId Entity ID
+     * @param string|null $transition Optional specific transition to simulate
+     */
+    public function simulate(string $name, string $entityId, ?string $transition = null): void
+    {
+        if ($this->workflowRegistry === null) {
+            throw new RuntimeException('Workflow registry not configured');
+        }
+
+        $definition = $this->workflowRegistry->getWorkflow($name);
+        $tableName = $definition->getTable();
+        $field = $definition->getField();
+
+        $table = $this->fetchTable($tableName);
+        $entity = $table->get($entityId);
+
+        $currentState = $entity->get($field);
+        $engine = $this->workflowRegistry->getEngine($name);
+
+        // Get all transitions and simulate each one
+        $simulationResults = [];
+
+        $transitionsToSimulate = $transition
+            ? [$definition->getTransition($transition)]
+            : $definition->getTransitions();
+
+        foreach ($transitionsToSimulate as $t) {
+            $transitionName = $t->getName();
+            $fromStates = $t->getFrom();
+
+            // Check if transition is applicable from current state
+            $isFromStateValid = in_array($currentState, $fromStates, true);
+
+            // Simulate by calling can() with detailed context
+            $canApply = $engine->can($definition, $entity, $transitionName);
+
+            // Try to get detailed guard results
+            $guardResults = [];
+            foreach ($t->getGuards() as $guardName) {
+                try {
+                    // We can't easily get individual guard results without modifying the engine,
+                    // so we'll just indicate whether the overall transition can be applied
+                    $guardResults[$guardName] = $canApply ? 'passed' : 'unknown';
+                } catch (Throwable $e) {
+                    $guardResults[$guardName] = 'error: ' . $e->getMessage();
+                }
+            }
+
+            $simulationResults[] = [
+                'name' => $transitionName,
+                'from' => $fromStates,
+                'to' => $t->getTo(),
+                'is_from_state_valid' => $isFromStateValid,
+                'can_apply' => $canApply,
+                'guards' => $t->getGuards(),
+                'guard_results' => $guardResults,
+                'commands' => $t->getCommands(),
+                'is_automatic' => $t->isAutomatic(),
+                'is_happy' => $t->isHappy(),
+            ];
+        }
+
+        // Get available transitions (those that can actually be applied)
+        $availableTransitions = $engine->getAvailableTransitions($definition, $entity);
+
+        $this->set(compact(
+            'definition',
+            'entity',
+            'entityId',
+            'currentState',
+            'simulationResults',
+            'availableTransitions',
+            'transition',
+        ));
+    }
+
+    /**
+     * Force a transition, bypassing guards.
+     *
+     * Use with caution - this skips all guard checks.
+     *
+     * @param string $name Workflow name
+     * @param string $entityId Entity ID
+     */
+    public function forceTransition(string $name, string $entityId): ?Response
+    {
+        $this->request->allowMethod(['get', 'post']);
+
+        if ($this->workflowRegistry === null) {
+            throw new RuntimeException('Workflow registry not configured');
+        }
+
+        $definition = $this->workflowRegistry->getWorkflow($name);
+        $tableName = $definition->getTable();
+        $field = $definition->getField();
+
+        $table = $this->fetchTable($tableName);
+        $entity = $table->get($entityId);
+
+        $currentState = $entity->get($field);
+
+        // Get transitions that could apply from current state (regardless of guards)
+        $applicableTransitions = [];
+        foreach ($definition->getTransitions() as $t) {
+            if (in_array($currentState, $t->getFrom(), true)) {
+                $applicableTransitions[$t->getName()] = sprintf(
+                    '%s → %s',
+                    $t->getName(),
+                    $t->getTo(),
+                );
+            }
+        }
+
+        if ($this->request->is('post')) {
+            $transitionName = $this->request->getData('transition');
+            $reason = $this->request->getData('reason');
+
+            if (!$transitionName || !isset($applicableTransitions[$transitionName])) {
+                $this->Flash->error('Please select a valid transition.');
+
+                return null;
+            }
+
+            $transition = $definition->getTransition($transitionName);
+            $toState = $transition->getTo();
+
+            // Directly set the new state (bypassing workflow engine)
+            $entity->set($field, $toState);
+
+            // Disable workflow validation if attached
+            if ($table->hasBehavior('Workflow')) {
+                $table->behaviors()->get('Workflow')->setConfig('validateOnSave', false);
+            }
+
+            try {
+                if ($table->save($entity)) {
+                    // Log the forced transition
+                    $this->logForcedTransition(
+                        $name,
+                        $tableName,
+                        $entityId,
+                        $transitionName,
+                        $currentState,
+                        $toState,
+                        $reason,
+                        (string)$definition->getVersion(),
+                    );
+
+                    $this->Flash->success(sprintf(
+                        'Transition "%s" forced: %s → %s',
+                        $transitionName,
+                        $currentState,
+                        $toState,
+                    ));
+
+                    return $this->redirect(['action' => 'view', $name]);
+                }
+
+                $this->Flash->error('Could not save entity.');
+            } finally {
+                if ($table->hasBehavior('Workflow')) {
+                    $table->behaviors()->get('Workflow')->setConfig('validateOnSave', true);
+                }
+            }
+        }
+
+        $this->set(compact(
+            'definition',
+            'entity',
+            'entityId',
+            'currentState',
+            'applicableTransitions',
+        ));
+
+        return null;
+    }
+
+    /**
+     * Log a forced transition.
+     */
+    private function logForcedTransition(
+        string $workflow,
+        string $tableName,
+        string $entityId,
+        string $transitionName,
+        string $fromState,
+        string $toState,
+        ?string $reason,
+        string $version,
+    ): void {
+        try {
+            $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
+            $transition = $transitionsTable->newEntity([
+                'workflow_name' => $workflow,
+                'entity_table' => $tableName,
+                'entity_id' => $entityId,
+                'transition_name' => $transitionName,
+                'from_state' => $fromState,
+                'to_state' => $toState,
+                'workflow_version' => $version,
+                'context' => json_encode([
+                    'type' => 'forced_transition',
+                    'reason' => $reason,
+                    'admin_action' => true,
+                    'guards_bypassed' => true,
+                ]),
+            ]);
+            $transitionsTable->save($transition);
+        } catch (Throwable) {
+            // Logging failure should not break the operation
+        }
     }
 }

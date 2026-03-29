@@ -4,9 +4,15 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Controller\Admin;
 
+use Cake\Core\Configure;
+use Cake\Event\EventManager;
 use Cake\I18n\DateTime;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use Workflow\Engine\Definition\Definition;
+use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\Transition;
 use Workflow\Exception\WorkflowException;
+use Workflow\Service\WorkflowRegistry;
 use Workflow\Test\TestCase\Controller\IntegrationTestCase;
 
 /**
@@ -111,6 +117,48 @@ class WorkflowsControllerTest extends IntegrationTestCase
 
         $pendingTimeouts = $this->viewVariable('pendingTimeouts');
         $this->assertIsArray($pendingTimeouts);
+
+        $issues = $this->viewVariable('issues');
+        $this->assertIsArray($issues);
+
+        $issuesBySeverity = $this->viewVariable('issuesBySeverity');
+        $this->assertIsArray($issuesBySeverity);
+    }
+
+    public function testViewShowsValidationWarningForTerminalStateContradiction(): void
+    {
+        $definitions = $this->createTestDefinitions();
+        $definitions['broken'] = new Definition(
+            name: 'broken',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('done', final: true),
+                new State('reopened'),
+            ],
+            transitions: [
+                new Transition('finish', ['pending'], 'done'),
+                new Transition('reopen', ['done'], 'reopened'),
+            ],
+        );
+
+        $loader = $this->createMockLoader($definitions);
+        $this->workflowRegistry = new WorkflowRegistry($loader, EventManager::instance());
+        Configure::write('Workflow.registry', $this->workflowRegistry);
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'view',
+            'broken',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('Validation issues detected.');
+        $this->assertResponseContains('Terminal-state contradictions are highlighted below.');
+        $this->assertResponseContains('Transition &#039;reopen&#039; starts from final state &#039;done&#039;');
     }
 
     /**

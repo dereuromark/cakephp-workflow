@@ -8,6 +8,8 @@
  * @var int $transitionsToday
  * @var array<\Workflow\Model\Entity\WorkflowTimeout> $pendingTimeouts
  * @var array{neon: bool, yaml: bool} $exportFormats
+ * @var array<array{type: string, severity: string, message: string, context: array<string, mixed>}> $issues
+ * @var array{errors: array<array{type: string, severity: string, message: string, context: array<string, mixed>}>, warnings: array<array{type: string, severity: string, message: string, context: array<string, mixed>}>, info: array<array{type: string, severity: string, message: string, context: array<string, mixed>}>} $issuesBySeverity
  */
 $this->assign('title', $definition->getName());
 
@@ -16,6 +18,19 @@ $transitionCount = count($definition->getTransitions());
 $hasExport = $exportFormats['neon'] || $exportFormats['yaml'];
 $exportFormat = $exportFormats['neon'] ? 'neon' : 'yaml';
 $exportLabel = $exportFormats['neon'] ? 'NEON' : 'YAML';
+$errorCount = count($issuesBySeverity['errors']);
+$warningCount = count($issuesBySeverity['warnings']);
+$terminalStateIssues = array_filter(
+    $issues,
+    static fn (array $issue): bool => $issue['type'] === 'terminal_state_outgoing_transition',
+);
+$terminalStateIssueMap = [];
+foreach ($terminalStateIssues as $issue) {
+    $transitionName = $issue['context']['transition'] ?? null;
+    if (is_string($transitionName)) {
+        $terminalStateIssueMap[$transitionName] = $issue['message'];
+    }
+}
 ?>
 
 <!-- Page Header -->
@@ -50,6 +65,25 @@ $exportLabel = $exportFormats['neon'] ? 'NEON' : 'YAML';
         ) ?>
     </div>
 </div>
+
+<?php if ($errorCount > 0 || $warningCount > 0) { ?>
+    <div class="alert <?= $errorCount > 0 ? 'alert-danger' : 'alert-warning' ?> d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <strong>Validation issues detected.</strong>
+            <?= $errorCount ?> error(s), <?= $warningCount ?> warning(s).
+            <?php if ($terminalStateIssues) { ?>
+                Terminal-state contradictions are highlighted below.
+            <?php } ?>
+        </div>
+        <div>
+            <?= $this->Html->link(
+                'Open Validation',
+                ['action' => 'validate', $definition->getName()],
+                ['class' => 'btn btn-sm ' . ($errorCount > 0 ? 'btn-outline-danger' : 'btn-outline-warning')],
+            ) ?>
+        </div>
+    </div>
+<?php } ?>
 
 <!-- Section Navigation -->
 <ul class="nav nav-tabs mb-4">
@@ -188,7 +222,8 @@ $exportLabel = $exportFormats['neon'] ? 'NEON' : 'YAML';
                     </thead>
                     <tbody>
                         <?php foreach ($definition->getTransitions() as $transition) { ?>
-                            <tr>
+                            <?php $transitionIssue = $terminalStateIssueMap[$transition->getName()] ?? null; ?>
+                            <tr<?= $transitionIssue ? ' class="table-danger"' : '' ?>>
                                 <td>
                                     <code><?= h($transition->getName()) ?></code>
                                     <?php if ($transition->isHappy()) { ?>
@@ -196,6 +231,9 @@ $exportLabel = $exportFormats['neon'] ? 'NEON' : 'YAML';
                                     <?php } ?>
                                     <?php if ($transition->isAutomatic()) { ?>
                                         <i class="bi bi-lightning-fill text-warning" title="Automatic transition"></i>
+                                    <?php } ?>
+                                    <?php if ($transitionIssue) { ?>
+                                        <i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="<?= h($transitionIssue) ?>"></i>
                                     <?php } ?>
                                 </td>
                                 <td>
@@ -233,6 +271,13 @@ $exportLabel = $exportFormats['neon'] ? 'NEON' : 'YAML';
                                     <?php } ?>
                                 </td>
                             </tr>
+                            <?php if ($transitionIssue) { ?>
+                                <tr class="table-danger">
+                                    <td colspan="7" class="small text-danger">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i><?= h($transitionIssue) ?>
+                                    </td>
+                                </tr>
+                            <?php } ?>
                         <?php } ?>
                     </tbody>
                 </table>

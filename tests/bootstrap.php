@@ -12,6 +12,17 @@ if (!defined('DS')) {
     define('DS', DIRECTORY_SEPARATOR);
 }
 
+// Register TestApp namespace for integration testing
+spl_autoload_register(function (string $class): void {
+    if (str_starts_with($class, 'TestApp\\')) {
+        $path = __DIR__ . DS . 'test_app' . DS . 'src' . DS
+            . str_replace('\\', DS, substr($class, strlen('TestApp\\'))) . '.php';
+        if (file_exists($path)) {
+            require $path;
+        }
+    }
+});
+
 define('ROOT', dirname(__DIR__));
 define('APP_DIR', 'src');
 define('APP', ROOT . DS . APP_DIR . DS);

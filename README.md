@@ -58,14 +58,42 @@ Create state classes in your namespace:
 <?php
 namespace App\Workflow\Order;
 
-use Workflow\Attribute\InitialState;
 use Workflow\Attribute\StateMachine;
 use Workflow\State\AbstractState;
 
-#[StateMachine(table: 'Orders', field: 'state')]
-#[InitialState]
-class PendingState extends AbstractState
+#[StateMachine(name: 'order', table: 'Orders', field: 'state')]
+abstract class OrderState extends AbstractState
 {
+}
+```
+
+```php
+<?php
+namespace App\Workflow\Order;
+
+use Workflow\Attribute\Command;
+use Workflow\Attribute\FinalState;
+use Workflow\Attribute\Guard;
+use Workflow\Attribute\InitialState;
+use Workflow\Attribute\Transition;
+
+#[InitialState]
+#[Transition(to: PaidState::class, name: 'pay', happy: true)]
+class PendingState extends OrderState
+{
+    #[Guard('pay')]
+    public function ensurePayable(): bool|string
+    {
+        return (float)$this->getEntity()?->get('total') > 0
+            ? true
+            : 'Order total must be positive';
+    }
+
+    #[Command('pay')]
+    public function markPaymentCaptured(): void
+    {
+        $this->getEntity()?->set('payment_captured', true);
+    }
 }
 ```
 
@@ -74,33 +102,15 @@ class PendingState extends AbstractState
 namespace App\Workflow\Order;
 
 use Workflow\Attribute\FinalState;
-use Workflow\State\AbstractState;
+use Workflow\Attribute\OnEnter;
 
 #[FinalState]
-class CompletedState extends AbstractState
+class PaidState extends OrderState
 {
-}
-```
-
-```php
-<?php
-namespace App\Workflow\Order;
-
-use Workflow\Attribute\Transition;
-use Workflow\State\AbstractState;
-
-#[Transition(from: [PendingState::class], to: PaidState::class, happy: true)]
-class PayState extends AbstractState
-{
-    public function guard(): bool
+    #[OnEnter]
+    public function sendReceipt(): void
     {
-        // Return true if transition is allowed
-        return $this->entity->total > 0;
-    }
-
-    public function onEnter(): void
-    {
-        // Execute when entering this state
+        // Runs after the entity enters the paid state.
     }
 }
 ```
@@ -252,4 +262,3 @@ Use the helper in your templates:
 - **Admin UI**: Visual dashboard with Mermaid.js diagrams
 - **CLI Tools**: Workflow management and validation commands
 - **Validation**: Detect unreachable states and dead ends
-

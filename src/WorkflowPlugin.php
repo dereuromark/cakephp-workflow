@@ -114,7 +114,12 @@ class WorkflowPlugin extends BasePlugin
         }
 
         $chainLoader = new ChainLoader($loaders);
-        $registry = new WorkflowRegistry($chainLoader, EventManager::instance());
+        $registry = new WorkflowRegistry(
+            $chainLoader,
+            EventManager::instance(),
+            (bool)($config['strictMode'] ?? false),
+            (int)($config['maxEventRepeats'] ?? 10),
+        );
 
         Configure::write('Workflow.registry', $registry);
     }

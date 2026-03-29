@@ -21,6 +21,8 @@ class WorkflowRegistry
     public function __construct(
         private LoaderInterface $loader,
         private EventManager $eventManager,
+        private bool $strictMode = false,
+        private int $maxAutomaticTransitions = 10,
     ) {
     }
 
@@ -61,7 +63,11 @@ class WorkflowRegistry
     public function getEngine(string $workflowName): EngineInterface
     {
         if (!isset($this->engines[$workflowName])) {
-            $this->engines[$workflowName] = new StateMachineEngine($this->eventManager);
+            $this->engines[$workflowName] = new StateMachineEngine(
+                $this->eventManager,
+                strictMode: $this->strictMode,
+                maxAutomaticTransitions: $this->maxAutomaticTransitions,
+            );
         }
 
         return $this->engines[$workflowName];

@@ -4,35 +4,28 @@ declare(strict_types=1);
 
 namespace Workflow\Controller\Admin;
 
-use Cake\Core\Configure;
+use Cake\I18n\DateTime;
 use RuntimeException;
-use Workflow\Service\WorkflowRegistry;
+use Throwable;
 
 class WorkflowsController extends WorkflowAppController
 {
-    private WorkflowRegistry $registry;
-
-    public function initialize(): void
-    {
-        parent::initialize();
-
-        $registry = Configure::read('Workflow.registry');
-        if (!$registry instanceof WorkflowRegistry) {
-            throw new RuntimeException('Workflow registry not configured');
-        }
-        $this->registry = $registry;
-    }
-
     /**
      * List all workflows.
+     *
+     * @throws \RuntimeException
      */
     public function index(): void
     {
-        $workflowNames = $this->registry->getWorkflowNames();
+        if ($this->workflowRegistry === null) {
+            throw new RuntimeException('Workflow registry not configured');
+        }
+
+        $workflowNames = $this->workflowRegistry->getWorkflowNames();
 
         $workflows = [];
         foreach ($workflowNames as $name) {
-            $definition = $this->registry->getWorkflow($name);
+            $definition = $this->workflowRegistry->getWorkflow($name);
             $workflows[] = [
                 'name' => $name,
                 'definition' => $definition,
@@ -49,7 +42,32 @@ class WorkflowsController extends WorkflowAppController
      */
     public function view(string $name): void
     {
-        $definition = $this->registry->getWorkflow($name);
+        if ($this->workflowRegistry === null) {
+            throw new RuntimeException('Workflow registry not configured');
+        }
+
+        $definition = $this->workflowRegistry->getWorkflow($name);
+        $tableName = $definition->getTable();
+        $field = $definition->getField();
+
+        // Count items by state
+        $stateCounts = [];
+        $totalActive = 0;
+        try {
+            $table = $this->fetchTable($tableName);
+            foreach ($definition->getStates() as $state) {
+                $stateName = $state->getName();
+                $count = $table->find()
+                    ->where([$field => $stateName])
+                    ->count();
+                $stateCounts[$stateName] = $count;
+                if (!$state->isFinal()) {
+                    $totalActive += $count;
+                }
+            }
+        } catch (Throwable) {
+            // Table might not exist
+        }
 
         // Get recent transitions for this workflow
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
@@ -58,6 +76,14 @@ class WorkflowsController extends WorkflowAppController
             ->orderBy(['created' => 'DESC'])
             ->limit(20)
             ->toArray();
+
+        // Transitions today
+        $transitionsToday = $transitionsTable->find()
+            ->where([
+                'workflow_name' => $name,
+                'created >=' => DateTime::now()->startOfDay(),
+            ])
+            ->count();
 
         // Get pending timeouts
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
@@ -70,6 +96,13 @@ class WorkflowsController extends WorkflowAppController
             ->limit(10)
             ->toArray();
 
-        $this->set(compact('definition', 'recentTransitions', 'pendingTimeouts'));
+        $this->set(compact(
+            'definition',
+            'stateCounts',
+            'totalActive',
+            'recentTransitions',
+            'transitionsToday',
+            'pendingTimeouts',
+        ));
     }
 }

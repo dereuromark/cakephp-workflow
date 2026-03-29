@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Loader;
 
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
@@ -12,6 +13,7 @@ use Workflow\Exception\WorkflowException;
 use Workflow\Loader\ChainLoader;
 use Workflow\Loader\LoaderInterface;
 
+#[AllowMockObjectsWithoutExpectations]
 class ChainLoaderTest extends TestCase
 {
     public function testSupportsReturnsFalseWhenNoLoaders(): void

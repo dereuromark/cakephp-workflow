@@ -72,15 +72,17 @@ class WorkflowTransitionsTable extends Table
      * Find transitions for a specific entity.
      *
      * @param \Cake\ORM\Query\SelectQuery $query
-     * @param array<string, mixed> $options
+     * @param string $workflow
+     * @param string $table
+     * @param string $id
      */
-    public function findForEntity(SelectQuery $query, array $options): SelectQuery
+    public function findForEntity(SelectQuery $query, string $workflow, string $table, string $id): SelectQuery
     {
         return $query
             ->where([
-                'workflow_name' => $options['workflow'],
-                'entity_table' => $options['table'],
-                'entity_id' => $options['id'],
+                'workflow_name' => $workflow,
+                'entity_table' => $table,
+                'entity_id' => $id,
             ])
             ->orderBy(['created' => 'DESC']);
     }
@@ -89,12 +91,10 @@ class WorkflowTransitionsTable extends Table
      * Find recent transitions across all entities.
      *
      * @param \Cake\ORM\Query\SelectQuery $query
-     * @param array<string, mixed> $options
+     * @param int $limit
      */
-    public function findRecent(SelectQuery $query, array $options): SelectQuery
+    public function findRecent(SelectQuery $query, int $limit = 50): SelectQuery
     {
-        $limit = $options['limit'] ?? 50;
-
         return $query
             ->orderBy(['created' => 'DESC'])
             ->limit($limit);

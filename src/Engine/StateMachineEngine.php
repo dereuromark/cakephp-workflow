@@ -6,11 +6,15 @@ namespace Workflow\Engine;
 
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventManager;
+use Closure;
+use ReflectionFunction;
+use ReflectionMethod;
 use Throwable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Event\WorkflowEvent;
 use Workflow\Exception\CommandException;
 use Workflow\Exception\WorkflowException;
+use Workflow\State\AbstractState;
 
 class StateMachineEngine implements EngineInterface
 {
@@ -24,12 +28,14 @@ class StateMachineEngine implements EngineInterface
      * @param array<string, callable> $guards
      * @param array<string, callable> $commands
      * @param bool $strictMode When true, throws exception for missing guards/commands/conditions
+     * @param int $maxAutomaticTransitions Maximum automatic transitions to chain before aborting
      */
     public function __construct(
         private EventManager $eventManager,
         private array $guards = [],
         private array $commands = [],
         private bool $strictMode = false,
+        private int $maxAutomaticTransitions = 10,
     ) {
     }
 
@@ -42,6 +48,11 @@ class StateMachineEngine implements EngineInterface
     public function setStrictMode(bool $strict): void
     {
         $this->strictMode = $strict;
+    }
+
+    public function setMaxAutomaticTransitions(int $maxAutomaticTransitions): void
+    {
+        $this->maxAutomaticTransitions = $maxAutomaticTransitions;
     }
 
     /**
@@ -218,9 +229,11 @@ class StateMachineEngine implements EngineInterface
             $this->executeCallbacks($toStateObj->getOnEnter(), $entity, $context);
         } catch (WorkflowException $e) {
             // Configuration errors should propagate (e.g., missing callbacks in strict mode)
+            $entity->set($field, $currentState);
+
             throw $e;
         } catch (Throwable $e) {
-            // Note: State was already changed, but we report the error
+            $entity->set($field, $currentState);
             $this->dispatchErrorEvent($definition, $entity, $transition, $currentState, $toState, $context);
 
             return TransitionResult::error($currentState, $e);
@@ -267,6 +280,26 @@ class StateMachineEngine implements EngineInterface
         EntityInterface $entity,
         array $context = [],
     ): ?TransitionResult {
+        return $this->processAutomaticTransitionsInternal($definition, $entity, $context, 0);
+    }
+
+    private function processAutomaticTransitionsInternal(
+        Definition $definition,
+        EntityInterface $entity,
+        array $context,
+        int $processedCount,
+    ): ?TransitionResult {
+        if ($processedCount >= $this->maxAutomaticTransitions) {
+            throw new WorkflowException(
+                sprintf(
+                    'Exceeded automatic transition limit of %d for workflow %s. '
+                    . 'This usually indicates a transition cycle.',
+                    $this->maxAutomaticTransitions,
+                    $definition->getName(),
+                ),
+            );
+        }
+
         $currentState = $this->getCurrentState($definition, $entity);
         $field = $definition->getField();
 
@@ -323,14 +356,10 @@ class StateMachineEngine implements EngineInterface
         $currentStateObj = $definition->getState($currentState);
         try {
             $this->executeCallbacks($currentStateObj->getOnExit(), $entity, $context);
-        } catch (Throwable $e) {
-            return TransitionResult::error($currentState, $e);
-        }
-
-        // Execute commands for the automatic transition
-        try {
             $this->executeCommands($selectedTransition->getCommands(), $entity, $context);
         } catch (Throwable $e) {
+            $this->dispatchErrorEvent($definition, $entity, $transitionName, $currentState, $toState, $context);
+
             return TransitionResult::error($currentState, $e);
         }
 
@@ -341,6 +370,9 @@ class StateMachineEngine implements EngineInterface
         try {
             $this->executeCallbacks($toStateObj->getOnEnter(), $entity, $context);
         } catch (Throwable $e) {
+            $entity->set($field, $currentState);
+            $this->dispatchErrorEvent($definition, $entity, $transitionName, $currentState, $toState, $context);
+
             return TransitionResult::error($currentState, $e);
         }
 
@@ -357,7 +389,7 @@ class StateMachineEngine implements EngineInterface
         $this->eventManager->dispatch($afterEvent);
 
         // Recursively process further automatic transitions
-        $furtherResult = $this->processAutomaticTransitions($definition, $entity, $context);
+        $furtherResult = $this->processAutomaticTransitionsInternal($definition, $entity, $context, $processedCount + 1);
         if ($furtherResult !== null) {
             return $furtherResult;
         }
@@ -429,21 +461,18 @@ class StateMachineEngine implements EngineInterface
      * @param array<string> $callbackNames
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
-     *
-     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and callback is not found
      */
     private function executeCallbacks(array $callbackNames, EntityInterface $entity, array $context): void
     {
         foreach ($callbackNames as $callbackName) {
-            if (!isset($this->commands[$callbackName])) {
-                if ($this->strictMode) {
-                    throw new WorkflowException("Lifecycle callback '{$callbackName}' is not registered.");
-                }
+            $handler = $this->resolveHandler($callbackName, $this->commands);
+            if ($handler === null) {
+                $this->throwIfStrict("Lifecycle callback '{$callbackName}' is not registered.");
 
                 continue;
             }
 
-            ($this->commands[$callbackName])($entity, $context);
+            $this->invokeHandler($handler, $entity, $context);
         }
     }
 
@@ -463,11 +492,15 @@ class StateMachineEngine implements EngineInterface
         }
 
         $transitions = $definition->getTransitionsFromState($currentState);
+        $availableTransitions = [];
 
-        return array_map(
-            fn ($t) => $t->getName(),
-            $transitions,
-        );
+        foreach ($transitions as $transition) {
+            if ($this->can($definition, $entity, $transition->getName())) {
+                $availableTransitions[] = $transition->getName();
+            }
+        }
+
+        return $availableTransitions;
     }
 
     public function getCurrentState(
@@ -491,8 +524,6 @@ class StateMachineEngine implements EngineInterface
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
      *
-     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and guard is not found
-     *
      * @return array<string, string>
      */
     private function evaluateGuards(array $guardNames, EntityInterface $entity, array $context): array
@@ -500,15 +531,16 @@ class StateMachineEngine implements EngineInterface
         $blocked = [];
 
         foreach ($guardNames as $guardName) {
-            if (!isset($this->guards[$guardName])) {
-                if ($this->strictMode) {
-                    throw new WorkflowException("Guard '{$guardName}' is not registered. Check for typos in guard name or ensure the guard is properly configured.");
-                }
+            $handler = $this->resolveHandler($guardName, $this->guards);
+            if ($handler === null) {
+                $this->throwIfStrict(
+                    "Guard '{$guardName}' is not registered. Check for typos in guard name or ensure the guard is properly configured.",
+                );
 
                 continue;
             }
 
-            $result = ($this->guards[$guardName])($entity, $context);
+            $result = $this->invokeHandler($handler, $entity, $context);
             if ($result !== true) {
                 $blocked[$guardName] = is_string($result) ? $result : "Guard '{$guardName}' returned false";
             }
@@ -524,25 +556,113 @@ class StateMachineEngine implements EngineInterface
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
      *
-     * @throws \Workflow\Exception\WorkflowException When strict mode is enabled and command is not found
      * @throws \Workflow\Exception\CommandException When command execution fails
      */
     private function executeCommands(array $commandNames, EntityInterface $entity, array $context): void
     {
         foreach ($commandNames as $commandName) {
-            if (!isset($this->commands[$commandName])) {
-                if ($this->strictMode) {
-                    throw new WorkflowException("Command '{$commandName}' is not registered. Check for typos in command name or ensure the command is properly configured.");
+            try {
+                $handler = $this->resolveHandler($commandName, $this->commands);
+                if ($handler === null) {
+                    $this->throwIfStrict(
+                        "Command '{$commandName}' is not registered. Check for typos in command name or ensure the command is properly configured.",
+                    );
+
+                    continue;
                 }
 
-                continue;
-            }
-
-            try {
-                ($this->commands[$commandName])($entity, $context);
+                $this->invokeHandler($handler, $entity, $context);
+            } catch (WorkflowException $e) {
+                throw $e;
             } catch (Throwable $e) {
                 throw new CommandException($commandName, $e);
             }
+        }
+    }
+
+    private function resolveHandler(string $handlerName, array $registeredHandlers): callable|string|null
+    {
+        if (isset($registeredHandlers[$handlerName])) {
+            return $registeredHandlers[$handlerName];
+        }
+
+        if (str_contains($handlerName, '::')) {
+            return $handlerName;
+        }
+
+        return null;
+    }
+
+    private function invokeHandler(callable|string $handler, EntityInterface $entity, array $context): mixed
+    {
+        if (is_string($handler)) {
+            [$className, $methodName] = explode('::', $handler, 2);
+            $reflection = new ReflectionMethod($className, $methodName);
+
+            if ($reflection->isStatic()) {
+                return $this->invokeCallableWithSupportedArguments(
+                    [$className, $methodName],
+                    $reflection->getNumberOfParameters(),
+                    $entity,
+                    $context,
+                );
+            }
+
+            $instance = new $className();
+            if ($instance instanceof AbstractState) {
+                $instance->bind($entity, $context);
+            }
+
+            return $this->invokeCallableWithSupportedArguments(
+                [$instance, $methodName],
+                $reflection->getNumberOfParameters(),
+                $entity,
+                $context,
+            );
+        }
+
+        return $this->invokeCallableWithSupportedArguments(
+            $handler,
+            $this->getCallableParameterCount($handler),
+            $entity,
+            $context,
+        );
+    }
+
+    private function invokeCallableWithSupportedArguments(
+        mixed $callable,
+        int $parameterCount,
+        EntityInterface $entity,
+        array $context,
+    ): mixed {
+        if (!is_callable($callable)) {
+            throw new WorkflowException('Resolved handler is not callable.');
+        }
+
+        return match (true) {
+            $parameterCount <= 0 => $callable(),
+            $parameterCount === 1 => $callable($entity),
+            default => $callable($entity, $context),
+        };
+    }
+
+    private function getCallableParameterCount(mixed $callable): int
+    {
+        if (is_array($callable)) {
+            return (new ReflectionMethod($callable[0], $callable[1]))->getNumberOfParameters();
+        }
+
+        if (is_object($callable) && !$callable instanceof Closure) {
+            return (new ReflectionMethod($callable, '__invoke'))->getNumberOfParameters();
+        }
+
+        return (new ReflectionFunction($callable))->getNumberOfParameters();
+    }
+
+    private function throwIfStrict(string $message): void
+    {
+        if ($this->strictMode) {
+            throw new WorkflowException($message);
         }
     }
 }

@@ -275,10 +275,10 @@ class AttributeLoader implements LoaderInterface
         $onExit = [];
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             if ($method->getAttributes(OnEnter::class)) {
-                $onEnter[] = $method->getName();
+                $onEnter[] = $reflection->getName() . '::' . $method->getName();
             }
             if ($method->getAttributes(OnExit::class)) {
-                $onExit[] = $method->getName();
+                $onExit[] = $reflection->getName() . '::' . $method->getName();
             }
         }
 
@@ -318,11 +318,11 @@ class AttributeLoader implements LoaderInterface
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             foreach ($method->getAttributes(GuardAttr::class) as $guardAttr) {
                 $guard = $guardAttr->newInstance();
-                $guards[$guard->transition][] = $method->getName();
+                $guards[$guard->transition][] = $reflection->getName() . '::' . $method->getName();
             }
             foreach ($method->getAttributes(CommandAttr::class) as $cmdAttr) {
                 $cmd = $cmdAttr->newInstance();
-                $commands[$cmd->transition][] = $method->getName();
+                $commands[$cmd->transition][] = $reflection->getName() . '::' . $method->getName();
             }
         }
 

@@ -147,6 +147,28 @@ class StateMachineEngineTest extends TestCase
         $this->assertNotContains('ship', $transitions);
     }
 
+    public function testGetAvailableTransitionsFiltersGuardBlockedTransitions(): void
+    {
+        $this->engine->addGuard('canPay', fn ($entity, $context) => false);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', guards: ['canPay']),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+
+        $this->assertSame([], $this->engine->getAvailableTransitions($definition, $entity));
+    }
+
     public function testGetAvailableTransitionsFromFinalState(): void
     {
         $entity = new Entity(['state' => 'completed']);
@@ -380,6 +402,32 @@ class StateMachineEngineTest extends TestCase
         $this->assertTrue($entered);
     }
 
+    public function testOnEnterFailureRevertsEntityState(): void
+    {
+        $this->engine->addCommand('onEnterPaid', function ($entity, $context) {
+            throw new RuntimeException('onEnter failed');
+        });
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid', onEnter: ['onEnterPaid']),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->apply($definition, $entity, 'pay');
+
+        $this->assertTrue($result->isError());
+        $this->assertSame('pending', $entity->get('state'));
+    }
+
     public function testOnExitCallbackExecuted(): void
     {
         $exited = false;
@@ -576,6 +624,59 @@ class StateMachineEngineTest extends TestCase
 
         $this->expectException(WorkflowException::class);
         $this->expectExceptionMessage("Condition 'nonexistentCondition' is not registered");
+
+        $this->engine->processAutomaticTransitions($definition, $entity);
+    }
+
+    public function testAutomaticOnEnterFailureRevertsEntityState(): void
+    {
+        $this->engine->addCommand('onEnterDone', function ($entity, $context) {
+            throw new RuntimeException('automatic onEnter failed');
+        });
+
+        $definition = new Definition(
+            name: 'auto',
+            table: 'Items',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('done', onEnter: ['onEnterDone']),
+            ],
+            transitions: [
+                new Transition('auto_done', ['pending'], 'done', automatic: true),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNotNull($result);
+        $this->assertTrue($result->isError());
+        $this->assertSame('pending', $entity->get('state'));
+    }
+
+    public function testAutomaticTransitionLimitPreventsInfiniteLoops(): void
+    {
+        $this->engine->setMaxAutomaticTransitions(2);
+
+        $definition = new Definition(
+            name: 'loop',
+            table: 'Items',
+            field: 'state',
+            states: [
+                new State('a', initial: true),
+                new State('b'),
+            ],
+            transitions: [
+                new Transition('auto_b', ['a'], 'b', automatic: true),
+                new Transition('auto_a', ['b'], 'a', automatic: true),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'a']);
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage('Exceeded automatic transition limit of 2');
 
         $this->engine->processAutomaticTransitions($definition, $entity);
     }

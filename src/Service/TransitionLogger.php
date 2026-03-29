@@ -68,11 +68,7 @@ class TransitionLogger
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
 
         /** @var array<\Workflow\Model\Entity\WorkflowTransition> $result */
-        $result = $table->find('forEntity', [
-            'workflow' => $workflowName,
-            'table' => $entityTable,
-            'id' => $entityId,
-        ])->toArray();
+        $result = $table->find('forEntity', workflow: $workflowName, table: $entityTable, id: $entityId)->toArray();
 
         return $result;
     }

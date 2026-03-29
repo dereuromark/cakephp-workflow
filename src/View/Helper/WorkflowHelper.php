@@ -100,6 +100,19 @@ class WorkflowHelper extends Helper
     }
 
     /**
+     * Get the color for a state.
+     *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param string $state
+     */
+    public function getStateColor(Definition $definition, string $state): string
+    {
+        $stateObj = $definition->getState($state);
+
+        return $stateObj->getColor() ?? '#6c757d';
+    }
+
+    /**
      * Include Mermaid.js library.
      */
     public function includeMermaid(): string

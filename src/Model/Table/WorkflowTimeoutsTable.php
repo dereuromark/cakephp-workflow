@@ -74,12 +74,10 @@ class WorkflowTimeoutsTable extends Table
      * Find pending timeouts that are due.
      *
      * @param \Cake\ORM\Query\SelectQuery $query
-     * @param array<string, mixed> $options
+     * @param int $limit
      */
-    public function findDue(SelectQuery $query, array $options): SelectQuery
+    public function findDue(SelectQuery $query, int $limit = 100): SelectQuery
     {
-        $limit = $options['limit'] ?? 100;
-
         return $query
             ->where([
                 'due_at <=' => DateTime::now(),
@@ -93,15 +91,17 @@ class WorkflowTimeoutsTable extends Table
      * Find timeouts for a specific entity.
      *
      * @param \Cake\ORM\Query\SelectQuery $query
-     * @param array<string, mixed> $options
+     * @param string $workflow
+     * @param string $table
+     * @param string $id
      */
-    public function findForEntity(SelectQuery $query, array $options): SelectQuery
+    public function findForEntity(SelectQuery $query, string $workflow, string $table, string $id): SelectQuery
     {
         return $query
             ->where([
-                'workflow_name' => $options['workflow'],
-                'entity_table' => $options['table'],
-                'entity_id' => $options['id'],
+                'workflow_name' => $workflow,
+                'entity_table' => $table,
+                'entity_id' => $id,
                 'processed' => false,
             ]);
     }

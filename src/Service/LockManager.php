@@ -39,11 +39,7 @@ class LockManager
         $table->deleteExpired();
 
         // Check for existing active lock
-        $existing = $table->find('activeLock', [
-            'workflow' => $workflowName,
-            'table' => $entityTable,
-            'id' => $entityId,
-        ])->first();
+        $existing = $table->find('activeLock', workflow: $workflowName, table: $entityTable, id: $entityId)->first();
 
         if ($existing !== null) {
             return null;
@@ -83,11 +79,12 @@ class LockManager
     ): bool {
         $table = $this->fetchTable('Workflow.WorkflowLocks');
 
-        $lock = $table->find('activeLock', [
-            'workflow' => $workflowName,
-            'table' => $entityTable,
-            'id' => (string)$entity->get('id'),
-        ])->first();
+        $lock = $table->find(
+            'activeLock',
+            workflow: $workflowName,
+            table: $entityTable,
+            id: (string)$entity->get('id'),
+        )->first();
 
         return $lock !== null;
     }

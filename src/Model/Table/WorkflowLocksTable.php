@@ -62,15 +62,17 @@ class WorkflowLocksTable extends Table
      * Find active lock for entity.
      *
      * @param \Cake\ORM\Query\SelectQuery $query
-     * @param array<string, mixed> $options
+     * @param string $workflow
+     * @param string $table
+     * @param string $id
      */
-    public function findActiveLock(SelectQuery $query, array $options): SelectQuery
+    public function findActiveLock(SelectQuery $query, string $workflow, string $table, string $id): SelectQuery
     {
         return $query
             ->where([
-                'workflow_name' => $options['workflow'],
-                'entity_table' => $options['table'],
-                'entity_id' => $options['id'],
+                'workflow_name' => $workflow,
+                'entity_table' => $table,
+                'entity_id' => $id,
                 'expires_at >=' => $this->getCurrentTime(),
             ]);
     }

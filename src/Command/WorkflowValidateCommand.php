@@ -50,6 +50,8 @@ class WorkflowValidateCommand extends Command
         $hasErrors = false;
 
         foreach ($workflows as $workflowName) {
+            $workflowHasErrors = false;
+
             if (!$registry->hasWorkflow($workflowName)) {
                 $io->error("Workflow '{$workflowName}' not found.");
                 $hasErrors = true;
@@ -67,6 +69,7 @@ class WorkflowValidateCommand extends Command
                 foreach ($unreachable as $state) {
                     $io->out("    - <warning>{$state}</warning>");
                 }
+                $workflowHasErrors = true;
                 $hasErrors = true;
             }
 
@@ -77,6 +80,7 @@ class WorkflowValidateCommand extends Command
                 foreach ($deadEnds as $state) {
                     $io->out("    - <warning>{$state}</warning>");
                 }
+                $workflowHasErrors = true;
                 $hasErrors = true;
             }
 
@@ -85,6 +89,7 @@ class WorkflowValidateCommand extends Command
                 $definition->getInitialState();
             } catch (Exception $e) {
                 $io->error('  No initial state defined!');
+                $workflowHasErrors = true;
                 $hasErrors = true;
             }
 
@@ -95,6 +100,7 @@ class WorkflowValidateCommand extends Command
                 foreach ($orphanedTransitions as $t) {
                     $io->out("    - <error>{$t}</error>");
                 }
+                $workflowHasErrors = true;
                 $hasErrors = true;
             }
 
@@ -106,11 +112,12 @@ class WorkflowValidateCommand extends Command
                     foreach ($obsolete as $state => $count) {
                         $io->out("    - <warning>{$state}</warning> ({$count} entities)");
                     }
+                    $workflowHasErrors = true;
                     $hasErrors = true;
                 }
             }
 
-            if (!$hasErrors) {
+            if (!$workflowHasErrors) {
                 $io->success('  No issues found.');
             }
 

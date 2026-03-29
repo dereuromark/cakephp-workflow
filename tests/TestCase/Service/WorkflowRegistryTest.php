@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Workflow\Test\TestCase\Service;
 
 use Cake\Event\EventManager;
+use Cake\ORM\Entity;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
@@ -15,6 +17,7 @@ use Workflow\Exception\WorkflowException;
 use Workflow\Loader\LoaderInterface;
 use Workflow\Service\WorkflowRegistry;
 
+#[AllowMockObjectsWithoutExpectations]
 class WorkflowRegistryTest extends TestCase
 {
     private WorkflowRegistry $registry;
@@ -135,6 +138,32 @@ class WorkflowRegistryTest extends TestCase
         $this->assertSame($customEngine, $orderEngine);
         $this->assertNotSame($customEngine, $paymentEngine);
         $this->assertInstanceOf(StateMachineEngine::class, $paymentEngine);
+    }
+
+    public function testGetEngineHonorsConfiguredStrictMode(): void
+    {
+        $loader = $this->createMock(LoaderInterface::class);
+        $loader->method('supports')->willReturn(true);
+        $loader->method('load')->willReturn(new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', guards: ['missingGuard']),
+            ],
+        ));
+
+        $registry = new WorkflowRegistry($loader, new EventManager(), true, 10);
+        $engine = $registry->getEngine('order');
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage("Guard 'missingGuard' is not registered");
+
+        $engine->apply($registry->getWorkflow('order'), new Entity(['state' => 'pending']), 'pay');
     }
 
     public function testGetWorkflowWithLoader(): void

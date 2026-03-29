@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Workflow\State;
 
+use Cake\Datasource\EntityInterface;
 use ReflectionClass;
 
 abstract class AbstractState
 {
+    protected ?EntityInterface $entity = null;
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $context = [];
+
     /**
      * Get the state name derived from the class name.
      * Removes "State" suffix and converts to snake_case.
@@ -39,5 +47,32 @@ abstract class AbstractState
         }
 
         return strtolower($result);
+    }
+
+    /**
+     * Bind the current transition context to this state instance.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param array<string, mixed> $context
+     */
+    public function bind(EntityInterface $entity, array $context = []): static
+    {
+        $this->entity = $entity;
+        $this->context = $context;
+
+        return $this;
+    }
+
+    public function getEntity(): ?EntityInterface
+    {
+        return $this->entity;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getContext(): array
+    {
+        return $this->context;
     }
 }

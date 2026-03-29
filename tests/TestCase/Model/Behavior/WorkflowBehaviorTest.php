@@ -9,6 +9,7 @@ use Cake\Event\EventManager;
 use Cake\ORM\Entity;
 use Cake\ORM\Table;
 use Cake\TestSuite\TestCase;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
@@ -17,6 +18,7 @@ use Workflow\Loader\LoaderInterface;
 use Workflow\Model\Behavior\WorkflowBehavior;
 use Workflow\Service\WorkflowRegistry;
 
+#[AllowMockObjectsWithoutExpectations]
 class WorkflowBehaviorTest extends TestCase
 {
     private Table $table;

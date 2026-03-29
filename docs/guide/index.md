@@ -9,6 +9,23 @@ It is designed around:
 - transitions guarded by PHP logic
 - optional automatic branching, logging, locking, and timeout processing
 
+## Features
+
+- **PHP 8 Attributes**: Define workflows declaratively using modern PHP
+- **NEON/YAML Support**: Alternative configuration via NEON or YAML files
+- **State Types**: Initial, final, and failed state types
+- **Guards**: Conditional transitions with guard methods
+- **Commands**: Execute actions on state transitions
+- **Lifecycle Callbacks**: OnEnter and OnExit hooks for states
+- **Happy Path**: Visual emphasis on primary workflow paths
+- **State Flags**: Custom metadata on states for querying
+- **Audit Trail**: Full transition logging with user tracking
+- **Locking**: Prevent concurrent transitions
+- **Timeouts**: Automatic time-based transitions
+- **Admin UI**: Visual dashboard with Mermaid.js diagrams
+- **CLI Tools**: Workflow management and validation commands
+- **Validation**: Detect unreachable states and dead ends
+
 ## What It Is Good At
 
 This plugin fits best when you want:

@@ -50,6 +50,7 @@ export default defineConfig({
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Behavior Integration', link: '/guide/behavior' },
+            { text: 'View Helper', link: '/guide/view-helper' },
             { text: 'Controller Component', link: '/guide/component' },
             { text: 'Events, Logging, and Locks', link: '/guide/runtime' },
           ],

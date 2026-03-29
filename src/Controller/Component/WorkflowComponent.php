@@ -86,6 +86,8 @@ class WorkflowComponent extends Component
      * @param array|string $redirect Redirect URL after transition
      * @param array<string, mixed> $options Options for transition and flash messages
      *
+     * @throws \RuntimeException When redirect generation fails
+     *
      * @return \Cake\Http\Response
      */
     public function handleTransition(

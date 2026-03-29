@@ -10,6 +10,7 @@ use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query\SelectQuery;
+use Closure;
 use Throwable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\EngineInterface;
@@ -217,6 +218,39 @@ class WorkflowBehavior extends Behavior
     }
 
     /**
+     * Apply and persist a transition as a single orchestration step.
+     *
+     * This is the high-level API for application code. It temporarily enables
+     * save/log/lock/transaction behavior for this call without changing the
+     * behavior's long-lived configuration.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $transition
+     * @param array<string, mixed> $context
+     * @param array{save?: bool, log?: bool, lock?: bool|null, transaction?: bool} $options
+     */
+    public function transition(
+        EntityInterface $entity,
+        string $transition,
+        array $context = [],
+        array $options = [],
+    ): TransitionResult {
+        $options += [
+            'save' => true,
+            'log' => true,
+            'lock' => null,
+            'transaction' => true,
+        ];
+
+        return $this->withTemporaryConfig([
+            'autoSave' => (bool)$options['save'],
+            'autoLog' => (bool)$options['log'],
+            'useLocking' => $options['lock'],
+            'useTransaction' => (bool)$options['transaction'],
+        ], fn (): TransitionResult => $this->applyTransition($entity, $transition, $context));
+    }
+
+    /**
      * Execute transition wrapped in a database transaction.
      *
      * @param \Cake\Datasource\EntityInterface $entity
@@ -379,6 +413,13 @@ class WorkflowBehavior extends Behavior
         return $this->lockManager;
     }
 
+    public function setLockManager(LockManager $lockManager): static
+    {
+        $this->lockManager = $lockManager;
+
+        return $this;
+    }
+
     /**
      * Determine if locking should be used.
      *
@@ -462,6 +503,13 @@ class WorkflowBehavior extends Behavior
         }
 
         return $this->logger;
+    }
+
+    public function setLogger(TransitionLogger $logger): static
+    {
+        $this->logger = $logger;
+
+        return $this;
     }
 
     /**
@@ -729,5 +777,25 @@ class WorkflowBehavior extends Behavior
         }
 
         return $registry;
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     * @param \Closure(): \Workflow\Engine\TransitionResult $callback
+     */
+    private function withTemporaryConfig(array $config, Closure $callback): TransitionResult
+    {
+        $originalConfig = [];
+        foreach ($config as $key => $value) {
+            $originalConfig[$key] = $this->getConfig($key);
+        }
+
+        $this->setConfig($config);
+
+        try {
+            return $callback();
+        } finally {
+            $this->setConfig($originalConfig);
+        }
     }
 }

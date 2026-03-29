@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Test\TestCase\Model\Behavior;
 
 use ArrayObject;
+use Cake\Datasource\EntityInterface;
 use Cake\Event\EventManager;
 use Cake\ORM\Entity;
 use Cake\ORM\Table;
@@ -13,9 +14,13 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
+use Workflow\Engine\TransitionResult;
 use Workflow\Exception\WorkflowException;
 use Workflow\Loader\LoaderInterface;
 use Workflow\Model\Behavior\WorkflowBehavior;
+use Workflow\Model\Entity\WorkflowLock;
+use Workflow\Service\LockManager;
+use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
 
 #[AllowMockObjectsWithoutExpectations]
@@ -134,6 +139,113 @@ class WorkflowBehaviorTest extends TestCase
 
         $this->assertTrue($result->isSuccess());
         $this->assertSame('paid', $entity->get('state'));
+    }
+
+    public function testTransitionTemporarilyEnablesPersistenceOptions(): void
+    {
+        $table = new class (['table' => 'orders', 'alias' => 'Orders']) extends Table {
+            public bool $saved = false;
+
+            public function saveOrFail(
+                EntityInterface $entity,
+                array $options = [],
+            ): EntityInterface {
+                $this->saved = true;
+
+                return $entity;
+            }
+        };
+
+        $this->table = $table;
+        $behavior = $this->addBehavior([
+            'autoSave' => false,
+            'autoLog' => false,
+            'useTransaction' => false,
+            'useLocking' => false,
+        ]);
+
+        $logger = new class () extends TransitionLogger {
+            public int $calls = 0;
+
+            public function log(
+                string $workflowName,
+                string $entityTable,
+                EntityInterface $entity,
+                TransitionResult $result,
+                string $transitionName,
+                array $context = [],
+                ?string $workflowVersion = null,
+            ): void {
+                $this->calls++;
+            }
+        };
+        $behavior->setLogger($logger);
+
+        $entity = new Entity(['state' => 'pending']);
+        $result = $behavior->transition($entity, 'pay', [], [
+            'save' => true,
+            'log' => true,
+            'lock' => false,
+            'transaction' => false,
+        ]);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertTrue($table->saved);
+        $this->assertSame(1, $logger->calls);
+        $this->assertFalse($behavior->getConfig('autoSave'));
+        $this->assertFalse($behavior->getConfig('autoLog'));
+    }
+
+    public function testTransitionUsesInjectedLockManagerWhenRequested(): void
+    {
+        $behavior = $this->addBehavior([
+            'autoSave' => false,
+            'autoLog' => false,
+            'useTransaction' => false,
+            'useLocking' => false,
+        ]);
+
+        $lockManager = new class () extends LockManager {
+            public int $acquireCalls = 0;
+
+            public int $releaseCalls = 0;
+
+            public function acquire(
+                string $workflowName,
+                string $entityTable,
+                EntityInterface $entity,
+                ?string $lockedBy = null,
+            ): ?WorkflowLock {
+                $this->acquireCalls++;
+
+                return new WorkflowLock([
+                    'workflow_name' => $workflowName,
+                    'entity_table' => $entityTable,
+                    'entity_id' => (string)$entity->get('id'),
+                ]);
+            }
+
+            public function release(
+                string $workflowName,
+                string $entityTable,
+                EntityInterface $entity,
+            ): void {
+                $this->releaseCalls++;
+            }
+        };
+        $behavior->setLockManager($lockManager);
+
+        $entity = new Entity(['id' => 1, 'state' => 'pending']);
+        $result = $behavior->transition($entity, 'pay', [], [
+            'save' => false,
+            'log' => false,
+            'lock' => true,
+            'transaction' => false,
+        ]);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame(1, $lockManager->acquireCalls);
+        $this->assertSame(1, $lockManager->releaseCalls);
     }
 
     public function testApplyTransitionFails(): void

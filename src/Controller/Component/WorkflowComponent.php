@@ -10,6 +10,7 @@ use Cake\Http\Response;
 use Cake\ORM\Table;
 use RuntimeException;
 use Workflow\Engine\TransitionResult;
+use Workflow\Model\WorkflowTableInterface;
 
 /**
  * WorkflowComponent
@@ -48,7 +49,7 @@ class WorkflowComponent extends Component
      * Applies the transition and sets appropriate flash messages.
      * Returns the TransitionResult for further inspection if needed.
      *
-     * @param \Cake\ORM\Table&\Workflow\Model\WorkflowTableInterface $table The table with WorkflowBehavior attached
+     * @param \Cake\ORM\Table $table The table with WorkflowBehavior attached
      * @param \Cake\Datasource\EntityInterface $entity The entity to transition
      * @param string $transition The transition name
      * @param array<string, mixed> $context Additional context for the transition
@@ -63,7 +64,7 @@ class WorkflowComponent extends Component
         array $context = [],
         array $options = [],
     ): TransitionResult {
-        /** @var \Workflow\Engine\TransitionResult $result */
+        /** @var Table&WorkflowTableInterface $table */
         $result = $table->applyTransition($entity, $transition, $context);
 
         $this->flashResult($result, $transition, $options);
@@ -81,7 +82,7 @@ class WorkflowComponent extends Component
      * - 'transition': The transition name (required)
      * - 'reason': Optional reason for the transition
      *
-     * @param \Cake\ORM\Table&\Workflow\Model\WorkflowTableInterface $table The table with WorkflowBehavior attached
+     * @param \Cake\ORM\Table $table The table with WorkflowBehavior attached
      * @param \Cake\Datasource\EntityInterface $entity The entity to transition
      * @param array|string $redirect Redirect URL after transition
      * @param array<string, mixed> $options Options for transition and flash messages

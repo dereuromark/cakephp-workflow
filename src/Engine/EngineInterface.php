@@ -56,4 +56,12 @@ interface EngineInterface
         Definition $definition,
         EntityInterface $entity,
     ): string;
+
+    /**
+     * Register a custom command that can be used in transitions.
+     *
+     * @param string $name The command name to use in NEON configuration
+     * @param callable $callback The callback that performs the command action
+     */
+    public function addCommand(string $name, callable $callback): void;
 }

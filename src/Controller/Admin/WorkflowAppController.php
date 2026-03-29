@@ -9,6 +9,7 @@ use Cake\Core\Configure;
 use Cake\Event\EventInterface;
 use Throwable;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowAppController extends Controller
 {
@@ -21,7 +22,7 @@ class WorkflowAppController extends Controller
         $this->loadComponent('Flash');
         $this->viewBuilder()->setLayout('Workflow.workflow');
 
-        $registry = Configure::read('Workflow.registry');
+        $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if ($registry instanceof WorkflowRegistry) {
             $this->workflowRegistry = $registry;
         }

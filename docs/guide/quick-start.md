@@ -8,17 +8,55 @@ This example uses attribute-based definitions.
 bin/cake workflow init order Orders
 ```
 
-This creates a basic workflow directory with:
+This creates a workflow directory in `src/Workflow/Order/` with three files:
 
-- `BaseOrderState.php`
-- `PendingState.php`
-- `CompletedState.php`
+::: code-group
+
+```php [BaseOrderState.php]
+namespace App\Workflow\Order;
+
+use Workflow\Attribute\StateMachine;
+use Workflow\State\AbstractState;
+
+#[StateMachine(name: 'order', table: 'Orders', field: 'state')]
+abstract class BaseOrderState extends AbstractState
+{
+}
+```
+
+```php [PendingState.php]
+namespace App\Workflow\Order;
+
+use Workflow\Attribute\InitialState;
+use Workflow\Attribute\Transition;
+
+#[InitialState]
+#[Transition(to: CompletedState::class, name: 'complete', happy: true)]
+class PendingState extends BaseOrderState
+{
+}
+```
+
+```php [CompletedState.php]
+namespace App\Workflow\Order;
+
+use Workflow\Attribute\FinalState;
+
+#[FinalState]
+class CompletedState extends BaseOrderState
+{
+}
+```
+
+:::
 
 If Bake is installed, you can add more states later:
 
 ```bash
 bin/cake bake workflow_state Order/Shipped --transition-to Delivered --transition-name deliver
 ```
+
+See [Attributes](/definitions/attributes) for adding guards, commands, and lifecycle callbacks.
 
 ## 2. Attach the Behavior
 
@@ -40,8 +78,8 @@ public function initialize(array $config): void
 ```php [src/Controller/OrdersController.php]
 $order = $this->Orders->get($id);
 
-if ($this->Orders->canTransition($order, 'completed')) {
-    $result = $this->Orders->applyTransition($order, 'completed', [
+if ($this->Orders->canTransition($order, 'complete')) {
+    $result = $this->Orders->applyTransition($order, 'complete', [
         'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
         'reason' => 'Fulfillment finished',
     ]);
@@ -51,6 +89,8 @@ if ($this->Orders->canTransition($order, 'completed')) {
     }
 }
 ```
+
+See [Behavior Integration](./behavior) for the full API.
 
 ## 4. Inspect the Workflow
 
@@ -67,3 +107,8 @@ Admin UI:
 - `/admin/workflow/workflows`
 - `/admin/workflow/workflows/view/order`
 
+## Next Steps
+
+- [Definitions Overview](/definitions/) - Understand states, transitions, guards, and commands
+- [Behavior Integration](./behavior) - Full behavior API reference
+- [View Helper](./view-helper) - Render diagrams, badges, and buttons in templates

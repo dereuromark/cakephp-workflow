@@ -126,8 +126,6 @@ Install the optional parser you want:
 
 Create workflow files in `config/workflows/`:
 
-::: code-group
-
 ```neon [config/workflows/order.neon]
 order:
   table: Orders
@@ -148,29 +146,6 @@ order:
       from: [paid]
       to: completed
 ```
-
-```yaml [config/workflows/order.yaml]
-order:
-  table: Orders
-  field: state
-  states:
-    pending:
-      initial: true
-    paid:
-      color: '#00AA00'
-    completed:
-      final: true
-  transitions:
-    pay:
-      from: [pending]
-      to: paid
-      happy: true
-    complete:
-      from: [paid]
-      to: completed
-```
-
-:::
 
 ## Using the Workflow
 

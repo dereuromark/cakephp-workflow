@@ -64,7 +64,6 @@ export default defineConfig({
             { text: 'Overview', link: '/definitions/' },
             { text: 'Attributes', link: '/definitions/attributes' },
             { text: 'NEON and YAML', link: '/definitions/config-files' },
-            { text: 'States and Transitions', link: '/definitions/states-and-transitions' },
             { text: 'Automatic Transitions', link: '/definitions/automatic-transitions' },
           ],
         },

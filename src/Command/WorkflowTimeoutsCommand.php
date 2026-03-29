@@ -14,6 +14,7 @@ use Exception;
 use RuntimeException;
 use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowTimeoutsCommand extends Command
 {
@@ -173,7 +174,7 @@ class WorkflowTimeoutsCommand extends Command
 
     private function getRegistry(): WorkflowRegistry
     {
-        $registry = Configure::read('Workflow.registry');
+        $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }

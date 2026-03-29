@@ -8,6 +8,7 @@ use Bake\Command\SimpleBakeCommand;
 use Cake\Console\CommandCollection;
 use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
+use Cake\Core\ContainerInterface;
 use Cake\Core\Plugin as CakePlugin;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Event\EventManager;
@@ -26,6 +27,7 @@ use Workflow\Loader\ChainLoader;
 use Workflow\Loader\NeonLoader;
 use Workflow\Loader\YamlLoader;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowPlugin extends BasePlugin
 {
@@ -40,7 +42,17 @@ class WorkflowPlugin extends BasePlugin
         parent::bootstrap($app);
 
         $this->loadDefaultConfig();
-        $this->registerServices();
+    }
+
+    public function services(ContainerInterface $container): void
+    {
+        WorkflowRegistryLocator::setContainer($container);
+
+        if (!$container->has(WorkflowRegistry::class)) {
+            $container->addShared(WorkflowRegistry::class, function () {
+                return $this->buildRegistry();
+            });
+        }
     }
 
     public function console(CommandCollection $commands): CommandCollection
@@ -90,7 +102,7 @@ class WorkflowPlugin extends BasePlugin
         Configure::write('Workflow', array_replace_recursive($defaults, $config));
     }
 
-    private function registerServices(): void
+    private function buildRegistry(): WorkflowRegistry
     {
         $config = Configure::read('Workflow');
 
@@ -118,18 +130,15 @@ class WorkflowPlugin extends BasePlugin
                 . 'or ensure Workflow.loader.configPath directory exists with YAML/NEON files and '
                 . 'symfony/yaml or nette/neon is installed.',
             );
-
-            return;
+            throw new \RuntimeException('Workflow plugin registry could not be built because no loaders are configured.');
         }
 
         $chainLoader = new ChainLoader($loaders);
-        $registry = new WorkflowRegistry(
+        return new WorkflowRegistry(
             $chainLoader,
             EventManager::instance(),
             (bool)($config['strictMode'] ?? false),
             (int)($config['maxEventRepeats'] ?? 10),
         );
-
-        Configure::write('Workflow.registry', $registry);
     }
 }

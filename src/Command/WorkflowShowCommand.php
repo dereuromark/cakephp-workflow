@@ -12,6 +12,7 @@ use Cake\Core\Configure;
 use RuntimeException;
 use Workflow\Renderer\MermaidRenderer;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowShowCommand extends Command
 {
@@ -112,7 +113,7 @@ class WorkflowShowCommand extends Command
 
     private function getRegistry(): WorkflowRegistry
     {
-        $registry = Configure::read('Workflow.registry');
+        $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }

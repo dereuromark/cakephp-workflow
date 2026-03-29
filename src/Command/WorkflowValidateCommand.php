@@ -14,6 +14,7 @@ use Exception;
 use RuntimeException;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowValidateCommand extends Command
 {
@@ -290,7 +291,7 @@ class WorkflowValidateCommand extends Command
 
     private function getRegistry(): WorkflowRegistry
     {
-        $registry = Configure::read('Workflow.registry');
+        $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }

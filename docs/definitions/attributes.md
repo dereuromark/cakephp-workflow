@@ -1,8 +1,10 @@
 # Attributes
 
-Attributes are the recommended way to define workflows.
+Attributes are the recommended way to define workflows. See the [Overview](./index.md) for conceptual background on states, transitions, guards, and commands.
 
 ## Base State Class
+
+Every workflow starts with an abstract base class marked with `#[StateMachine]`:
 
 ```php [src/Workflow/Order/BaseOrderState.php]
 namespace App\Workflow\Order;
@@ -16,15 +18,13 @@ abstract class BaseOrderState extends AbstractState
 }
 ```
 
-This marks the workflow root and defines:
+## State Classes
 
-- workflow name
-- table alias
-- state field
+Each state is a concrete class extending your base. Use attributes to mark state types and define transitions:
 
-## Initial State
+```php [src/Workflow/Order/PendingState.php]
+namespace App\Workflow\Order;
 
-```php [src/Workflow/Order/State/PendingState.php]
 use Workflow\Attribute\Command;
 use Workflow\Attribute\Guard;
 use Workflow\Attribute\InitialState;
@@ -32,6 +32,7 @@ use Workflow\Attribute\Transition;
 
 #[InitialState]
 #[Transition(to: PaidState::class, name: 'pay', happy: true)]
+#[Transition(to: CancelledState::class, name: 'cancel')]
 class PendingState extends BaseOrderState
 {
     #[Guard('pay')]
@@ -50,9 +51,9 @@ class PendingState extends BaseOrderState
 }
 ```
 
-## Final State
+```php [src/Workflow/Order/PaidState.php]
+namespace App\Workflow\Order;
 
-```php [src/Workflow/Order/State/PaidState.php]
 use Workflow\Attribute\FinalState;
 use Workflow\Attribute\OnEnter;
 
@@ -69,7 +70,7 @@ class PaidState extends BaseOrderState
 
 ## Guards
 
-Guards validate whether a transition is allowed. They return `true` to allow, or a string message to block:
+Guard methods validate transitions. Return `true` to allow, or a message string to block:
 
 ```php
 #[Guard('pay')]
@@ -89,11 +90,11 @@ public function ensureNotAlreadyPaid(): bool|string
 }
 ```
 
-Multiple guards for the same transition are evaluated in sequence. If any guard returns a string, the transition is blocked.
+Multiple guards for the same transition run in sequence. Any blocking message stops the transition.
 
 ## Commands
 
-Commands execute side effects when a transition succeeds:
+Command methods run when a transition succeeds:
 
 ```php
 #[Command('pay')]
@@ -104,56 +105,63 @@ public function markPaymentCaptured(): void
 }
 ```
 
-Commands run after guards pass but before the entity is saved. They can modify the entity or trigger external actions.
-
 ## Lifecycle Callbacks
 
-`OnEnter` and `OnExit` run when entering or leaving a state:
+`#[OnEnter]` and `#[OnExit]` run when entering or leaving a state:
 
 ```php
 #[OnEnter]
-public function sendWelcomeEmail(): void
+public function notifyCustomer(): void
 {
     // Runs when entity enters this state
 }
 
 #[OnExit]
-public function logStateExit(): void
+public function cleanupResources(): void
 {
     // Runs when entity leaves this state
 }
 ```
 
-## Common Attributes
+## Attribute Reference
 
-State-level:
+### State-level
 
-- `StateMachine` - marks the base class with workflow metadata
-- `InitialState` - marks the starting state for new entities
-- `FinalState` - marks terminal states (no outgoing transitions allowed)
-- `FailedState` - marks error/failure states (implies final)
-- `Label` - human-readable label for the state
-- `Color` - hex color for visualization (e.g., `#00AA00`)
-- `Flag` - custom metadata tags (e.g., `done`, `billable`)
-- `RequireReason` - require a reason when entering this state
+| Attribute | Description |
+|-----------|-------------|
+| `#[StateMachine(name, table, field)]` | Marks the base class with workflow metadata |
+| `#[InitialState]` | Starting state for new entities |
+| `#[FinalState]` | Terminal state (no outgoing transitions) |
+| `#[FailedState]` | Error state (implies final) |
+| `#[Label('Display Name')]` | Human-readable label |
+| `#[Color('#00AA00')]` | Hex color for visualization |
+| `#[Flag('done')]` | Custom metadata tag |
+| `#[RequireReason]` | Require reason when entering |
 
-Method-level:
+### Method-level
 
-- `Guard` - conditional check for transitions
-- `Command` - action to run on transition
-- `OnEnter` - callback when entering the state
-- `OnExit` - callback when leaving the state
-- `Timeout` - automatic transition after duration
+| Attribute | Description |
+|-----------|-------------|
+| `#[Guard('transition')]` | Conditional check (return `bool\|string`) |
+| `#[Command('transition')]` | Action on successful transition |
+| `#[OnEnter]` | Callback when entering this state |
+| `#[OnExit]` | Callback when leaving this state |
+| `#[Timeout('1 hour', 'expire')]` | Auto-transition after duration |
 
-## Why the Current Model Uses State Methods
+### Transition-level
 
-The current API keeps guards and commands close to the state that owns them.
+```php
+#[Transition(
+    to: TargetState::class,  // Required: target state class
+    name: 'approve',         // Required: transition identifier
+    happy: true,             // Optional: mark as happy path
+)]
+```
 
-That gives:
+## Why State Methods?
 
-- strong locality
-- low registration overhead
-- clearer workflow reading for most app teams
+Guards and commands live in the state class that owns them. This provides:
 
-It is especially effective when the logic is specific to one workflow.
-
+- Strong locality - logic is close to the state
+- IDE support - refactoring and navigation work naturally
+- Clear ownership - each state manages its own transition logic

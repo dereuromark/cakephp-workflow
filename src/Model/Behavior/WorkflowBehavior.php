@@ -20,6 +20,7 @@ use Workflow\Model\Entity\WorkflowLock;
 use Workflow\Service\LockManager;
 use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowBehavior extends Behavior
 {
@@ -772,7 +773,12 @@ class WorkflowBehavior extends Behavior
     protected function getRegistry(): WorkflowRegistry
     {
         $registry = $this->getConfig('registry');
-        if ($registry === null) {
+        if ($registry instanceof WorkflowRegistry) {
+            return $registry;
+        }
+
+        $registry = WorkflowRegistryLocator::get() ?? \Cake\Core\Configure::read('Workflow.registry');
+        if (!$registry instanceof WorkflowRegistry) {
             throw new WorkflowException('WorkflowBehavior requires a registry instance');
         }
 

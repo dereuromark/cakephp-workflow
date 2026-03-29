@@ -11,6 +11,7 @@ use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use RuntimeException;
 use Workflow\Service\WorkflowRegistry;
+use Workflow\Service\WorkflowRegistryLocator;
 
 class WorkflowListCommand extends Command
 {
@@ -24,7 +25,6 @@ class WorkflowListCommand extends Command
         $parser
             ->setDescription('List all configured workflows')
             ->addOption('verbose', [
-                'short' => 'v',
                 'boolean' => true,
                 'help' => 'Show detailed information',
             ]);
@@ -78,7 +78,7 @@ class WorkflowListCommand extends Command
 
     private function getRegistry(): WorkflowRegistry
     {
-        $registry = Configure::read('Workflow.registry');
+        $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }

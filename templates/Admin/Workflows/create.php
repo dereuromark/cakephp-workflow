@@ -19,7 +19,10 @@ $this->assign('title', 'New Workflow - Designer');
             </ol>
         </nav>
     </div>
-    <div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#importModal">
+            <i class="bi bi-upload me-1"></i>Import
+        </button>
         <?php if ($exportFormats['neon'] || $exportFormats['yaml']) { ?>
             <button type="button" class="btn btn-primary" id="exportBtn">
                 <i class="bi bi-download me-1"></i>Export & Download
@@ -37,17 +40,35 @@ $this->assign('title', 'New Workflow - Designer');
     <div class="col-lg-5">
         <div class="card mb-4 sticky-top" style="top:1rem">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-eye me-2"></i>Live Preview</span>
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="diagram-tab" data-bs-toggle="tab" data-bs-target="#diagram-preview" type="button" role="tab">
+                            <i class="bi bi-diagram-3 me-1"></i>Diagram
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="config-tab" data-bs-toggle="tab" data-bs-target="#config-preview" type="button" role="tab">
+                            <i class="bi bi-code me-1"></i>Config
+                        </button>
+                    </li>
+                </ul>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshPreview">
                     <i class="bi bi-arrow-clockwise"></i>
                 </button>
             </div>
             <div class="card-body">
-                <div id="mermaidPreview" class="mermaid">
-                    stateDiagram-v2
-                    [*] --> pending
-                    pending --> completed
-                    completed --> [*]
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="diagram-preview" role="tabpanel">
+                        <div id="mermaidPreview" class="mermaid">
+                            stateDiagram-v2
+                            [*] --> pending
+                            pending --> completed
+                            completed --> [*]
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="config-preview" role="tabpanel">
+                        <pre id="configPreview" class="bg-dark text-light p-3 rounded" style="max-height:400px;overflow:auto;font-size:0.85rem"><code></code></pre>
+                    </div>
                 </div>
             </div>
         </div>
@@ -139,6 +160,45 @@ $this->assign('title', 'New Workflow - Designer');
 </div>
 
 <?= $this->Form->end() ?>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-upload me-2"></i>Import Workflow</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Paste your NEON or YAML workflow configuration below. This will replace the current designer content.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Configuration (NEON/YAML)</label>
+                    <textarea class="form-control font-monospace" id="importConfig" rows="15" placeholder="workflow_name:
+    table: TableName
+    field: state
+    states:
+        pending:
+            initial: true
+        completed:
+            final: true
+    transitions:
+        complete:
+            from: [pending]
+            to: completed"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="doImportBtn">
+                    <i class="bi bi-check-lg me-1"></i>Import
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- State Template -->
 <template id="stateTemplate">
@@ -259,18 +319,162 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let stateIndex = 0;
     let transitionIndex = 0;
+    let skipPreviewUpdate = true; // Skip updates during initial setup
+    let mermaidRenderCount = 0;
 
-    // Add default states on load
+    // Add default states on load (without triggering preview updates)
     addState('pending', 'Pending', '#ffc107', true, false, false);
     addState('completed', 'Completed', '#28a745', false, true, false);
     addTransition('complete', 'pending', 'completed', true, false);
 
+    // Now enable preview updates and render once
+    skipPreviewUpdate = false;
+    updateMermaidPreview();
+
     document.getElementById('addStateBtn').addEventListener('click', function() { addState(); });
     document.getElementById('addTransitionBtn').addEventListener('click', function() { addTransition(); });
     document.getElementById('exportBtn')?.addEventListener('click', function() { form.submit(); });
-    document.getElementById('refreshPreview').addEventListener('click', updateMermaidPreview);
+    document.getElementById('refreshPreview').addEventListener('click', function() {
+        updateMermaidPreview();
+    });
 
-    function addState(name = '', label = '', color = '#6c757d', isInitial = false, isFinal = false, isFailed = false) {
+    // Re-render when switching to diagram tab (in case it wasn't visible during update)
+    document.getElementById('diagram-tab').addEventListener('shown.bs.tab', function() {
+        updateMermaidPreview();
+    });
+
+    // Import functionality
+    document.getElementById('doImportBtn').addEventListener('click', function() {
+        const config = document.getElementById('importConfig').value.trim();
+        if (!config) {
+            alert('Please paste a configuration to import.');
+            return;
+        }
+
+        try {
+            const parsed = parseSimpleYaml(config);
+            if (!parsed) {
+                alert('Could not parse configuration. Please check the format.');
+                return;
+            }
+
+            // Clear existing states and transitions
+            statesContainer.innerHTML = '';
+            transitionsContainer.innerHTML = '';
+            stateIndex = 0;
+            transitionIndex = 0;
+            skipPreviewUpdate = true;
+
+            // Set workflow properties
+            const workflowName = Object.keys(parsed)[0];
+            const workflow = parsed[workflowName];
+
+            document.getElementById('workflowName').value = workflowName || '';
+            document.getElementById('workflowTable').value = workflow.table || '';
+            document.getElementById('workflowField').value = workflow.field || 'state';
+            document.getElementById('workflowLabel').value = workflow.label || '';
+            document.getElementById('workflowVersion').value = workflow.version || '';
+            document.getElementById('workflowDescription').value = workflow.description || '';
+
+            // Add states
+            if (workflow.states) {
+                for (const [stateName, stateConfig] of Object.entries(workflow.states)) {
+                    const cfg = stateConfig || {};
+                    addState(
+                        stateName,
+                        cfg.label || '',
+                        cfg.color || '#6c757d',
+                        !!cfg.initial,
+                        !!cfg.final,
+                        !!cfg.failed,
+                        Array.isArray(cfg.flags) ? cfg.flags.join(', ') : (cfg.flags || '')
+                    );
+                }
+            }
+
+            // Add transitions
+            if (workflow.transitions) {
+                for (const [transName, transConfig] of Object.entries(workflow.transitions)) {
+                    const cfg = transConfig || {};
+                    const fromStates = Array.isArray(cfg.from) ? cfg.from.join(', ') : (cfg.from || '');
+                    const guards = Array.isArray(cfg.guards) ? cfg.guards.join(', ') : (cfg.guards || cfg.guard || '');
+                    const commands = Array.isArray(cfg.commands) ? cfg.commands.join(', ') : (cfg.commands || cfg.command || '');
+                    addTransition(
+                        transName,
+                        fromStates,
+                        cfg.to || '',
+                        !!cfg.happy,
+                        !!cfg.automatic,
+                        guards,
+                        commands
+                    );
+                }
+            }
+
+            // Update visibility messages
+            noStatesMsg.style.display = statesContainer.children.length === 0 ? 'block' : 'none';
+            noTransitionsMsg.style.display = transitionsContainer.children.length === 0 ? 'block' : 'none';
+
+            // Enable preview and update
+            skipPreviewUpdate = false;
+            updateMermaidPreview();
+
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('importModal')).hide();
+
+        } catch (e) {
+            alert('Error parsing configuration: ' + e.message);
+        }
+    });
+
+    // Simple YAML/NEON parser (handles basic indented key-value structure)
+    function parseSimpleYaml(text) {
+        const result = {};
+        const lines = text.split('\n');
+        const stack = [{ obj: result, indent: -1 }];
+
+        for (let line of lines) {
+            // Skip empty lines and comments
+            if (!line.trim() || line.trim().startsWith('#')) continue;
+
+            const indent = line.search(/\S/);
+            const content = line.trim();
+
+            // Pop stack to find parent at correct indent level
+            while (stack.length > 1 && stack[stack.length - 1].indent >= indent) {
+                stack.pop();
+            }
+            const parent = stack[stack.length - 1].obj;
+
+            // Parse key: value
+            const colonIdx = content.indexOf(':');
+            if (colonIdx === -1) continue;
+
+            const key = content.substring(0, colonIdx).trim();
+            let value = content.substring(colonIdx + 1).trim();
+
+            if (value === '' || value === '|' || value === '>') {
+                // Object or multiline - create nested object
+                parent[key] = {};
+                stack.push({ obj: parent[key], indent: indent });
+            } else if (value.startsWith('[') && value.endsWith(']')) {
+                // Inline array
+                const inner = value.slice(1, -1);
+                parent[key] = inner ? inner.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')) : [];
+            } else if (value === 'true') {
+                parent[key] = true;
+            } else if (value === 'false') {
+                parent[key] = false;
+            } else {
+                // Remove quotes if present
+                parent[key] = value.replace(/^['"]|['"]$/g, '');
+            }
+        }
+
+        return result;
+    }
+
+    function addState(name = '', label = '', color = '#6c757d', isInitial = false, isFinal = false, isFailed = false, flags = '') {
         const html = stateTemplate.innerHTML.replace(/__INDEX__/g, stateIndex);
         const div = document.createElement('div');
         div.innerHTML = html;
@@ -291,6 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isInitial) stateItem.querySelector('.state-initial').checked = true;
         if (isFinal) stateItem.querySelector('.state-final').checked = true;
         if (isFailed) stateItem.querySelector('.state-failed').checked = true;
+        if (flags) stateItem.querySelector('.state-flags').value = flags;
 
         stateItem.querySelector('.state-name').addEventListener('input', function() {
             stateItem.querySelector('.state-display-name').textContent = this.value || 'New State';
@@ -316,7 +521,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateMermaidPreview();
     }
 
-    function addTransition(name = '', from = '', to = '', isHappy = false, isAutomatic = false) {
+    function addTransition(name = '', from = '', to = '', isHappy = false, isAutomatic = false, guard = '', command = '') {
         const html = transitionTemplate.innerHTML.replace(/__INDEX__/g, transitionIndex);
         const div = document.createElement('div');
         div.innerHTML = html;
@@ -332,6 +537,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (to) transitionItem.querySelector('.transition-to').value = to;
         if (isHappy) transitionItem.querySelector('.transition-happy').checked = true;
         if (isAutomatic) transitionItem.querySelector('.transition-automatic').checked = true;
+        if (guard) transitionItem.querySelector('.transition-guard').value = guard;
+        if (command) transitionItem.querySelector('.transition-command').value = command;
 
         transitionItem.querySelector('.transition-name').addEventListener('input', function() {
             transitionItem.querySelector('.transition-display-name').textContent = this.value || 'New Transition';
@@ -350,16 +557,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateMermaidPreview() {
-        const states = [];
-        const transitions = [];
+        if (skipPreviewUpdate) return;
+
+        const statesData = [];
+        const transitionsData = [];
 
         statesContainer.querySelectorAll('.state-item').forEach(item => {
             const name = item.querySelector('.state-name').value;
             if (name) {
-                states.push({
+                statesData.push({
                     name: name,
+                    label: item.querySelector('.state-label').value,
+                    color: item.querySelector('.state-color-picker').value,
                     isInitial: item.querySelector('.state-initial').checked,
-                    isFinal: item.querySelector('.state-final').checked
+                    isFinal: item.querySelector('.state-final').checked,
+                    isFailed: item.querySelector('.state-failed').checked,
+                    flags: item.querySelector('.state-flags').value
                 });
             }
         });
@@ -369,29 +582,115 @@ document.addEventListener('DOMContentLoaded', function() {
             const from = item.querySelector('.transition-from').value;
             const to = item.querySelector('.transition-to').value;
             const isHappy = item.querySelector('.transition-happy').checked;
+            const isAutomatic = item.querySelector('.transition-automatic').checked;
+            const guard = item.querySelector('.transition-guard').value;
+            const command = item.querySelector('.transition-command').value;
 
             if (name && from && to) {
-                from.split(',').map(s => s.trim()).filter(s => s).forEach(fromState => {
-                    transitions.push({ from: fromState, to: to, name: name, isHappy: isHappy });
+                transitionsData.push({
+                    name: name,
+                    from: from.split(',').map(s => s.trim()).filter(s => s),
+                    to: to.trim(),
+                    isHappy: isHappy,
+                    isAutomatic: isAutomatic,
+                    guard: guard,
+                    command: command
                 });
             }
         });
 
+        // Update Mermaid diagram
         let diagram = 'stateDiagram-v2\n';
-        states.filter(s => s.isInitial).forEach(s => { diagram += `    [*] --> ${s.name}\n`; });
-        transitions.forEach(t => {
-            const label = t.isHappy ? `${t.name} ⭐` : t.name;
-            diagram += `    ${t.from} --> ${t.to}: ${label}\n`;
+        statesData.filter(s => s.isInitial).forEach(s => { diagram += `    [*] --> ${s.name}\n`; });
+        transitionsData.forEach(t => {
+            t.from.forEach(fromState => {
+                const label = t.isHappy ? `${t.name} ⭐` : t.name;
+                diagram += `    ${fromState} --> ${t.to}: ${label}\n`;
+            });
         });
-        states.filter(s => s.isFinal).forEach(s => { diagram += `    ${s.name} --> [*]\n`; });
+        statesData.filter(s => s.isFinal).forEach(s => { diagram += `    ${s.name} --> [*]\n`; });
 
-        if (states.length === 0) diagram = 'stateDiagram-v2\n    [*] --> new_state\n    new_state --> [*]';
+        if (statesData.length === 0) diagram = 'stateDiagram-v2\n    [*] --> new_state\n    new_state --> [*]';
 
-        const previewEl = document.getElementById('mermaidPreview');
-        previewEl.removeAttribute('data-processed');
-        previewEl.innerHTML = diagram;
-        if (typeof mermaid !== 'undefined') mermaid.init(undefined, previewEl);
+        renderMermaidDiagram(diagram);
+
+        // Update NEON config preview
+        updateConfigPreview(statesData, transitionsData);
     }
+
+    function renderMermaidDiagram(diagram) {
+        const container = document.getElementById('diagram-preview');
+        const graphId = 'mermaid-graph-' + (++mermaidRenderCount);
+
+        if (typeof mermaid !== 'undefined' && mermaid.render) {
+            // Use mermaid.render() for proper re-rendering
+            mermaid.render(graphId, diagram).then(function(result) {
+                container.innerHTML = '<div id="mermaidPreview">' + result.svg + '</div>';
+            }).catch(function(err) {
+                container.innerHTML = '<div id="mermaidPreview" class="text-danger">Diagram error: ' + err.message + '</div>';
+            });
+        } else if (typeof mermaid !== 'undefined') {
+            // Fallback: recreate the element
+            container.innerHTML = '<div id="mermaidPreview" class="mermaid">' + diagram + '</div>';
+            mermaid.init(undefined, container.querySelector('.mermaid'));
+        }
+    }
+
+    function updateConfigPreview(statesData, transitionsData) {
+        const workflowName = document.getElementById('workflowName').value || 'new_workflow';
+        const table = document.getElementById('workflowTable').value || 'Items';
+        const field = document.getElementById('workflowField').value || 'state';
+        const label = document.getElementById('workflowLabel').value;
+        const version = document.getElementById('workflowVersion').value;
+        const description = document.getElementById('workflowDescription').value;
+
+        let neon = `${workflowName}:\n`;
+        neon += `    table: ${table}\n`;
+        neon += `    field: ${field}\n`;
+        if (label) neon += `    label: ${label}\n`;
+        if (version) neon += `    version: "${version}"\n`;
+        if (description) neon += `    description: "${description}"\n`;
+
+        // States
+        if (statesData.length > 0) {
+            neon += `    states:\n`;
+            statesData.forEach(state => {
+                neon += `        ${state.name}:\n`;
+                if (state.label) neon += `            label: ${state.label}\n`;
+                if (state.color && state.color !== '#6c757d') neon += `            color: '${state.color}'\n`;
+                if (state.isInitial) neon += `            initial: true\n`;
+                if (state.isFinal) neon += `            final: true\n`;
+                if (state.isFailed) neon += `            failed: true\n`;
+                if (state.flags) {
+                    const flagsArr = state.flags.split(',').map(f => f.trim()).filter(f => f);
+                    if (flagsArr.length > 0) {
+                        neon += `            flags: [${flagsArr.join(', ')}]\n`;
+                    }
+                }
+            });
+        }
+
+        // Transitions
+        if (transitionsData.length > 0) {
+            neon += `    transitions:\n`;
+            transitionsData.forEach(t => {
+                neon += `        ${t.name}:\n`;
+                neon += `            from: [${t.from.join(', ')}]\n`;
+                neon += `            to: ${t.to}\n`;
+                if (t.isHappy) neon += `            happy: true\n`;
+                if (t.isAutomatic) neon += `            automatic: true\n`;
+                if (t.guard) neon += `            guards: [${t.guard}]\n`;
+                if (t.command) neon += `            commands: [${t.command}]\n`;
+            });
+        }
+
+        document.querySelector('#configPreview code').textContent = neon;
+    }
+
+    // Also update config when workflow properties change
+    ['workflowName', 'workflowTable', 'workflowField', 'workflowLabel', 'workflowVersion', 'workflowDescription'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updateMermaidPreview);
+    });
 });
 </script>
 <?php $this->end(); ?>

@@ -207,54 +207,8 @@ if ($result->isSuccess()) {
 $transitions = $ordersTable->getAvailableTransitions($order);
 ```
 
-For a full persisted transition, use the higher-level API:
-
-```php
-$result = $ordersTable->transition($order, 'pay', [
-    'user_id' => $userId,
-    'reason' => 'Payment received',
-]);
-```
-
-`transition()` is the orchestration entry point. It can save the entity,
-write transition history, acquire a workflow lock, and wrap the whole operation
-in a transaction for that call.
-
-You can override the orchestration options per call:
-
-```php
-$result = $ordersTable->transition($order, 'pay', [], [
-    'save' => true,
-    'log' => true,
-    'lock' => true,
-    'transaction' => true,
-]);
-```
-
-Use `applyTransition()` when you explicitly want the lower-level in-memory
-state change and you will coordinate persistence yourself.
-
-### Behavior Options
-
-The behavior supports both long-lived defaults and per-call orchestration:
-
-```php
-public function initialize(array $config): void
-{
-    $this->addBehavior('Workflow.Workflow', [
-        'workflow' => 'order',
-        'autoSave' => false,
-        'autoLog' => false,
-        'useLocking' => null,
-        'useTransaction' => true,
-    ]);
-}
-```
-
-- `autoSave`: Save the entity after a successful `applyTransition()`
-- `autoLog`: Persist a transition history record after a successful transition
-- `useLocking`: `true` forces locks, `false` disables them, `null` auto-detects from the lock table
-- `useTransaction`: Wrap transition, save, and logging in one DB transaction
+For the persisted orchestration API (`transition()`), behavior options, and
+transaction/logging/locking details, see `docs/guide/persisted-transitions.md`.
 
 ## Admin Dashboard
 

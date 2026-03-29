@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Workflow;
@@ -34,6 +35,7 @@ class Workflow
      *
      * @param string $transition Transition name
      * @param array<string, mixed> $context Optional context data
+     *
      * @return bool True if transition is allowed
      */
     public function can(string $transition, array $context = []): bool
@@ -46,6 +48,7 @@ class Workflow
      *
      * @param string $transition Transition name
      * @param array<string, mixed> $context Optional context data
+     *
      * @return \Workflow\Engine\TransitionResult Result of the transition attempt
      */
     public function apply(string $transition, array $context = []): TransitionResult
@@ -77,6 +80,7 @@ class Workflow
      * Get transitions that are currently enabled (passing all guards).
      *
      * @param array<string, mixed> $context Optional context for guard evaluation
+     *
      * @return array<string> List of enabled transition names
      */
     public function getEnabledTransitions(array $context = []): array
@@ -111,6 +115,7 @@ class Workflow
      * Check if entity is in a specific state.
      *
      * @param string $state State name to check
+     *
      * @return bool True if entity is in the specified state
      */
     public function isInState(string $state): bool
@@ -132,6 +137,7 @@ class Workflow
      * Check if entity has a specific flag on current state.
      *
      * @param string $flag Flag name
+     *
      * @return bool True if current state has the flag
      */
     public function hasFlag(string $flag): bool

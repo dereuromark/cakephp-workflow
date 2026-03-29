@@ -99,8 +99,9 @@ Returns the hex color (e.g., `#00AA00`) or a default gray if none is configured.
 ```php
 <?php
 // In your controller: pass definition and availableTransitions to view
-// $this->set('definition', $this->Orders->getWorkflowDefinition());
-// $this->set('availableTransitions', $this->Orders->getAvailableTransitions($order));
+// $workflow = $this->workflowRegistry->get($order);
+// $this->set('definition', $workflow->getDefinition());
+// $this->set('availableTransitions', $workflow->getAvailableTransitions());
 ?>
 
 <?= $this->Workflow->includeMermaid() ?>

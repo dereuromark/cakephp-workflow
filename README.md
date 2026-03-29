@@ -13,16 +13,10 @@ State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON c
 composer require dereuromark/cakephp-workflow
 ```
 
-Load the plugin in your `src/Application.php`:
+Load the plugin:
 
-```php
-public function bootstrap(): void
-{
-    parent::bootstrap();
-    // Required if you want to use `bin/cake bake workflow_state`
-    $this->addPlugin('Bake');
-    $this->addPlugin('Workflow');
-}
+```bash
+bin/cake plugin load Workflow
 ```
 
 Run migrations:

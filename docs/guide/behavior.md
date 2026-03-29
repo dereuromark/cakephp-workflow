@@ -1,8 +1,51 @@
 # Behavior Integration
 
-The main application API is the `Workflow.Workflow` ORM behavior.
+The plugin provides two ways to interact with workflows:
 
-## Configuration
+1. **Workflow Object** (recommended) - clean, entity-centric API via `WorkflowRegistry`
+2. **ORM Behavior** - table-level methods mixed into your Table class
+
+## Workflow Object API
+
+The `Workflow` class provides a Symfony-style API for working with entities:
+
+```php
+// In your controller, inject or fetch the registry
+$registry = $this->getService(WorkflowRegistry::class);
+
+// Get a workflow for an entity (auto-detects workflow from table)
+$workflow = $registry->get($order);
+
+// Or specify the workflow name explicitly
+$workflow = $registry->get($order, 'order');
+
+// Check if transition is allowed
+if ($workflow->can('pay')) {
+    $result = $workflow->apply('pay', ['user_id' => $userId]);
+}
+
+// Query state
+$workflow->getStateName();           // 'pending'
+$workflow->getState();               // State object
+$workflow->isInState('pending');     // true
+$workflow->isInFinalState();         // false
+$workflow->hasFlag('done');          // false
+
+// Get transitions
+$workflow->getEnabledTransitions();  // ['pay', 'cancel'] - passes guards
+$workflow->getAvailableTransitions(); // ['pay', 'cancel'] - ignores guards
+
+// Access definition and entity
+$workflow->getDefinition();          // Definition object
+$workflow->getEntity();              // The entity
+$workflow->getName();                // 'order'
+```
+
+## ORM Behavior API
+
+The `Workflow.Workflow` behavior adds methods to your Table class.
+
+### Configuration
 
 ```php [src/Model/Table/OrdersTable.php]
 $this->addBehavior('Workflow.Workflow', [
@@ -16,16 +59,22 @@ $this->addBehavior('Workflow.Workflow', [
 
 ## Core Methods
 
+Access behavior methods via `getBehavior()`:
+
+```php
+$behavior = $this->Orders->getBehavior('Workflow');
+```
+
 ### Check if a transition is possible
 
 ```php
-$this->Orders->canTransition($order, 'pay');
+$behavior->canTransition($order, 'pay');
 ```
 
 ### Apply a transition
 
 ```php
-$result = $this->Orders->applyTransition($order, 'pay', [
+$result = $behavior->applyTransition($order, 'pay', [
     'user_id' => '42',
     'reason' => 'Payment captured',
 ]);
@@ -34,28 +83,28 @@ $result = $this->Orders->applyTransition($order, 'pay', [
 ### Run a persisted/orchestrated transition
 
 ```php
-$result = $this->Orders->transition($order, 'pay', [
+$result = $behavior->transition($order, 'pay', [
     'user_id' => '42',
     'reason' => 'Payment captured',
 ]);
 ```
 
 For the full persisted API, per-call options, and default orchestration config,
-see [Persisted Transitions](./persisted-transitions).
+see [Persisted Transitions](/integration/persisted-transitions).
 
 For automatic timeout scheduling/cancellation during persisted transitions,
-see [Timeout Orchestration](./timeout-orchestration).
+see [Timeout Orchestration](/integration/timeout-orchestration).
 
 ### Get available transitions
 
 ```php
-$transitions = $this->Orders->getAvailableTransitions($order);
+$transitions = $behavior->getAvailableTransitions($order);
 ```
 
 ### Read the current state
 
 ```php
-$state = $this->Orders->getCurrentState($order);
+$state = $behavior->getCurrentState($order);
 ```
 
 ## Querying Entities by State
@@ -100,16 +149,18 @@ $pendingOrders = $this->Orders->find('inState', state: 'pending')->toArray();
 Get state names programmatically for custom queries:
 
 ```php
+$behavior = $this->Orders->getBehavior('Workflow');
+
 // Get all state names with a specific flag
-$doneStates = $this->Orders->getStateNamesWithFlag('done');
+$doneStates = $behavior->getStateNamesWithFlag('done');
 // Returns: ['completed', 'delivered']
 
 // Get all state names without a specific flag
-$notDoneStates = $this->Orders->getStateNamesWithoutFlag('done');
+$notDoneStates = $behavior->getStateNamesWithoutFlag('done');
 // Returns: ['pending', 'processing', 'shipped']
 
 // Get all final state names
-$finalStates = $this->Orders->getFinalStateNames();
+$finalStates = $behavior->getFinalStateNames();
 // Returns: ['completed', 'cancelled']
 ```
 
@@ -128,3 +179,9 @@ For new entities:
 For existing entities:
 
 - state changes must go through `applyTransition()`
+
+## Next Steps
+
+- [Definitions](/definitions/) - Define workflows with attributes or config files
+- [Persisted Transitions](/integration/persisted-transitions) - High-level `transition()` API
+- [View Helper](/integration/view-helper) - Render diagrams and buttons in templates

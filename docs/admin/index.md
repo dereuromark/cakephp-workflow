@@ -1,24 +1,64 @@
 # Admin Dashboard
 
-The admin UI is one of the plugin’s strongest features.
+The admin UI provides a visual interface for inspecting and managing workflows.
 
-Main entry points:
+## Accessing the Admin
 
-- `/admin/workflow`
-- `/admin/workflow/workflows`
+Default URL: `/admin/workflow`
 
-The dashboard gives a cross-workflow overview of:
+The admin interface requires authentication in your application. The plugin does not enforce access control - integrate with your existing auth system.
 
-- configured workflows
-- active item counts
-- recent transitions
-- pending timeouts
+## Dashboard Overview
 
-## Intended Use
+The main dashboard (`/admin/workflow`) shows:
 
-The admin area is aimed at:
+| Section | Content |
+|---------|---------|
+| **Stats** | Total active items, transitions today, pending timeouts, orphans |
+| **Workflows** | Each workflow with state counts and flags |
+| **Pending Timeouts** | Due or overdue timeout transitions |
+| **Recent Transitions** | Latest state changes across all workflows |
 
-- developers inspecting definitions
-- operators monitoring workflow health
-- support teams diagnosing stuck or invalid records
+## Navigation
 
+The sidebar provides quick access to:
+
+- **Dashboard** - Cross-workflow overview
+- **All Workflows** - List of configured workflows
+- **Individual Workflows** - Per-workflow stats
+- **Transitions** - Audit log of all transitions
+- **Timeouts** - Pending and processed timeouts
+- **Locks** - Active workflow locks
+- **Orphans** - Records in invalid states
+- **Designer** - Visual workflow creator
+
+## Use Cases
+
+### Developers
+
+- Inspect workflow definitions
+- Validate state machine graphs
+- Debug transition issues
+- Review guard and command setup
+
+### Operators
+
+- Monitor workflow health
+- Identify stuck records
+- Process manual transitions
+- Manage timeout queue
+
+### Support Teams
+
+- Diagnose customer issues
+- View transition history
+- Fix orphaned records
+- Understand entity state
+
+## Screenshots
+
+The dashboard provides at-a-glance metrics with color-coded status indicators:
+
+- Green numbers indicate healthy metrics
+- Yellow badges show pending action
+- Red badges indicate problems needing attention

@@ -5,7 +5,8 @@ Persisted transitions can keep `workflow_timeouts` in sync automatically.
 This orchestration runs when you use the high-level behavior API:
 
 ```php
-$result = $this->Orders->transition($order, 'pay');
+$behavior = $this->Orders->getBehavior('Workflow');
+$result = $behavior->transition($order, 'pay');
 ```
 
 When the transition succeeds and the entity is saved, the runtime will:
@@ -31,7 +32,8 @@ Timeout orchestration currently runs in these persisted paths:
 `transition()` accepts the same persisted options as the save/log/lock flow, with timeout control added:
 
 ```php
-$result = $this->Orders->transition($order, 'pay', [], [
+$behavior = $this->Orders->getBehavior('Workflow');
+$result = $behavior->transition($order, 'pay', [], [
     'save' => true,
     'log' => true,
     'lock' => null,

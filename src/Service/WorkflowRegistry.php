@@ -88,8 +88,8 @@ class WorkflowRegistry
      *
      * @param \Cake\Datasource\EntityInterface $entity The entity
      * @param string|null $workflowName Optional workflow name (auto-detected from entity source if null)
+     *
      * @return \Workflow\Workflow
-     * @throws \Workflow\Exception\WorkflowException When workflow cannot be determined
      */
     public function get(EntityInterface $entity, ?string $workflowName = null): Workflow
     {
@@ -107,8 +107,10 @@ class WorkflowRegistry
      * Detect workflow name from entity's source table.
      *
      * @param \Cake\Datasource\EntityInterface $entity
-     * @return string Workflow name
+     *
      * @throws \Workflow\Exception\WorkflowException When no matching workflow found
+     *
+     * @return string Workflow name
      */
     private function detectWorkflow(EntityInterface $entity): string
     {

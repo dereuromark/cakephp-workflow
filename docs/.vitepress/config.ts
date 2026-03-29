@@ -29,6 +29,7 @@ export default defineConfig({
     nav: [
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
       { text: 'Definitions', link: '/definitions/', activeMatch: '/definitions/' },
+      { text: 'Integration', link: '/integration/', activeMatch: '/integration/' },
       { text: 'Admin', link: '/admin/', activeMatch: '/admin/' },
       { text: 'Cookbook', link: '/cookbook/', activeMatch: '/cookbook/' },
       { text: 'Reference', link: '/reference/api', activeMatch: '/reference/' },
@@ -48,13 +49,9 @@ export default defineConfig({
           items: [
             { text: 'Getting Started', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'Concepts', link: '/guide/concepts' },
             { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Behavior Integration', link: '/guide/behavior' },
-            { text: 'View Helper', link: '/guide/view-helper' },
-            { text: 'Persisted Transitions', link: '/guide/persisted-transitions' },
-            { text: 'Timeout Orchestration', link: '/guide/timeout-orchestration' },
-            { text: 'Controller Component', link: '/guide/component' },
-            { text: 'Events, Logging, and Locks', link: '/guide/runtime' },
           ],
         },
       ],
@@ -66,6 +63,19 @@ export default defineConfig({
             { text: 'Attributes', link: '/definitions/attributes' },
             { text: 'NEON and YAML', link: '/definitions/config-files' },
             { text: 'Automatic Transitions', link: '/definitions/automatic-transitions' },
+          ],
+        },
+      ],
+      '/integration/': [
+        {
+          text: 'Integration',
+          items: [
+            { text: 'Overview', link: '/integration/' },
+            { text: 'Persisted Transitions', link: '/integration/persisted-transitions' },
+            { text: 'Events, Logging, and Locks', link: '/integration/runtime' },
+            { text: 'Timeout Orchestration', link: '/integration/timeout-orchestration' },
+            { text: 'Controller Component', link: '/integration/component' },
+            { text: 'View Helper', link: '/integration/view-helper' },
           ],
         },
       ],

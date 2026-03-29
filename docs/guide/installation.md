@@ -21,28 +21,11 @@ composer require --dev cakephp/bake
 
 ## Load the Plugin
 
-In `src/Application.php`:
-
-```php [src/Application.php]
-public function bootstrap(): void
-{
-    parent::bootstrap();
-
-    $this->addPlugin('Workflow');
-}
+```bash
+bin/cake plugin load Workflow
 ```
 
-If you want to use `bin/cake bake workflow_state`, also load Bake:
-
-```php [src/Application.php]
-public function bootstrap(): void
-{
-    parent::bootstrap();
-
-    $this->addPlugin('Bake');
-    $this->addPlugin('Workflow');
-}
-```
+The plugin auto-loads Bake if installed, so `bin/cake bake workflow_state` works without additional configuration.
 
 ## Migrations
 

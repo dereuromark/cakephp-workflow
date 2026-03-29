@@ -43,6 +43,19 @@ class WorkflowPlugin extends BasePlugin
         parent::bootstrap($app);
 
         $this->loadDefaultConfig();
+        $this->loadBakeIfAvailable($app);
+    }
+
+    /**
+     * Load Bake plugin if installed but not yet loaded.
+     * This enables `bin/cake bake workflow_state` without requiring
+     * users to manually add Bake to their Application::bootstrap().
+     */
+    private function loadBakeIfAvailable(PluginApplicationInterface $app): void
+    {
+        if (class_exists(SimpleBakeCommand::class) && !CakePlugin::isLoaded('Bake')) {
+            $app->addPlugin('Bake');
+        }
     }
 
     public function services(ContainerInterface $container): void

@@ -77,9 +77,10 @@ public function initialize(array $config): void
 
 ```php [src/Controller/OrdersController.php]
 $order = $this->Orders->get($id);
+$workflow = $this->workflowRegistry->get($order);
 
-if ($this->Orders->canTransition($order, 'complete')) {
-    $result = $this->Orders->applyTransition($order, 'complete', [
+if ($workflow->can('complete')) {
+    $result = $workflow->apply('complete', [
         'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
         'reason' => 'Fulfillment finished',
     ]);
@@ -109,6 +110,6 @@ Admin UI:
 
 ## Next Steps
 
-- [Definitions Overview](/definitions/) - Understand states, transitions, guards, and commands
 - [Behavior Integration](./behavior) - Full behavior API reference
-- [View Helper](./view-helper) - Render diagrams, badges, and buttons in templates
+- [Definitions](/definitions/) - Explore definition formats in depth
+- [View Helper](/integration/view-helper) - Render diagrams, badges, and buttons in templates

@@ -117,10 +117,11 @@ Typical form for triggering a transition:
 
 ## Without the Component
 
-If you prefer more control, use the behavior directly:
+If you prefer more control, use the workflow directly:
 
 ```php
-$result = $this->Orders->applyTransition($order, 'pay', [
+$workflow = $this->workflowRegistry->get($order);
+$result = $workflow->apply('pay', [
     'reason' => 'Payment captured',
 ]);
 

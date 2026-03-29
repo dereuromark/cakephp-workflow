@@ -9,7 +9,9 @@ lock, and wrap the operation in a transaction.
 ### Low-level: `applyTransition()`
 
 ```php
-$result = $this->Orders->applyTransition($order, 'pay', [
+$behavior = $this->Orders->getBehavior('Workflow');
+
+$result = $behavior->applyTransition($order, 'pay', [
     'user_id' => '42',
     'reason' => 'Payment captured',
 ]);
@@ -24,7 +26,9 @@ This keeps persistence orchestration in the caller.
 ### High-level: `transition()`
 
 ```php
-$result = $this->Orders->transition($order, 'pay', [
+$behavior = $this->Orders->getBehavior('Workflow');
+
+$result = $behavior->transition($order, 'pay', [
     'user_id' => '42',
     'reason' => 'Payment captured',
 ]);
@@ -37,7 +41,9 @@ long-lived configuration.
 ## Per-call orchestration options
 
 ```php
-$result = $this->Orders->transition($order, 'pay', [], [
+$behavior = $this->Orders->getBehavior('Workflow');
+
+$result = $behavior->transition($order, 'pay', [], [
     'save' => true,
     'log' => true,
     'lock' => true,

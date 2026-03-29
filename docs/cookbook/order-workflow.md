@@ -45,17 +45,18 @@ class PendingState extends BaseOrderState
 
 ## Triggering UI Actions From Code
 
-If the page shows actions such as `Deliver` or `Refund`, those button labels map to transition names you can call through the ORM behavior.
+If the page shows actions such as `Deliver` or `Refund`, those button labels map to transition names you can call through the workflow API.
 Instead of UI buttons, they can also be triggered programatically from anywhere within your code.
 Often in the business logic, sometimes also in the communication layer.
 
-Use `canTransition()` to check first, then `applyTransition()` to execute the transition and save the entity if it succeeds.
+Use `can()` to check first, then `apply()` to execute the transition and save the entity if it succeeds.
 
 ```php [src/Controller/OrdersController.php]
 $order = $this->Orders->get(1);
+$workflow = $this->workflowRegistry->get($order);
 
-if ($this->Orders->canTransition($order, 'deliver')) {
-    $result = $this->Orders->applyTransition($order, 'deliver', [
+if ($workflow->can('deliver')) {
+    $result = $workflow->apply('deliver', [
         'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
         'reason' => 'Marked as delivered from controller action',
     ]);
@@ -68,9 +69,10 @@ if ($this->Orders->canTransition($order, 'deliver')) {
 
 ```php [src/Controller/OrdersController.php]
 $order = $this->Orders->get(1);
+$workflow = $this->workflowRegistry->get($order);
 
-if ($this->Orders->canTransition($order, 'refund')) {
-    $result = $this->Orders->applyTransition($order, 'refund', [
+if ($workflow->can('refund')) {
+    $result = $workflow->apply('refund', [
         'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
         'reason' => 'Refund approved by support',
     ]);
@@ -84,9 +86,10 @@ if ($this->Orders->canTransition($order, 'refund')) {
 If you already fetched the available transitions for a view, the same names are the ones you pass in PHP:
 
 ```php [src/Controller/OrdersController.php]
-$transitions = $this->Orders->getAvailableTransitions($order);
+$workflow = $this->workflowRegistry->get($order);
+$transitions = $workflow->getAvailableTransitions();
 
 if (in_array('deliver', $transitions, true)) {
-    $this->Orders->applyTransition($order, 'deliver');
+    $workflow->apply('deliver');
 }
 ```

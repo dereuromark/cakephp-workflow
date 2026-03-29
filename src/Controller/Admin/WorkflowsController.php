@@ -11,9 +11,7 @@ use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Throwable;
 use Workflow\Engine\Definition\Definition;
-use Workflow\Engine\TransitionResult;
 use Workflow\Engine\WorkflowAnalyzer;
-use Workflow\Service\TransitionLogger;
 
 class WorkflowsController extends WorkflowAppController
 {
@@ -608,6 +606,8 @@ class WorkflowsController extends WorkflowAppController
      * @param string $name Workflow name
      * @param string $entityId Entity ID
      * @param string|null $transition Optional specific transition to simulate
+     *
+     * @throws \RuntimeException
      */
     public function simulate(string $name, string $entityId, ?string $transition = null): void
     {
@@ -685,6 +685,8 @@ class WorkflowsController extends WorkflowAppController
      *
      * @param string $name Workflow name
      * @param string $entityId Entity ID
+     *
+     * @throws \RuntimeException
      */
     public function forceTransition(string $name, string $entityId): ?Response
     {

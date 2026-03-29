@@ -115,19 +115,46 @@ $this->assign('title', 'Timeouts');
                             <?php } ?>
                         </td>
                         <td>
+                            <?= $this->Html->link(
+                                '<i class="bi bi-eye"></i>',
+                                ['action' => 'view', $timeout->id],
+                                ['class' => 'btn btn-sm btn-outline-info', 'escapeTitle' => false, 'title' => 'View Details'],
+                            ) ?>
                             <?php if (!$timeout->processed) { ?>
                                 <?= $this->Form->postLink(
-                                    '<i class="bi bi-x-circle"></i> Cancel',
+                                    '<i class="bi bi-play-fill"></i>',
+                                    ['action' => 'execute', $timeout->id],
+                                    [
+                                        'class' => 'btn btn-sm btn-success',
+                                        'confirm' => 'Execute this timeout now?',
+                                        'escapeTitle' => false,
+                                        'block' => true,
+                                        'title' => 'Execute Now',
+                                    ],
+                                ) ?>
+                                <?= $this->Form->postLink(
+                                    '<i class="bi bi-x-circle"></i>',
                                     ['action' => 'cancel', $timeout->id],
                                     [
                                         'class' => 'btn btn-sm btn-outline-danger',
                                         'confirm' => 'Cancel this timeout?',
                                         'escapeTitle' => false,
                                         'block' => true,
+                                        'title' => 'Cancel',
                                     ],
                                 ) ?>
                             <?php } else { ?>
-                                -
+                                <?= $this->Form->postLink(
+                                    '<i class="bi bi-arrow-repeat"></i>',
+                                    ['action' => 'retry', $timeout->id],
+                                    [
+                                        'class' => 'btn btn-sm btn-outline-warning',
+                                        'confirm' => 'Create a new timeout to retry this transition?',
+                                        'escapeTitle' => false,
+                                        'block' => true,
+                                        'title' => 'Retry',
+                                    ],
+                                ) ?>
                             <?php } ?>
                         </td>
                     </tr>

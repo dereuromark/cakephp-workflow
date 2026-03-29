@@ -92,6 +92,8 @@ class OrphansController extends WorkflowAppController
      *
      * @param string $workflow Workflow name
      * @param string $entityId Entity ID to fix
+     *
+     * @throws \RuntimeException
      */
     public function fix(string $workflow, string $entityId): ?Response
     {
@@ -185,7 +187,7 @@ class OrphansController extends WorkflowAppController
         $newState = $this->request->getData('new_state');
         $reason = $this->request->getData('reason');
 
-        if (empty($entityIds) || !$newState) {
+        if (!$entityIds || !$newState) {
             $this->Flash->error('Please select entities and a target state.');
 
             return $this->redirect(['action' => 'index', '?' => ['workflow' => $workflow]]);

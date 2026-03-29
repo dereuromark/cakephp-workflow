@@ -15,6 +15,7 @@ use Cake\Event\EventManager;
 use Cake\Log\Log;
 use Cake\Routing\RouteBuilder;
 use Nette\Neon\Neon;
+use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Workflow\Command\BakeWorkflowStateCommand;
 use Workflow\Command\WorkflowInitCommand;
@@ -130,10 +131,12 @@ class WorkflowPlugin extends BasePlugin
                 . 'or ensure Workflow.loader.configPath directory exists with YAML/NEON files and '
                 . 'symfony/yaml or nette/neon is installed.',
             );
-            throw new \RuntimeException('Workflow plugin registry could not be built because no loaders are configured.');
+
+            throw new RuntimeException('Workflow plugin registry could not be built because no loaders are configured.');
         }
 
         $chainLoader = new ChainLoader($loaders);
+
         return new WorkflowRegistry(
             $chainLoader,
             EventManager::instance(),

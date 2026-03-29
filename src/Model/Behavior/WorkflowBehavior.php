@@ -863,7 +863,7 @@ class WorkflowBehavior extends Behavior
             return $registry;
         }
 
-        $registry = WorkflowRegistryLocator::get() ?? \Cake\Core\Configure::read('Workflow.registry');
+        $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if (!$registry instanceof WorkflowRegistry) {
             throw new WorkflowException('WorkflowBehavior requires a registry instance');
         }

@@ -43,6 +43,61 @@ $transitions = $this->Orders->getAvailableTransitions($order);
 $state = $this->Orders->getCurrentState($order);
 ```
 
+## Querying Entities by State
+
+The behavior provides custom finders for querying entities based on workflow state properties.
+
+### Find by flag
+
+Query entities in states that have (or don't have) a specific flag:
+
+```php
+// Find all orders in states with the 'done' flag
+$doneOrders = $this->Orders->find('withFlag', flag: 'done')->toArray();
+
+// Find all orders NOT in states with the 'done' flag
+$activeOrders = $this->Orders->find('withoutFlag', flag: 'done')->toArray();
+```
+
+### Find by final state
+
+Query entities based on whether they're in a final state:
+
+```php
+// Find all completed orders (in any final state)
+$completedOrders = $this->Orders->find('inFinalState')->toArray();
+
+// Find all active orders (not in a final state)
+$activeOrders = $this->Orders->find('notInFinalState')->toArray();
+```
+
+### Find by specific state
+
+Query entities in a specific state:
+
+```php
+// Find all pending orders
+$pendingOrders = $this->Orders->find('inState', state: 'pending')->toArray();
+```
+
+### Helper methods
+
+Get state names programmatically for custom queries:
+
+```php
+// Get all state names with a specific flag
+$doneStates = $this->Orders->getStateNamesWithFlag('done');
+// Returns: ['completed', 'delivered']
+
+// Get all state names without a specific flag
+$notDoneStates = $this->Orders->getStateNamesWithoutFlag('done');
+// Returns: ['pending', 'processing', 'shipped']
+
+// Get all final state names
+$finalStates = $this->Orders->getFinalStateNames();
+// Returns: ['completed', 'cancelled']
+```
+
 ## Save Protection
 
 When `validateOnSave` is enabled, direct state mutation is rejected.
@@ -58,4 +113,3 @@ For new entities:
 For existing entities:
 
 - state changes must go through `applyTransition()`
-

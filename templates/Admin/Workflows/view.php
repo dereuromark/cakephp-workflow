@@ -322,35 +322,44 @@ $transitionCount = count($definition->getTransitions());
 (function() {
     let scale = 1;
     const diagramContainer = document.getElementById('diagram');
+    const mermaidDiv = diagramContainer?.querySelector('.mermaid');
+
+    // Make mermaid container scrollable when zoomed
+    if (mermaidDiv) {
+        mermaidDiv.style.overflow = 'auto';
+        mermaidDiv.style.maxHeight = '500px';
+    }
 
     function getSvg() {
         return diagramContainer?.querySelector('svg');
     }
 
-    document.getElementById('zoom-in')?.addEventListener('click', function() {
+    function updateZoom() {
         const svg = getSvg();
         if (svg) {
-            scale = Math.min(scale + 0.2, 3);
             svg.style.transform = 'scale(' + scale + ')';
             svg.style.transformOrigin = 'top left';
         }
+    }
+
+    document.getElementById('zoom-in')?.addEventListener('click', function() {
+        scale = Math.min(scale + 0.2, 3);
+        updateZoom();
     });
 
     document.getElementById('zoom-out')?.addEventListener('click', function() {
-        const svg = getSvg();
-        if (svg) {
-            scale = Math.max(scale - 0.2, 0.5);
-            svg.style.transform = 'scale(' + scale + ')';
-            svg.style.transformOrigin = 'top left';
-        }
+        scale = Math.max(scale - 0.2, 0.5);
+        updateZoom();
     });
 
     document.getElementById('fullscreen')?.addEventListener('click', function() {
         if (diagramContainer) {
             if (document.fullscreenElement) {
                 document.exitFullscreen();
+                if (mermaidDiv) mermaidDiv.style.maxHeight = '500px';
             } else {
                 diagramContainer.requestFullscreen();
+                if (mermaidDiv) mermaidDiv.style.maxHeight = '100vh';
             }
         }
     });

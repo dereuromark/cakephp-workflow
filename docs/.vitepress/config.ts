@@ -51,6 +51,7 @@ export default defineConfig({
             { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Behavior Integration', link: '/guide/behavior' },
             { text: 'View Helper', link: '/guide/view-helper' },
+            { text: 'Persisted Transitions', link: '/guide/persisted-transitions' },
             { text: 'Controller Component', link: '/guide/component' },
             { text: 'Events, Logging, and Locks', link: '/guide/runtime' },
           ],

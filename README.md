@@ -207,6 +207,9 @@ if ($result->isSuccess()) {
 $transitions = $ordersTable->getAvailableTransitions($order);
 ```
 
+For the persisted orchestration API (`transition()`), behavior options, and
+transaction/logging/locking details, see `docs/guide/persisted-transitions.md`.
+
 ## Admin Dashboard
 
 Access the admin dashboard at `/workflow/admin/workflows`.

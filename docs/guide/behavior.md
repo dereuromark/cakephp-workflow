@@ -31,6 +31,18 @@ $result = $this->Orders->applyTransition($order, 'pay', [
 ]);
 ```
 
+### Run a persisted/orchestrated transition
+
+```php
+$result = $this->Orders->transition($order, 'pay', [
+    'user_id' => '42',
+    'reason' => 'Payment captured',
+]);
+```
+
+For the full persisted API, per-call options, and default orchestration config,
+see [Persisted Transitions](./persisted-transitions).
+
 ### Get available transitions
 
 ```php

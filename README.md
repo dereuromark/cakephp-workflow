@@ -162,7 +162,7 @@ $workflow = $this->workflowRegistry->get($order);
 if ($workflow->can('pay')) {
     $result = $workflow->apply('pay', ['user_id' => $userId]);
     if ($result->isSuccess()) {
-        $this->Orders->save($order);
+        $this->Orders->saveOrFail($order);
     }
 }
 ```

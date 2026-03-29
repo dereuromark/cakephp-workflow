@@ -113,9 +113,7 @@ $this->assign('title', 'New Workflow - Designer');
                 </button>
             </div>
             <div class="card-body p-0">
-                <div id="statesContainer">
-                    <!-- State templates will be added here -->
-                </div>
+                <div id="statesContainer"></div>
                 <div class="p-3 text-center text-muted" id="noStatesMsg">
                     <i class="bi bi-info-circle me-2"></i>No states defined. Click "Add State" to begin.
                 </div>
@@ -131,9 +129,7 @@ $this->assign('title', 'New Workflow - Designer');
                 </button>
             </div>
             <div class="card-body p-0">
-                <div id="transitionsContainer">
-                    <!-- Transition templates will be added here -->
-                </div>
+                <div id="transitionsContainer"></div>
                 <div class="p-3 text-center text-muted" id="noTransitionsMsg">
                     <i class="bi bi-info-circle me-2"></i>No transitions defined. Add states first, then create transitions.
                 </div>
@@ -203,7 +199,6 @@ $this->assign('title', 'New Workflow - Designer');
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="d-flex align-items-center gap-2">
                 <strong class="transition-display-name">New Transition</strong>
-                <span class="transition-badges"></span>
             </div>
             <button type="button" class="btn btn-sm btn-outline-danger remove-transition-btn">
                 <i class="bi bi-trash"></i>
@@ -268,155 +263,96 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add default states on load
     addState('pending', 'Pending', '#ffc107', true, false, false);
     addState('completed', 'Completed', '#28a745', false, true, false);
-
-    // Add default transition
     addTransition('complete', 'pending', 'completed', true, false);
 
-    // Event listeners
-    document.getElementById('addStateBtn').addEventListener('click', function() {
-        addState();
-    });
-
-    document.getElementById('addTransitionBtn').addEventListener('click', function() {
-        addTransition();
-    });
-
-    document.getElementById('exportBtn')?.addEventListener('click', function() {
-        form.submit();
-    });
-
+    document.getElementById('addStateBtn').addEventListener('click', function() { addState(); });
+    document.getElementById('addTransitionBtn').addEventListener('click', function() { addTransition(); });
+    document.getElementById('exportBtn')?.addEventListener('click', function() { form.submit(); });
     document.getElementById('refreshPreview').addEventListener('click', updateMermaidPreview);
 
-    // Add state function
     function addState(name = '', label = '', color = '#6c757d', isInitial = false, isFinal = false, isFailed = false) {
-        const html = stateTemplate.innerHTML
-            .replace(/__INDEX__/g, stateIndex);
-
+        const html = stateTemplate.innerHTML.replace(/__INDEX__/g, stateIndex);
         const div = document.createElement('div');
         div.innerHTML = html;
         const stateItem = div.firstElementChild;
-
         statesContainer.appendChild(stateItem);
         noStatesMsg.style.display = 'none';
 
-        // Set values
         if (name) {
             stateItem.querySelector('.state-name').value = name;
             stateItem.querySelector('.state-display-name').textContent = name;
         }
-        if (label) {
-            stateItem.querySelector('.state-label').value = label;
-        }
+        if (label) stateItem.querySelector('.state-label').value = label;
         if (color) {
             stateItem.querySelector('.state-color-picker').value = color;
             stateItem.querySelector('.state-color-text').value = color;
             stateItem.querySelector('.state-color-indicator').style.background = color;
         }
-        if (isInitial) {
-            stateItem.querySelector('.state-initial').checked = true;
-        }
-        if (isFinal) {
-            stateItem.querySelector('.state-final').checked = true;
-        }
-        if (isFailed) {
-            stateItem.querySelector('.state-failed').checked = true;
-        }
+        if (isInitial) stateItem.querySelector('.state-initial').checked = true;
+        if (isFinal) stateItem.querySelector('.state-final').checked = true;
+        if (isFailed) stateItem.querySelector('.state-failed').checked = true;
 
-        // Event listeners for this state
         stateItem.querySelector('.state-name').addEventListener('input', function() {
             stateItem.querySelector('.state-display-name').textContent = this.value || 'New State';
             updateMermaidPreview();
         });
-
         stateItem.querySelector('.state-color-picker').addEventListener('input', function() {
             stateItem.querySelector('.state-color-text').value = this.value;
             stateItem.querySelector('.state-color-indicator').style.background = this.value;
         });
-
         stateItem.querySelector('.state-color-text').addEventListener('input', function() {
             if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
                 stateItem.querySelector('.state-color-picker').value = this.value;
                 stateItem.querySelector('.state-color-indicator').style.background = this.value;
             }
         });
-
         stateItem.querySelector('.remove-state-btn').addEventListener('click', function() {
             stateItem.remove();
-            if (statesContainer.children.length === 0) {
-                noStatesMsg.style.display = 'block';
-            }
+            if (statesContainer.children.length === 0) noStatesMsg.style.display = 'block';
             updateMermaidPreview();
         });
-
-        stateItem.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', updateMermaidPreview);
-        });
-
+        stateItem.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', updateMermaidPreview));
         stateIndex++;
         updateMermaidPreview();
     }
 
-    // Add transition function
     function addTransition(name = '', from = '', to = '', isHappy = false, isAutomatic = false) {
-        const html = transitionTemplate.innerHTML
-            .replace(/__INDEX__/g, transitionIndex);
-
+        const html = transitionTemplate.innerHTML.replace(/__INDEX__/g, transitionIndex);
         const div = document.createElement('div');
         div.innerHTML = html;
         const transitionItem = div.firstElementChild;
-
         transitionsContainer.appendChild(transitionItem);
         noTransitionsMsg.style.display = 'none';
 
-        // Set values
         if (name) {
             transitionItem.querySelector('.transition-name').value = name;
             transitionItem.querySelector('.transition-display-name').textContent = name;
         }
-        if (from) {
-            transitionItem.querySelector('.transition-from').value = from;
-        }
-        if (to) {
-            transitionItem.querySelector('.transition-to').value = to;
-        }
-        if (isHappy) {
-            transitionItem.querySelector('.transition-happy').checked = true;
-        }
-        if (isAutomatic) {
-            transitionItem.querySelector('.transition-automatic').checked = true;
-        }
+        if (from) transitionItem.querySelector('.transition-from').value = from;
+        if (to) transitionItem.querySelector('.transition-to').value = to;
+        if (isHappy) transitionItem.querySelector('.transition-happy').checked = true;
+        if (isAutomatic) transitionItem.querySelector('.transition-automatic').checked = true;
 
-        // Event listeners
         transitionItem.querySelector('.transition-name').addEventListener('input', function() {
             transitionItem.querySelector('.transition-display-name').textContent = this.value || 'New Transition';
             updateMermaidPreview();
         });
-
         transitionItem.querySelector('.transition-from').addEventListener('input', updateMermaidPreview);
         transitionItem.querySelector('.transition-to').addEventListener('input', updateMermaidPreview);
-
         transitionItem.querySelector('.remove-transition-btn').addEventListener('click', function() {
             transitionItem.remove();
-            if (transitionsContainer.children.length === 0) {
-                noTransitionsMsg.style.display = 'block';
-            }
+            if (transitionsContainer.children.length === 0) noTransitionsMsg.style.display = 'block';
             updateMermaidPreview();
         });
-
-        transitionItem.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-            cb.addEventListener('change', updateMermaidPreview);
-        });
-
+        transitionItem.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', updateMermaidPreview));
         transitionIndex++;
         updateMermaidPreview();
     }
 
-    // Update Mermaid diagram
     function updateMermaidPreview() {
         const states = [];
         const transitions = [];
 
-        // Collect states
         statesContainer.querySelectorAll('.state-item').forEach(item => {
             const name = item.querySelector('.state-name').value;
             if (name) {
@@ -428,7 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Collect transitions
         transitionsContainer.querySelectorAll('.transition-item').forEach(item => {
             const name = item.querySelector('.transition-name').value;
             const from = item.querySelector('.transition-from').value;
@@ -436,50 +371,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const isHappy = item.querySelector('.transition-happy').checked;
 
             if (name && from && to) {
-                const fromStates = from.split(',').map(s => s.trim()).filter(s => s);
-                fromStates.forEach(fromState => {
-                    transitions.push({
-                        from: fromState,
-                        to: to,
-                        name: name,
-                        isHappy: isHappy
-                    });
+                from.split(',').map(s => s.trim()).filter(s => s).forEach(fromState => {
+                    transitions.push({ from: fromState, to: to, name: name, isHappy: isHappy });
                 });
             }
         });
 
-        // Build Mermaid diagram
         let diagram = 'stateDiagram-v2\n';
-
-        // Add initial state transitions
-        states.filter(s => s.isInitial).forEach(s => {
-            diagram += `    [*] --> ${s.name}\n`;
-        });
-
-        // Add transitions
+        states.filter(s => s.isInitial).forEach(s => { diagram += `    [*] --> ${s.name}\n`; });
         transitions.forEach(t => {
             const label = t.isHappy ? `${t.name} ⭐` : t.name;
             diagram += `    ${t.from} --> ${t.to}: ${label}\n`;
         });
+        states.filter(s => s.isFinal).forEach(s => { diagram += `    ${s.name} --> [*]\n`; });
 
-        // Add final state transitions
-        states.filter(s => s.isFinal).forEach(s => {
-            diagram += `    ${s.name} --> [*]\n`;
-        });
+        if (states.length === 0) diagram = 'stateDiagram-v2\n    [*] --> new_state\n    new_state --> [*]';
 
-        // If no content, show placeholder
-        if (states.length === 0) {
-            diagram = 'stateDiagram-v2\n    [*] --> new_state\n    new_state --> [*]';
-        }
-
-        // Re-render Mermaid
         const previewEl = document.getElementById('mermaidPreview');
         previewEl.removeAttribute('data-processed');
         previewEl.innerHTML = diagram;
-
-        if (typeof mermaid !== 'undefined') {
-            mermaid.init(undefined, previewEl);
-        }
+        if (typeof mermaid !== 'undefined') mermaid.init(undefined, previewEl);
     }
 });
 </script>

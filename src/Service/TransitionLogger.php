@@ -14,10 +14,24 @@ class TransitionLogger
 
     /**
      * Status constants matching TransitionResult statuses.
+     *
+     * @var string
      */
     public const STATUS_SUCCESS = 'success';
+
+    /**
+     * @var string
+     */
     public const STATUS_BLOCKED = 'blocked';
+
+    /**
+     * @var string
+     */
     public const STATUS_LOCKED = 'locked';
+
+    /**
+     * @var string
+     */
     public const STATUS_ERROR = 'error';
 
     /**
@@ -76,7 +90,7 @@ class TransitionLogger
             'status' => $this->getStatusFromResult($result),
             'user_id' => $context['user_id'] ?? null,
             'reason' => $context['reason'] ?? null,
-            'context' => $contextWithRuntime ? $this->encodeContext($contextWithRuntime) : null,
+            'context' => $contextWithRuntime ?: null,
             'workflow_version' => $workflowVersion,
         ]);
 
@@ -156,21 +170,5 @@ class TransitionLogger
         $result = $table->find('forEntity', workflow: $workflowName, table: $entityTable, id: $entityId, successOnly: $successOnly)->toArray();
 
         return $result;
-    }
-
-    /**
-     * Encode context array to JSON string.
-     *
-     * @param array<string, mixed> $context
-     */
-    private function encodeContext(array $context): ?string
-    {
-        $json = json_encode($context);
-        if ($json === false) {
-            // Fallback: try encoding with error handling
-            $json = json_encode($context, JSON_PARTIAL_OUTPUT_ON_ERROR);
-        }
-
-        return $json !== false ? $json : null;
     }
 }

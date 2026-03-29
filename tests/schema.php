@@ -12,6 +12,7 @@ return [
             'transition_name' => ['type' => 'string', 'length' => 64, 'null' => false],
             'from_state' => ['type' => 'string', 'length' => 64, 'null' => false],
             'to_state' => ['type' => 'string', 'length' => 64, 'null' => false],
+            'status' => ['type' => 'string', 'length' => 16, 'null' => false, 'default' => 'success'],
             'user_id' => ['type' => 'string', 'length' => 36, 'null' => true],
             'reason' => ['type' => 'text', 'null' => true],
             'context' => ['type' => 'text', 'null' => true],

@@ -26,6 +26,9 @@ class WorkflowTransitionsTable extends Table
                 ],
             ],
         ]);
+
+        // Enable JSON decoding for context field
+        $this->getSchema()->setColumnType('context', 'json');
     }
 
     public function validationDefault(Validator $validator): Validator
@@ -153,11 +156,14 @@ class WorkflowTransitionsTable extends Table
     public function findFailed(SelectQuery $query): SelectQuery
     {
         return $query
-            ->where(['status IN' => [
-                TransitionLogger::STATUS_BLOCKED,
-                TransitionLogger::STATUS_LOCKED,
-                TransitionLogger::STATUS_ERROR,
-            ]])
+            ->where([
+
+                'status IN' => [
+                    TransitionLogger::STATUS_BLOCKED,
+                    TransitionLogger::STATUS_LOCKED,
+                    TransitionLogger::STATUS_ERROR,
+                ],
+            ])
             ->orderBy(['id' => 'DESC']);
     }
 }

@@ -71,6 +71,7 @@ class WorkflowControllerTest extends IntegrationTestCase
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
+            'status' => 'success',
             'created' => DateTime::now(),
         ]));
 
@@ -135,6 +136,7 @@ class WorkflowControllerTest extends IntegrationTestCase
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
+            'status' => 'success',
             'created' => DateTime::now(),
         ]));
 
@@ -146,6 +148,7 @@ class WorkflowControllerTest extends IntegrationTestCase
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
+            'status' => 'success',
             'created' => DateTime::now()->subDays(1),
         ]));
 

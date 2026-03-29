@@ -99,7 +99,7 @@ class TransitionLoggerTest extends DatabaseTestCase
     {
         $entity = new Entity(['id' => '123']);
         $exception = new RuntimeException('Command failed');
-        $result = TransitionResult::error('pending', 'paid', $exception);
+        $result = TransitionResult::error('pending', $exception);
 
         $this->logger->log(
             'order',
@@ -165,10 +165,11 @@ class TransitionLoggerTest extends DatabaseTestCase
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
         $transition = $table->find()->first();
 
+        // Context is now automatically decoded from JSON
         $this->assertNotNull($transition->context);
-        $decoded = json_decode($transition->context, true);
-        $this->assertSame('192.168.1.1', $decoded['ip_address']);
-        $this->assertSame(['key' => 'value'], $decoded['metadata']);
+        $this->assertIsArray($transition->context);
+        $this->assertSame('192.168.1.1', $transition->context['ip_address']);
+        $this->assertSame(['key' => 'value'], $transition->context['metadata']);
     }
 
     public function testLogWithWorkflowVersion(): void
@@ -291,12 +292,14 @@ class TransitionLoggerTest extends DatabaseTestCase
     {
         $entity = new Entity(['id' => '123']);
 
-        // Create result with runtime metadata
-        $result = TransitionResult::success('pending', 'paid')
-            ->withGuardEvaluated('checkBalance')
-            ->withGuardEvaluated('checkInventory')
-            ->withCommandExecuted('sendEmail')
-            ->withUsedLock(true);
+        // Create result with runtime metadata via constructor
+        $result = TransitionResult::success(
+            'pending',
+            'paid',
+            guardsEvaluated: ['checkBalance', 'checkInventory'],
+            commandsExecuted: ['sendEmail'],
+            usedLock: true,
+        );
 
         $this->logger->log(
             'order',

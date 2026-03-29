@@ -53,9 +53,59 @@ $this->addBehavior('Workflow.Workflow', [
     'validateOnSave' => true,
     'autoSave' => false,
     'autoLog' => false,
+    'logAllOutcomes' => true,
     'entityTable' => 'Orders',
 ]);
 ```
+
+### Configuration Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `workflow` | string | `null` | Workflow name (auto-detected from definition if not set) |
+| `validateOnSave` | bool | `true` | Prevent direct state changes on save |
+| `autoSave` | bool | `false` | Auto-save entity after transition |
+| `autoLog` | bool | `false` | Log transitions to `workflow_transitions` table |
+| `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
+| `entityTable` | string | `null` | Entity table name (defaults to table name) |
+| `useLocking` | bool | `false` | Use pessimistic locking for transitions |
+
+## Audit Logging
+
+When `autoLog` is enabled, all transition attempts are logged to the `workflow_transitions` table. The `logAllOutcomes` option (default: `true`) controls whether failed attempts are logged:
+
+- **success**: Transition completed successfully
+- **blocked**: Guards prevented the transition
+- **locked**: Another process held the lock
+- **error**: Command threw an exception
+
+This provides a complete audit trail for compliance and debugging:
+
+```php
+// Get full transition history
+$transitions = $this->Orders->getBehavior('Workflow')
+    ->getTransitionHistory($order);
+
+// Filter by status
+$failedTransitions = $this->fetchTable('Workflow.WorkflowTransitions')
+    ->find('failed')
+    ->where(['entity_id' => $order->id])
+    ->toArray();
+
+// Check blocked reasons
+foreach ($transitions as $t) {
+    if ($t->isBlocked()) {
+        $reasons = $t->getBlockedBy();
+        // ['checkBalance' => 'Insufficient funds']
+    }
+}
+```
+
+Each transition record includes:
+- `status`: success, blocked, locked, or error
+- `from_state`, `to_state`: State before and after
+- `user_id`, `reason`: Context from the transition call
+- `context`: JSON with runtime metadata, blocked reasons, or error details
 
 ## Core Methods
 

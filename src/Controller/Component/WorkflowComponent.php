@@ -10,7 +10,6 @@ use Cake\Http\Response;
 use Cake\ORM\Table;
 use RuntimeException;
 use Workflow\Engine\TransitionResult;
-use Workflow\Model\WorkflowTableInterface;
 
 /**
  * WorkflowComponent
@@ -64,7 +63,7 @@ class WorkflowComponent extends Component
         array $context = [],
         array $options = [],
     ): TransitionResult {
-        /** @var Table&WorkflowTableInterface $table */
+        // @phpstan-ignore-next-line - $table implements WorkflowTableInterface
         $result = $table->applyTransition($entity, $transition, $context);
 
         $this->flashResult($result, $transition, $options);

@@ -59,8 +59,8 @@ foreach ($terminalStateIssues as $issue) {
             <i class="bi bi-image me-1"></i>Export SVG
         </button>
         <?= $this->Html->link(
-            '<i class="bi bi-pencil-square me-1"></i>Designer',
-            ['action' => 'designer', $definition->getName()],
+            '<i class="bi bi-grid-3x3 me-1"></i>Matrix',
+            ['action' => 'matrix', $definition->getName()],
             ['class' => 'btn btn-primary', 'escapeTitle' => false],
         ) ?>
     </div>
@@ -405,8 +405,8 @@ foreach ($terminalStateIssues as $issue) {
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <?= $this->Html->link(
-                        '<i class="bi bi-grid-3x3 me-2"></i>View Matrix',
-                        ['action' => 'matrix', $definition->getName()],
+                        '<i class="bi bi-pencil-square me-2"></i>Designer',
+                        ['action' => 'designer', $definition->getName()],
                         ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
                     ) ?>
                     <?= $this->Html->link(

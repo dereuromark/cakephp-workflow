@@ -77,7 +77,7 @@ class WorkflowController extends WorkflowAppController
 
         // Get recent transitions
         $recentTransitions = $transitionsTable->find()
-            ->orderBy(['created' => 'DESC'])
+            ->orderBy(['id' => 'DESC'])
             ->limit(10)
             ->toArray();
 

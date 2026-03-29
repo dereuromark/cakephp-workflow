@@ -19,6 +19,8 @@ Load the plugin in your `src/Application.php`:
 public function bootstrap(): void
 {
     parent::bootstrap();
+    // Required if you want to use `bin/cake bake workflow_state`
+    $this->addPlugin('Bake');
     $this->addPlugin('Workflow');
 }
 ```
@@ -115,14 +117,18 @@ class PaidState extends OrderState
 }
 ```
 
-### Using YAML
+### Using NEON or YAML
 
-Install symfony/yaml: `composer require symfony/yaml`
+Install the optional parser you want:
+
+- NEON: `composer require nette/neon`
+- YAML: `composer require symfony/yaml`
 
 Create workflow files in `config/workflows/`:
 
-```yaml
-# config/workflows/order.yaml
+::: code-group
+
+```neon [config/workflows/order.neon]
 order:
   table: Orders
   field: state
@@ -143,14 +149,7 @@ order:
       to: completed
 ```
 
-### Using NEON
-
-Install nette/neon: `composer require nette/neon`
-
-Create workflow files in `config/workflows/`:
-
-```neon
-# config/workflows/order.neon
+```yaml [config/workflows/order.yaml]
 order:
   table: Orders
   field: state
@@ -170,6 +169,8 @@ order:
       from: [paid]
       to: completed
 ```
+
+:::
 
 ## Using the Workflow
 
@@ -213,6 +214,12 @@ Access the admin dashboard at `/workflow/admin/workflows`.
 ## CLI Commands
 
 ```bash
+# Scaffold a new attribute-based workflow
+bin/cake workflow init order Orders
+
+# Add another state class to an existing workflow (requires cakephp/bake)
+bin/cake bake workflow_state Order/Shipped --transition-to Delivered --transition-name deliver
+
 # List all workflows
 bin/cake workflow list
 
@@ -250,7 +257,7 @@ Use the helper in your templates:
 ## Features
 
 - **PHP 8 Attributes**: Define workflows declaratively using modern PHP
-- **YAML/NEON Support**: Alternative configuration via YAML or NEON files
+- **NEON/YAML Support**: Alternative configuration via NEON or YAML files
 - **State Types**: Initial, final, and failed state types
 - **Guards**: Conditional transitions with guard methods
 - **Commands**: Execute actions on state transitions

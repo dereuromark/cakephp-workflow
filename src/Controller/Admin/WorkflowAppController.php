@@ -36,6 +36,7 @@ class WorkflowAppController extends Controller
         // Pass sidebar data to all views
         $this->set('workflowStats', $this->getWorkflowStats());
         $this->set('pendingTimeoutsCount', $this->getPendingTimeoutsCount());
+        $this->set('orphanCount', $this->getOrphanCount());
     }
 
     /**
@@ -101,5 +102,47 @@ class WorkflowAppController extends Controller
         } catch (Throwable) {
             return 0;
         }
+    }
+
+    /**
+     * Get orphan count for sidebar badge.
+     *
+     * Orphans are items whose current state doesn't match any defined state in the workflow.
+     */
+    protected function getOrphanCount(): int
+    {
+        if ($this->workflowRegistry === null) {
+            return 0;
+        }
+
+        $totalOrphans = 0;
+        $workflowNames = $this->workflowRegistry->getWorkflowNames();
+
+        foreach ($workflowNames as $name) {
+            $definition = $this->workflowRegistry->getWorkflow($name);
+            $tableName = $definition->getTable();
+            $field = $definition->getField();
+
+            // Get valid state names
+            $validStates = array_map(
+                fn ($s) => $s->getName(),
+                $definition->getStates(),
+            );
+
+            if (!$validStates) {
+                continue;
+            }
+
+            try {
+                $table = $this->fetchTable($tableName);
+                $totalOrphans += $table->find()
+                    ->where([$field . ' NOT IN' => $validStates])
+                    ->count();
+            } catch (Throwable) {
+                // Table might not exist
+            }
+        }
+
+        return $totalOrphans;
     }
 }

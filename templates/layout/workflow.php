@@ -195,6 +195,41 @@
             width: 150px;
             background: #f8f9fa;
         }
+        /* Matrix table styles */
+        .matrix-table {
+            font-size: 0.9rem;
+        }
+        .matrix-table .state-column {
+            min-width: 180px;
+        }
+        .matrix-table .bucket-column {
+            min-width: 80px;
+        }
+        .matrix-table .total-column {
+            min-width: 70px;
+            background: #f8f9fa;
+        }
+        .matrix-table .state-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        .matrix-cell-link {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #e9ecef;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        .matrix-cell-link:hover {
+            background: #dee2e6;
+            color: #212529;
+        }
     </style>
     <?= $this->fetch('css') ?>
 </head>

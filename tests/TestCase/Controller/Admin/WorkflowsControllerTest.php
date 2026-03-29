@@ -263,4 +263,80 @@ class WorkflowsControllerTest extends IntegrationTestCase
             'nonexistent',
         ]);
     }
+
+    /**
+     * Test matrix action for a valid workflow.
+     */
+    public function testMatrix(): void
+    {
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'matrix',
+            'order',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('order');
+        $this->assertResponseContains('Matrix');
+    }
+
+    /**
+     * Test matrix action sets correct view variables.
+     */
+    public function testMatrixSetsViewVariables(): void
+    {
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'matrix',
+            'order',
+        ]);
+
+        $this->assertResponseOk();
+
+        $definition = $this->viewVariable('definition');
+        $this->assertNotNull($definition);
+        $this->assertSame('order', $definition->getName());
+
+        $matrix = $this->viewVariable('matrix');
+        $this->assertIsArray($matrix);
+        // Should have entries for each state in the workflow
+        $this->assertArrayHasKey('pending', $matrix);
+        $this->assertArrayHasKey('paid', $matrix);
+
+        $timeBuckets = $this->viewVariable('timeBuckets');
+        $this->assertIsArray($timeBuckets);
+        $this->assertArrayHasKey('< 1 hour', $timeBuckets);
+        $this->assertArrayHasKey('1-4 hours', $timeBuckets);
+        $this->assertArrayHasKey('4-24 hours', $timeBuckets);
+        $this->assertArrayHasKey('1-7 days', $timeBuckets);
+        $this->assertArrayHasKey('> 7 days', $timeBuckets);
+
+        $totals = $this->viewVariable('totals');
+        $this->assertIsArray($totals);
+
+        $stateTotals = $this->viewVariable('stateTotals');
+        $this->assertIsArray($stateTotals);
+    }
+
+    /**
+     * Test matrix action with non-existent workflow throws exception.
+     */
+    public function testMatrixNonExistentWorkflow(): void
+    {
+        $this->disableErrorHandlerMiddleware();
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage("Workflow 'nonexistent' not found");
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'matrix',
+            'nonexistent',
+        ]);
+    }
 }

@@ -35,4 +35,42 @@ class WorkflowTransition extends Entity
         'workflow_version' => true,
         'created' => true,
     ];
+
+    /**
+     * Get runtime metadata from context.
+     *
+     * @return array{guards_evaluated?: array<string>, commands_executed?: array<string>, used_lock?: bool}|null
+     */
+    public function getRuntime(): ?array
+    {
+        return $this->context['_runtime'] ?? null;
+    }
+
+    /**
+     * Get guards that were evaluated during this transition.
+     *
+     * @return array<string>
+     */
+    public function getGuardsEvaluated(): array
+    {
+        return $this->context['_runtime']['guards_evaluated'] ?? [];
+    }
+
+    /**
+     * Get commands that were executed during this transition.
+     *
+     * @return array<string>
+     */
+    public function getCommandsExecuted(): array
+    {
+        return $this->context['_runtime']['commands_executed'] ?? [];
+    }
+
+    /**
+     * Check if a lock was used during this transition.
+     */
+    public function usedLock(): bool
+    {
+        return $this->context['_runtime']['used_lock'] ?? false;
+    }
 }

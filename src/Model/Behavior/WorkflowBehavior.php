@@ -12,6 +12,7 @@ use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\EngineInterface;
 use Workflow\Engine\TransitionResult;
 use Workflow\Exception\WorkflowException;
+use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
 
 class WorkflowBehavior extends Behavior
@@ -28,11 +29,16 @@ class WorkflowBehavior extends Behavior
         'registry' => null,
         'field' => null,
         'validateOnSave' => true,
+        'autoSave' => false,
+        'autoLog' => false,
+        'entityTable' => null, // Auto-detected if not set
     ];
 
     private ?Definition $definition = null;
 
     private ?EngineInterface $engine = null;
+
+    private ?TransitionLogger $logger = null;
 
     public function initialize(array $config): void
     {
@@ -40,6 +46,11 @@ class WorkflowBehavior extends Behavior
 
         if ($this->getConfig('workflow') === null) {
             throw new WorkflowException('WorkflowBehavior requires a workflow name');
+        }
+
+        // Auto-detect entity table name if not set
+        if ($this->getConfig('entityTable') === null) {
+            $this->setConfig('entityTable', $this->_table->getRegistryAlias());
         }
     }
 
@@ -145,9 +156,12 @@ class WorkflowBehavior extends Behavior
     /**
      * Apply a transition to the entity.
      *
+     * When autoSave is enabled, the entity is saved after a successful transition.
+     * When autoLog is enabled, the transition is logged automatically.
+     *
      * @param \Cake\Datasource\EntityInterface $entity
      * @param string $transition
-     * @param array<string, mixed> $context
+     * @param array<string, mixed> $context Context data. Use 'reason' key for transition reason.
      */
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
     {
@@ -158,12 +172,60 @@ class WorkflowBehavior extends Behavior
             $context,
         );
 
-        // Mark the entity so beforeSave knows this change came through the workflow
         if ($result->isSuccess()) {
+            // Mark the entity so beforeSave knows this change came through the workflow
             $entity->set(self::TRANSITION_MARKER, true);
+
+            // Auto-save if enabled
+            if ($this->getConfig('autoSave')) {
+                $this->_table->saveOrFail($entity);
+            }
+
+            // Auto-log if enabled
+            if ($this->getConfig('autoLog')) {
+                $this->logTransition($entity, $result, $transition, $context);
+            }
         }
 
         return $result;
+    }
+
+    /**
+     * Log a transition.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param \Workflow\Engine\TransitionResult $result
+     * @param string $transition
+     * @param array<string, mixed> $context
+     */
+    protected function logTransition(
+        EntityInterface $entity,
+        TransitionResult $result,
+        string $transition,
+        array $context,
+    ): void {
+        $definition = $this->getWorkflowDefinition();
+        $this->getLogger()->log(
+            $this->getConfig('workflow'),
+            $this->getConfig('entityTable'),
+            $entity,
+            $result,
+            $transition,
+            $context,
+            (string)$definition->getVersion(),
+        );
+    }
+
+    /**
+     * Get the transition logger.
+     */
+    protected function getLogger(): TransitionLogger
+    {
+        if ($this->logger === null) {
+            $this->logger = new TransitionLogger();
+        }
+
+        return $this->logger;
     }
 
     /**
@@ -223,7 +285,6 @@ class WorkflowBehavior extends Behavior
     /**
      * Get the workflow registry.
      *
-     * @throws \Workflow\Exception\WorkflowException
      * @throws \Workflow\Exception\WorkflowException
      */
     protected function getRegistry(): WorkflowRegistry

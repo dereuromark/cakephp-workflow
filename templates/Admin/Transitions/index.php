@@ -68,12 +68,18 @@ $this->assign('title', 'Transitions');
                     <th>From</th>
                     <th></th>
                     <th>To</th>
+                    <th>Runtime</th>
                     <th>Actor</th>
                     <th>Date</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($transitions as $t) { ?>
+                    <?php
+                    $guards = $t->getGuardsEvaluated();
+                    $commands = $t->getCommandsExecuted();
+                    $usedLock = $t->usedLock();
+                    ?>
                     <tr>
                         <td><?= h($t->id) ?></td>
                         <td>
@@ -87,6 +93,20 @@ $this->assign('title', 'Transitions');
                         <td><span class="badge bg-secondary"><?= h($t->from_state) ?></span></td>
                         <td><i class="bi bi-arrow-right text-muted"></i></td>
                         <td><span class="badge bg-primary"><?= h($t->to_state) ?></span></td>
+                        <td class="text-muted small">
+                            <?php if ($guards) { ?>
+                                <span title="Guards: <?= h(implode(', ', $guards)) ?>"><i class="bi bi-shield-check"></i> <?= count($guards) ?></span>
+                            <?php } ?>
+                            <?php if ($commands) { ?>
+                                <span class="ms-1" title="Commands: <?= h(implode(', ', $commands)) ?>"><i class="bi bi-gear"></i> <?= count($commands) ?></span>
+                            <?php } ?>
+                            <?php if ($usedLock) { ?>
+                                <span class="ms-1" title="Used lock"><i class="bi bi-lock"></i></span>
+                            <?php } ?>
+                            <?php if (!$guards && !$commands && !$usedLock) { ?>
+                                -
+                            <?php } ?>
+                        </td>
                         <td><?= h($t->user_id ?? '-') ?></td>
                         <td>
                             <span title="<?= h($t->created) ?>"><?= $t->created->diffForHumans() ?></span>
@@ -95,7 +115,7 @@ $this->assign('title', 'Transitions');
                 <?php } ?>
                 <?php if (!$transitions->count()) { ?>
                     <tr>
-                        <td colspan="9" class="text-center text-muted py-4">No transitions found.</td>
+                        <td colspan="10" class="text-center text-muted py-4">No transitions found.</td>
                     </tr>
                 <?php } ?>
             </tbody>

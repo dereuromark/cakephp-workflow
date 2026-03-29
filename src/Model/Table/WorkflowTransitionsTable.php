@@ -84,7 +84,7 @@ class WorkflowTransitionsTable extends Table
                 'entity_table' => $table,
                 'entity_id' => $id,
             ])
-            ->orderBy(['created' => 'DESC']);
+            ->orderBy(['id' => 'DESC']);
     }
 
     /**
@@ -96,7 +96,7 @@ class WorkflowTransitionsTable extends Table
     public function findRecent(SelectQuery $query, int $limit = 50): SelectQuery
     {
         return $query
-            ->orderBy(['created' => 'DESC'])
+            ->orderBy(['id' => 'DESC'])
             ->limit($limit);
     }
 }

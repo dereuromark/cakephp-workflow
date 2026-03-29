@@ -6,6 +6,7 @@
  * @var int $transitionsToday
  * @var array<\Workflow\Model\Entity\WorkflowTimeout> $pendingTimeouts
  * @var array<\Workflow\Model\Entity\WorkflowTransition> $recentTransitions
+ * @var int $orphanCount
  */
 
 use Cake\I18n\DateTime;
@@ -47,8 +48,8 @@ $this->assign('title', 'Dashboard');
     </div>
     <div class="col-md-3">
         <div class="stat-card">
-            <div class="stat-value"><?= count($workflows) ?></div>
-            <div class="stat-label">Configured Workflows</div>
+            <div class="stat-value <?= $orphanCount > 0 ? 'text-danger' : '' ?>"><?= $orphanCount ?></div>
+            <div class="stat-label">Orphaned Items</div>
         </div>
     </div>
 </div>

@@ -125,6 +125,7 @@ class NeonLoader implements LoaderInterface
             transitions: $transitions,
             label: $this->extractString($metadata['label'] ?? null),
             description: $this->extractString($metadata['description'] ?? null),
+            version: (int)($data['version'] ?? 1),
         );
     }
 

@@ -1,0 +1,33 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+{% if isFailed %}
+use Workflow\Attribute\FailedState;
+{% endif %}
+{% if isFinal %}
+use Workflow\Attribute\FinalState;
+{% endif %}
+{% if isInitial %}
+use Workflow\Attribute\InitialState;
+{% endif %}
+{% if transitionTo %}
+use Workflow\Attribute\Transition;
+{% endif %}
+{% if isInitial %}
+#[InitialState]
+{% endif %}
+{% if isFinal %}
+#[FinalState]
+{% endif %}
+{% if isFailed %}
+#[FailedState]
+{% endif %}
+{% if transitionTo and transitionName %}
+#[Transition(to: {{ transitionTo }}::class, name: '{{ transitionName }}')]
+{% endif %}
+class {{ name }} extends {{ baseClass }}
+{
+}

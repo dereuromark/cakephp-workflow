@@ -108,9 +108,9 @@ class StateMachineEngine implements EngineInterface
         }
 
         // Check guards
-        $blockedBy = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
+        $guardResult = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
 
-        return !$blockedBy;
+        return !$guardResult['blocked'];
     }
 
     public function apply(
@@ -161,8 +161,8 @@ class StateMachineEngine implements EngineInterface
         }
 
         // Check guards
-        $blockedBy = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
-        if ($blockedBy) {
+        $guardResult = $this->evaluateGuards($transitionObj->getGuards(), $entity, $context);
+        if ($guardResult['blocked']) {
             // Fire blocked event
             $blockedEvent = new WorkflowEvent(
                 WorkflowEvent::TRANSITION_BLOCKED,
@@ -174,8 +174,10 @@ class StateMachineEngine implements EngineInterface
             );
             $this->eventManager->dispatch($blockedEvent);
 
-            return TransitionResult::blocked($currentState, $blockedBy);
+            return TransitionResult::blocked($currentState, $guardResult['blocked']);
         }
+
+        $guardsEvaluated = $guardResult['evaluated'];
 
         $toState = $transitionObj->getTo();
         $toStateObj = $definition->getState($toState);
@@ -205,8 +207,9 @@ class StateMachineEngine implements EngineInterface
         }
 
         // Execute commands
+        $commandsExecuted = [];
         try {
-            $this->executeCommands($transitionObj->getCommands(), $entity, $context);
+            $commandsExecuted = $this->executeCommands($transitionObj->getCommands(), $entity, $context);
         } catch (CommandException $e) {
             // Command runtime failures should return error result
             $this->dispatchErrorEvent($definition, $entity, $transition, $currentState, $toState, $context);
@@ -254,11 +257,22 @@ class StateMachineEngine implements EngineInterface
         // Process automatic transitions from the new state
         $autoResult = $this->processAutomaticTransitions($definition, $entity, $context);
         if ($autoResult !== null) {
-            // Return the final result after automatic transitions
-            return TransitionResult::success($currentState, $autoResult->getToState() ?? $toState);
+            // Return the final result after automatic transitions, merging runtime data
+            return TransitionResult::success(
+                $currentState,
+                $autoResult->getToState() ?? $toState,
+                array_merge($guardsEvaluated, $autoResult->getGuardsEvaluated()),
+                array_merge($commandsExecuted, $autoResult->getCommandsExecuted()),
+                $autoResult->usedLock(),
+            );
         }
 
-        return TransitionResult::success($currentState, $toState);
+        return TransitionResult::success(
+            $currentState,
+            $toState,
+            $guardsEvaluated,
+            $commandsExecuted,
+        );
     }
 
     /**
@@ -354,9 +368,10 @@ class StateMachineEngine implements EngineInterface
 
         // Execute onExit for current state
         $currentStateObj = $definition->getState($currentState);
+        $commandsExecuted = [];
         try {
             $this->executeCallbacks($currentStateObj->getOnExit(), $entity, $context);
-            $this->executeCommands($selectedTransition->getCommands(), $entity, $context);
+            $commandsExecuted = $this->executeCommands($selectedTransition->getCommands(), $entity, $context);
         } catch (Throwable $e) {
             $this->dispatchErrorEvent($definition, $entity, $transitionName, $currentState, $toState, $context);
 
@@ -391,10 +406,22 @@ class StateMachineEngine implements EngineInterface
         // Recursively process further automatic transitions
         $furtherResult = $this->processAutomaticTransitionsInternal($definition, $entity, $context, $processedCount + 1);
         if ($furtherResult !== null) {
-            return $furtherResult;
+            // Merge commands from this transition with further results
+            return TransitionResult::success(
+                $currentState,
+                $furtherResult->getToState() ?? $toState,
+                $furtherResult->getGuardsEvaluated(),
+                array_merge($commandsExecuted, $furtherResult->getCommandsExecuted()),
+                $furtherResult->usedLock(),
+            );
         }
 
-        return TransitionResult::success($currentState, $toState);
+        return TransitionResult::success(
+            $currentState,
+            $toState,
+            [], // No guards for automatic transitions
+            $commandsExecuted,
+        );
     }
 
     /**
@@ -518,17 +545,18 @@ class StateMachineEngine implements EngineInterface
     }
 
     /**
-     * Evaluate guards and return any that blocked.
+     * Evaluate guards and return both blocked guards and all evaluated guards.
      *
      * @param array<string> $guardNames
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string, mixed> $context
      *
-     * @return array<string, string>
+     * @return array{blocked: array<string, string>, evaluated: array<string>}
      */
     private function evaluateGuards(array $guardNames, EntityInterface $entity, array $context): array
     {
         $blocked = [];
+        $evaluated = [];
 
         foreach ($guardNames as $guardName) {
             $handler = $this->resolveHandler($guardName, $this->guards);
@@ -540,13 +568,14 @@ class StateMachineEngine implements EngineInterface
                 continue;
             }
 
+            $evaluated[] = $guardName;
             $result = $this->invokeHandler($handler, $entity, $context);
             if ($result !== true) {
                 $blocked[$guardName] = is_string($result) ? $result : "Guard '{$guardName}' returned false";
             }
         }
 
-        return $blocked;
+        return ['blocked' => $blocked, 'evaluated' => $evaluated];
     }
 
     /**
@@ -557,9 +586,13 @@ class StateMachineEngine implements EngineInterface
      * @param array<string, mixed> $context
      *
      * @throws \Workflow\Exception\CommandException When command execution fails
+     *
+     * @return array<string> List of commands that were executed
      */
-    private function executeCommands(array $commandNames, EntityInterface $entity, array $context): void
+    private function executeCommands(array $commandNames, EntityInterface $entity, array $context): array
     {
+        $executed = [];
+
         foreach ($commandNames as $commandName) {
             try {
                 $handler = $this->resolveHandler($commandName, $this->commands);
@@ -572,12 +605,15 @@ class StateMachineEngine implements EngineInterface
                 }
 
                 $this->invokeHandler($handler, $entity, $context);
+                $executed[] = $commandName;
             } catch (WorkflowException $e) {
                 throw $e;
             } catch (Throwable $e) {
                 throw new CommandException($commandName, $e);
             }
         }
+
+        return $executed;
     }
 
     private function resolveHandler(string $handlerName, array $registeredHandlers): callable|string|null

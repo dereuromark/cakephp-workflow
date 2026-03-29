@@ -38,6 +38,13 @@ class TransitionLogger
 
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
 
+        // Include runtime metadata in context
+        $contextWithRuntime = $context;
+        $runtime = $this->buildRuntimeMetadata($result);
+        if ($runtime) {
+            $contextWithRuntime['_runtime'] = $runtime;
+        }
+
         $transition = $table->newEntity([
             'workflow_name' => $workflowName,
             'entity_table' => $entityTable,
@@ -47,11 +54,39 @@ class TransitionLogger
             'to_state' => $result->getToState(),
             'user_id' => $context['user_id'] ?? null,
             'reason' => $context['reason'] ?? null,
-            'context' => $context ? $this->encodeContext($context) : null,
+            'context' => $contextWithRuntime ? $this->encodeContext($contextWithRuntime) : null,
             'workflow_version' => $workflowVersion,
         ]);
 
         $table->saveOrFail($transition);
+    }
+
+    /**
+     * Build runtime metadata array from transition result.
+     *
+     * @param \Workflow\Engine\TransitionResult $result
+     *
+     * @return array<string, mixed>|null
+     */
+    private function buildRuntimeMetadata(TransitionResult $result): ?array
+    {
+        $runtime = [];
+
+        $guardsEvaluated = $result->getGuardsEvaluated();
+        if ($guardsEvaluated) {
+            $runtime['guards_evaluated'] = $guardsEvaluated;
+        }
+
+        $commandsExecuted = $result->getCommandsExecuted();
+        if ($commandsExecuted) {
+            $runtime['commands_executed'] = $commandsExecuted;
+        }
+
+        if ($result->usedLock()) {
+            $runtime['used_lock'] = true;
+        }
+
+        return $runtime ?: null;
     }
 
     /**

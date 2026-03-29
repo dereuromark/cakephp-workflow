@@ -21,6 +21,7 @@ final class Definition
      * @param array<\Workflow\Engine\Definition\Transition> $transitions
      * @param string|null $description
      * @param string|null $label
+     * @param int $version Workflow version number (increment when making breaking changes)
      */
     public function __construct(
         private string $name,
@@ -30,10 +31,19 @@ final class Definition
         private array $transitions,
         private ?string $label = null,
         private ?string $description = null,
+        private int $version = 1,
     ) {
         foreach ($states as $state) {
             $this->stateMap[$state->getName()] = $state;
         }
+    }
+
+    /**
+     * Get the workflow version number.
+     */
+    public function getVersion(): int
+    {
+        return $this->version;
     }
 
     public function getName(): string

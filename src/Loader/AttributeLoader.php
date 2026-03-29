@@ -252,6 +252,7 @@ class AttributeLoader implements LoaderInterface
             field: $smAttr->field,
             states: $states,
             transitions: $transitions,
+            version: $smAttr->version,
         );
     }
 

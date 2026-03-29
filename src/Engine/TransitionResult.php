@@ -32,8 +32,11 @@ final class TransitionResult
      * @param string $status
      * @param string $fromState
      * @param string|null $toState
-     * @param array<string, string> $blockedBy
+     * @param array<string, string> $blockedBy Guards that blocked the transition (name => reason)
      * @param \Throwable|null $error
+     * @param array<string> $guardsEvaluated Guards that were evaluated
+     * @param array<string> $commandsExecuted Commands that were executed
+     * @param bool $usedLock Whether a lock was acquired for this transition
      */
     private function __construct(
         private string $status,
@@ -41,12 +44,36 @@ final class TransitionResult
         private ?string $toState = null,
         private array $blockedBy = [],
         private ?Throwable $error = null,
+        private array $guardsEvaluated = [],
+        private array $commandsExecuted = [],
+        private bool $usedLock = false,
     ) {
     }
 
-    public static function success(string $fromState, string $toState): self
-    {
-        return new self(self::STATUS_SUCCESS, $fromState, $toState);
+    /**
+     * @param string $fromState
+     * @param string $toState
+     * @param array<string> $guardsEvaluated
+     * @param array<string> $commandsExecuted
+     * @param bool $usedLock
+     */
+    public static function success(
+        string $fromState,
+        string $toState,
+        array $guardsEvaluated = [],
+        array $commandsExecuted = [],
+        bool $usedLock = false,
+    ): self {
+        return new self(
+            self::STATUS_SUCCESS,
+            $fromState,
+            $toState,
+            [],
+            null,
+            $guardsEvaluated,
+            $commandsExecuted,
+            $usedLock,
+        );
     }
 
     /**
@@ -109,5 +136,26 @@ final class TransitionResult
     public function getError(): ?Throwable
     {
         return $this->error;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getGuardsEvaluated(): array
+    {
+        return $this->guardsEvaluated;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getCommandsExecuted(): array
+    {
+        return $this->commandsExecuted;
+    }
+
+    public function usedLock(): bool
+    {
+        return $this->usedLock;
     }
 }

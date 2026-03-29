@@ -7,11 +7,15 @@
  * @var array<\Workflow\Model\Entity\WorkflowTransition> $recentTransitions
  * @var int $transitionsToday
  * @var array<\Workflow\Model\Entity\WorkflowTimeout> $pendingTimeouts
+ * @var array{neon: bool, yaml: bool} $exportFormats
  */
 $this->assign('title', $definition->getName());
 
 $stateCount = count($definition->getStates());
 $transitionCount = count($definition->getTransitions());
+$hasExport = $exportFormats['neon'] || $exportFormats['yaml'];
+$exportFormat = $exportFormats['neon'] ? 'neon' : 'yaml';
+$exportLabel = $exportFormats['neon'] ? 'NEON' : 'YAML';
 ?>
 
 <!-- Page Header -->
@@ -28,24 +32,42 @@ $transitionCount = count($definition->getTransitions());
             </ol>
         </nav>
     </div>
+    <div>
+        <?php if ($hasExport) { ?>
+            <?= $this->Html->link(
+                '<i class="bi bi-download me-1"></i>Export ' . $exportLabel,
+                ['action' => 'export', $definition->getName(), $exportFormat],
+                ['class' => 'btn btn-outline-secondary me-2', 'escapeTitle' => false],
+            ) ?>
+        <?php } ?>
+        <button class="btn btn-outline-secondary me-2" id="export-svg">
+            <i class="bi bi-image me-1"></i>Export SVG
+        </button>
+        <?= $this->Html->link(
+            '<i class="bi bi-pencil-square me-1"></i>Designer',
+            ['action' => 'designer', $definition->getName()],
+            ['class' => 'btn btn-primary', 'escapeTitle' => false],
+        ) ?>
+    </div>
 </div>
 
-<!-- Tabs -->
+<!-- Section Navigation -->
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
-        <a class="nav-link active" href="#diagram">Overview</a>
+        <a class="nav-link active" href="#diagram">Diagram</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#states">States (<?= $stateCount ?>)</a>
+        <a class="nav-link" href="#states-section">States (<?= $stateCount ?>)</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#transitions">Transitions (<?= $transitionCount ?>)</a>
+        <a class="nav-link" href="#transitions-section">Transitions (<?= $transitionCount ?>)</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="<?= $this->Url->build(['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]]) ?>">Items (<?= $totalActive ?>)</a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" href="<?= $this->Url->build(['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]]) ?>">History</a>
+        <?= $this->Html->link(
+            'History',
+            ['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
+            ['class' => 'nav-link'],
+        ) ?>
     </li>
 </ul>
 
@@ -54,27 +76,38 @@ $transitionCount = count($definition->getTransitions());
     <div class="col-lg-8">
         <div class="diagram-container mb-4" id="diagram">
             <div class="d-flex gap-2 mb-3">
-                <div class="btn-group btn-group-sm">
-                    <button class="btn btn-outline-secondary active">Diagram</button>
-                    <button class="btn btn-outline-secondary">Code</button>
+                <div class="btn-group btn-group-sm" id="view-toggle">
+                    <button class="btn btn-outline-secondary active" id="btn-diagram">Diagram</button>
+                    <button class="btn btn-outline-secondary" id="btn-code">Code</button>
                 </div>
-                <div class="btn-group btn-group-sm ms-auto">
+                <div class="btn-group btn-group-sm ms-auto" id="zoom-controls">
                     <button class="btn btn-outline-secondary" id="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
                     <button class="btn btn-outline-secondary" id="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
                     <button class="btn btn-outline-secondary" id="fullscreen" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
                 </div>
             </div>
-            <?= $this->Workflow->diagram($definition) ?>
-            <div class="mt-3 text-center">
-                <small class="text-muted">
-                    <span class="badge bg-success me-2">●</span> Happy path
-                    <span class="badge bg-secondary ms-3 me-2">●</span> Normal transition
-                </small>
+            <div id="diagram-view">
+                <?= $this->Workflow->diagram($definition) ?>
+                <div class="mt-3 text-center">
+                    <small class="text-muted">
+                        <span class="me-3"><span style="color:#2e7d32">━━</span> Happy path</span>
+                        <span class="me-3"><span style="color:#666">━━</span> Normal</span>
+                        <span><span style="color:#ff9800">┄┄</span> Automatic</span>
+                    </small>
+                </div>
+            </div>
+            <div id="code-view" style="display:none">
+                <pre class="bg-dark text-light p-3 rounded" style="overflow-x:auto;font-size:0.85rem"><code><?= h($this->Workflow->getMermaidCode($definition)) ?></code></pre>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-secondary" id="copy-code" title="Copy to clipboard">
+                        <i class="bi bi-clipboard"></i> Copy
+                    </button>
+                </div>
             </div>
         </div>
 
         <!-- States Table -->
-        <div class="card mb-4" id="states">
+        <div class="card mb-4" id="states-section">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>States</span>
                 <span class="badge bg-secondary"><?= $stateCount ?> states</span>
@@ -124,7 +157,7 @@ $transitionCount = count($definition->getTransitions());
                                     <?php if ($state->isFinal()) { ?>
                                         <span class="text-muted">-</span>
                                     <?php } else { ?>
-                                        <a href="#"><?= $count ?></a>
+                                        <?= $count ?>
                                     <?php } ?>
                                 </td>
                             </tr>
@@ -135,7 +168,7 @@ $transitionCount = count($definition->getTransitions());
         </div>
 
         <!-- Transitions Table -->
-        <div class="card" id="transitions">
+        <div class="card" id="transitions-section">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Transitions</span>
                 <span class="badge bg-secondary"><?= $transitionCount ?> transitions</span>
@@ -150,6 +183,7 @@ $transitionCount = count($definition->getTransitions());
                             <th>To</th>
                             <th>Guards</th>
                             <th>Commands</th>
+                            <th>Condition</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -191,6 +225,13 @@ $transitionCount = count($definition->getTransitions());
                                         -
                                     <?php } ?>
                                 </td>
+                                <td>
+                                    <?php if ($transition->getCondition()) { ?>
+                                        <code class="small text-info"><?= h($transition->getCondition()) ?></code>
+                                    <?php } else { ?>
+                                        -
+                                    <?php } ?>
+                                </td>
                             </tr>
                         <?php } ?>
                     </tbody>
@@ -224,7 +265,10 @@ $transitionCount = count($definition->getTransitions());
                     </tr>
                     <tr>
                         <th>Version</th>
-                        <td><code><?= h($definition->getVersionHash()) ?></code></td>
+                        <td>
+                            <span class="badge bg-primary">v<?= $definition->getVersion() ?></span>
+                            <small class="text-muted ms-1">(<?= h($definition->getVersionHash()) ?>)</small>
+                        </td>
                     </tr>
                 </table>
             </div>
@@ -281,10 +325,28 @@ $transitionCount = count($definition->getTransitions());
                 <?php } else { ?>
                     <ul class="list-unstyled mb-0">
                         <?php foreach (array_slice($recentTransitions, 0, 5) as $t) { ?>
+                            <?php
+                            $guards = $t->getGuardsEvaluated();
+                            $commands = $t->getCommandsExecuted();
+                            $usedLock = $t->usedLock();
+                            ?>
                             <li class="mb-2">
                                 <small class="text-muted"><?= $t->created->diffForHumans() ?></small><br>
                                 <strong><?= h($t->entity_table) ?> #<?= h($t->entity_id) ?></strong>:
                                 <?= h($t->from_state) ?> &rarr; <?= h($t->to_state) ?>
+                                <?php if ($guards || $commands || $usedLock) { ?>
+                                    <div class="small text-muted mt-1">
+                                        <?php if ($guards) { ?>
+                                            <span title="Guards: <?= h(implode(', ', $guards)) ?>"><i class="bi bi-shield-check"></i> <?= count($guards) ?></span>
+                                        <?php } ?>
+                                        <?php if ($commands) { ?>
+                                            <span class="ms-2" title="Commands: <?= h(implode(', ', $commands)) ?>"><i class="bi bi-gear"></i> <?= count($commands) ?></span>
+                                        <?php } ?>
+                                        <?php if ($usedLock) { ?>
+                                            <span class="ms-2" title="Used lock"><i class="bi bi-lock"></i></span>
+                                        <?php } ?>
+                                    </div>
+                                <?php } ?>
                             </li>
                         <?php } ?>
                     </ul>
@@ -298,8 +360,8 @@ $transitionCount = count($definition->getTransitions());
             <div class="card-body">
                 <div class="d-grid gap-2">
                     <?= $this->Html->link(
-                        '<i class="bi bi-list-check me-2"></i>View All Items',
-                        '#',
+                        '<i class="bi bi-grid-3x3 me-2"></i>View Matrix',
+                        ['action' => 'matrix', $definition->getName()],
                         ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
                     ) ?>
                     <?= $this->Html->link(
@@ -312,6 +374,21 @@ $transitionCount = count($definition->getTransitions());
                         ['controller' => 'Timeouts', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
                         ['class' => 'btn btn-outline-warning', 'escapeTitle' => false],
                     ) ?>
+                    <?= $this->Html->link(
+                        '<i class="bi bi-lock me-2"></i>View Locks',
+                        ['controller' => 'Locks', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
+                        ['class' => 'btn btn-outline-info', 'escapeTitle' => false],
+                    ) ?>
+                    <?= $this->Html->link(
+                        '<i class="bi bi-exclamation-triangle me-2"></i>Check Orphans',
+                        ['controller' => 'Orphans', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
+                        ['class' => 'btn btn-outline-danger', 'escapeTitle' => false],
+                    ) ?>
+                    <?= $this->Html->link(
+                        '<i class="bi bi-check2-circle me-2"></i>Validate',
+                        ['action' => 'validate', $definition->getName()],
+                        ['class' => 'btn btn-outline-success', 'escapeTitle' => false],
+                    ) ?>
                 </div>
             </div>
         </div>
@@ -322,6 +399,11 @@ $transitionCount = count($definition->getTransitions());
 (function() {
     let scale = 1;
     const diagramContainer = document.getElementById('diagram');
+    const diagramView = document.getElementById('diagram-view');
+    const codeView = document.getElementById('code-view');
+    const btnDiagram = document.getElementById('btn-diagram');
+    const btnCode = document.getElementById('btn-code');
+    const zoomControls = document.getElementById('zoom-controls');
     const mermaidDiv = diagramContainer?.querySelector('.mermaid');
 
     // Make mermaid container scrollable when zoomed
@@ -341,6 +423,38 @@ $transitionCount = count($definition->getTransitions());
             svg.style.transformOrigin = 'top left';
         }
     }
+
+    // Diagram/Code toggle
+    btnDiagram?.addEventListener('click', function() {
+        diagramView.style.display = 'block';
+        codeView.style.display = 'none';
+        zoomControls.style.display = '';
+        btnDiagram.classList.add('active');
+        btnCode.classList.remove('active');
+    });
+
+    btnCode?.addEventListener('click', function() {
+        diagramView.style.display = 'none';
+        codeView.style.display = 'block';
+        zoomControls.style.display = 'none';
+        btnCode.classList.add('active');
+        btnDiagram.classList.remove('active');
+    });
+
+    // Copy code to clipboard
+    document.getElementById('copy-code')?.addEventListener('click', function() {
+        const code = codeView?.querySelector('code')?.textContent;
+        if (code) {
+            navigator.clipboard.writeText(code).then(function() {
+                const btn = document.getElementById('copy-code');
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(function() {
+                    btn.innerHTML = originalHtml;
+                }, 2000);
+            });
+        }
+    });
 
     document.getElementById('zoom-in')?.addEventListener('click', function() {
         scale = Math.min(scale + 0.2, 3);
@@ -362,6 +476,45 @@ $transitionCount = count($definition->getTransitions());
                 if (mermaidDiv) mermaidDiv.style.maxHeight = '100vh';
             }
         }
+    });
+
+    // Export SVG
+    document.getElementById('export-svg')?.addEventListener('click', function() {
+        const svg = getSvg();
+        if (!svg) {
+            alert('No diagram to export');
+            return;
+        }
+
+        // Clone SVG and prepare for export
+        const svgClone = svg.cloneNode(true);
+        svgClone.style.transform = '';
+
+        // Get SVG dimensions
+        const bbox = svg.getBBox();
+        const width = bbox.width + 40;
+        const height = bbox.height + 40;
+        svgClone.setAttribute('width', width);
+        svgClone.setAttribute('height', height);
+        svgClone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+
+        // Add white background rect
+        const bgRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bgRect.setAttribute('width', '100%');
+        bgRect.setAttribute('height', '100%');
+        bgRect.setAttribute('fill', '#ffffff');
+        svgClone.insertBefore(bgRect, svgClone.firstChild);
+
+        // Serialize and download SVG
+        const serializer = new XMLSerializer();
+        const svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(svgClone);
+        const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
+
+        const link = document.createElement('a');
+        link.download = '<?= h($definition->getName()) ?>-workflow.svg';
+        link.href = URL.createObjectURL(svgBlob);
+        link.click();
+        URL.revokeObjectURL(link.href);
     });
 })();
 </script>

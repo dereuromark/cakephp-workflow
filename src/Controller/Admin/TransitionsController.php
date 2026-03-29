@@ -14,7 +14,7 @@ class TransitionsController extends WorkflowAppController
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
 
         $query = $transitionsTable->find()
-            ->orderBy(['created' => 'DESC']);
+            ->orderBy(['id' => 'DESC']);
 
         // Filter by workflow
         $workflow = $this->request->getQuery('workflow');

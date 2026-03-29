@@ -27,10 +27,12 @@
         "cakephp/cakephp": "^5.2"
     },
     "suggest": {
+        "cakephp/bake": "Optional for bake workflow_state scaffolding (^3.0)",
         "nette/neon": "Required for NEON workflow definitions (^3.0)",
         "symfony/yaml": "Required for YAML workflow definitions (^6.0 || ^7.0 || ^8.0)"
     },
     "require-dev": {
+        "cakephp/bake": "^3.0",
         "cakephp/migrations": "^4.0.0",
         "nette/neon": "^3.0",
         "php-collective/code-sniffer": "^0.5.4",

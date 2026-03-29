@@ -13,6 +13,10 @@ class Application extends BaseApplication
 {
     public function bootstrap(): void
     {
+        if (class_exists(\Bake\BakePlugin::class)) {
+            $this->addPlugin('Bake');
+        }
+
         $this->addPlugin('Workflow');
     }
 

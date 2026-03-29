@@ -4,15 +4,19 @@ declare(strict_types=1);
 
 namespace Workflow;
 
+use Bake\Command\SimpleBakeCommand;
 use Cake\Console\CommandCollection;
 use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
+use Cake\Core\Plugin as CakePlugin;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Event\EventManager;
 use Cake\Log\Log;
 use Cake\Routing\RouteBuilder;
 use Nette\Neon\Neon;
 use Symfony\Component\Yaml\Yaml;
+use Workflow\Command\BakeWorkflowStateCommand;
+use Workflow\Command\WorkflowInitCommand;
 use Workflow\Command\WorkflowListCommand;
 use Workflow\Command\WorkflowShowCommand;
 use Workflow\Command\WorkflowTimeoutsCommand;
@@ -41,6 +45,11 @@ class WorkflowPlugin extends BasePlugin
 
     public function console(CommandCollection $commands): CommandCollection
     {
+        if (class_exists(SimpleBakeCommand::class) && CakePlugin::isLoaded('Bake')) {
+            $commands->add('bake workflow_state', BakeWorkflowStateCommand::class);
+        }
+
+        $commands->add('workflow init', WorkflowInitCommand::class);
         $commands->add('workflow list', WorkflowListCommand::class);
         $commands->add('workflow show', WorkflowShowCommand::class);
         $commands->add('workflow timeouts', WorkflowTimeoutsCommand::class);

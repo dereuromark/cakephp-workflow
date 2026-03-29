@@ -126,6 +126,7 @@ class YamlLoader implements LoaderInterface
             transitions: $transitions,
             label: isset($metadata['label']) && is_string($metadata['label']) ? $metadata['label'] : null,
             description: isset($metadata['description']) && is_string($metadata['description']) ? $metadata['description'] : null,
+            version: (int)($data['version'] ?? 1),
         );
     }
 

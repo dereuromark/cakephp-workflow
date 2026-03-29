@@ -25,3 +25,11 @@ Thumbs.db
 /phpstan-baseline.neon
 /tools/
 /.phive/
+
+# Docs
+/docs/node_modules/
+/docs/.vitepress/cache/
+/docs/.vitepress/dist/
+
+# Temp files
+/_*.md

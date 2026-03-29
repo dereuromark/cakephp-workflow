@@ -94,5 +94,16 @@ $currentAction = $this->request->getParam('action');
                 ],
             ) ?>
         </li>
+        <li>
+            <?= $this->Html->link(
+                '<i class="bi bi-exclamation-triangle"></i> Orphans' .
+                ($orphanCount > 0 ? ' <span class="badge bg-danger ms-auto">' . $orphanCount . '</span>' : ''),
+                ['plugin' => 'Workflow', 'controller' => 'Orphans', 'action' => 'index', 'prefix' => 'Admin'],
+                [
+                    'class' => 'nav-link' . ($currentController === 'Orphans' ? ' active' : ''),
+                    'escapeTitle' => false,
+                ],
+            ) ?>
+        </li>
     </ul>
 </nav>

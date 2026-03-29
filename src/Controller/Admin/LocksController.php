@@ -17,7 +17,7 @@ class LocksController extends WorkflowAppController
         $locksTable = $this->fetchTable('Workflow.WorkflowLocks');
 
         $query = $locksTable->find()
-            ->orderBy(['created' => 'DESC']);
+            ->orderBy(['id' => 'DESC']);
 
         // Filter by workflow
         $workflow = $this->request->getQuery('workflow');

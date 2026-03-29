@@ -6,6 +6,7 @@ namespace Workflow\Renderer;
 
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\Transition;
 
 class MermaidRenderer implements RendererInterface
 {
@@ -38,28 +39,40 @@ class MermaidRenderer implements RendererInterface
      *
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param string|null $currentState Current state to highlight
+     * @param bool $showDetails Show guards/commands/conditions on labels
      */
-    public function render(Definition $definition, ?string $currentState = null): string
+    public function render(Definition $definition, ?string $currentState = null, bool $showDetails = false): string
     {
         $lines = ['flowchart TD'];
         $linkIndex = 0;
         $happyLinkIndices = [];
+        $automaticLinkIndices = [];
 
         // Add state node definitions
         foreach ($definition->getStates() as $state) {
             $lines[] = $this->renderState($state);
         }
 
-        // Add transitions and track happy path indices
+        // Add transitions and track special indices
         foreach ($definition->getTransitions() as $transition) {
             $name = $transition->getName();
             $to = $transition->getTo();
             $isHappy = $transition->isHappy();
+            $isAutomatic = $transition->isAutomatic();
+
+            // Build transition label
+            $label = $this->buildTransitionLabel($transition, $showDetails);
+
+            // Use dashed arrow for automatic transitions
+            $arrow = $isAutomatic ? '-.->' : '-->';
 
             foreach ($transition->getFrom() as $from) {
-                $lines[] = "    {$from} -->|{$name}| {$to}";
+                $lines[] = "    {$from} {$arrow}|{$label}| {$to}";
                 if ($isHappy) {
                     $happyLinkIndices[] = $linkIndex;
+                }
+                if ($isAutomatic) {
+                    $automaticLinkIndices[] = $linkIndex;
                 }
                 $linkIndex++;
             }
@@ -68,13 +81,55 @@ class MermaidRenderer implements RendererInterface
         // Add styling for state types
         $lines = array_merge($lines, $this->renderStyles($definition, $currentState));
 
-        // Style happy path links green
+        // Style happy path links green (takes precedence)
         if ($happyLinkIndices) {
             $indices = implode(',', $happyLinkIndices);
             $lines[] = "    linkStyle {$indices} stroke:#2e7d32,stroke-width:2px";
         }
 
+        // Style automatic transitions that aren't happy path
+        $automaticOnly = array_diff($automaticLinkIndices, $happyLinkIndices);
+        if ($automaticOnly) {
+            $indices = implode(',', $automaticOnly);
+            $lines[] = "    linkStyle {$indices} stroke:#ff9800,stroke-width:1px";
+        }
+
         return implode("\n", $lines);
+    }
+
+    /**
+     * Build transition label with optional details.
+     *
+     * @param \Workflow\Engine\Definition\Transition $transition
+     * @param bool $showDetails
+     */
+    private function buildTransitionLabel(Transition $transition, bool $showDetails): string
+    {
+        $name = $transition->getName();
+
+        if (!$showDetails) {
+            return $name;
+        }
+
+        $parts = [$name];
+
+        // Add icons/markers for guards, commands, conditions
+        $markers = [];
+        if ($transition->getGuards()) {
+            $markers[] = '🛡️'; // Shield for guards
+        }
+        if ($transition->getCommands()) {
+            $markers[] = '⚙️'; // Gear for commands
+        }
+        if ($transition->getCondition()) {
+            $markers[] = '❓'; // Question for conditions
+        }
+
+        if ($markers) {
+            $parts[] = implode('', $markers);
+        }
+
+        return implode(' ', $parts);
     }
 
     private function renderState(State $state): string
@@ -130,28 +185,39 @@ class MermaidRenderer implements RendererInterface
      *
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string> $unreachableStates
+     * @param bool $showDetails Show guards/commands/conditions on labels
      */
-    public function renderWithAnalysis(Definition $definition, array $unreachableStates = []): string
+    public function renderWithAnalysis(Definition $definition, array $unreachableStates = [], bool $showDetails = false): string
     {
         $lines = ['flowchart TD'];
         $linkIndex = 0;
         $happyLinkIndices = [];
+        $automaticLinkIndices = [];
 
         // Add state node definitions
         foreach ($definition->getStates() as $state) {
             $lines[] = $this->renderState($state);
         }
 
-        // Add transitions and track happy path indices
+        // Add transitions and track special indices
         foreach ($definition->getTransitions() as $transition) {
-            $name = $transition->getName();
             $to = $transition->getTo();
             $isHappy = $transition->isHappy();
+            $isAutomatic = $transition->isAutomatic();
+
+            // Build transition label
+            $label = $this->buildTransitionLabel($transition, $showDetails);
+
+            // Use dashed arrow for automatic transitions
+            $arrow = $isAutomatic ? '-.->' : '-->';
 
             foreach ($transition->getFrom() as $from) {
-                $lines[] = "    {$from} -->|{$name}| {$to}";
+                $lines[] = "    {$from} {$arrow}|{$label}| {$to}";
                 if ($isHappy) {
                     $happyLinkIndices[] = $linkIndex;
+                }
+                if ($isAutomatic) {
+                    $automaticLinkIndices[] = $linkIndex;
                 }
                 $linkIndex++;
             }
@@ -164,6 +230,13 @@ class MermaidRenderer implements RendererInterface
         if ($happyLinkIndices) {
             $indices = implode(',', $happyLinkIndices);
             $lines[] = "    linkStyle {$indices} stroke:#2e7d32,stroke-width:2px";
+        }
+
+        // Style automatic transitions that aren't happy path
+        $automaticOnly = array_diff($automaticLinkIndices, $happyLinkIndices);
+        if ($automaticOnly) {
+            $indices = implode(',', $automaticOnly);
+            $lines[] = "    linkStyle {$indices} stroke:#ff9800,stroke-width:1px";
         }
 
         // Mark unreachable states

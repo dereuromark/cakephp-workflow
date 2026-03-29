@@ -113,6 +113,18 @@ class WorkflowHelper extends Helper
     }
 
     /**
+     * Get the raw Mermaid code for a workflow.
+     *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     */
+    public function getMermaidCode(Definition $definition): string
+    {
+        $renderer = $this->getMermaidRenderer();
+
+        return $renderer->render($definition);
+    }
+
+    /**
      * Include Mermaid.js library.
      */
     public function includeMermaid(): string

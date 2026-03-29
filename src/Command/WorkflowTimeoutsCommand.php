@@ -12,6 +12,7 @@ use Cake\Core\Configure;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 use RuntimeException;
+use Workflow\Service\TimeoutScheduler;
 use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
 
@@ -121,6 +122,7 @@ class WorkflowTimeoutsCommand extends Command
                     $entityTable,
                     $timeoutsTable,
                     $context,
+                    $field,
                     &$result,
                 ): bool {
                     $result = $engine->apply($definition, $entity, $timeout->transition_name, $context);
@@ -147,6 +149,14 @@ class WorkflowTimeoutsCommand extends Command
                     // Mark timeout as processed
                     $timeout->processed = true;
                     $timeoutsTable->saveOrFail($timeout);
+
+                    $scheduler = new TimeoutScheduler();
+                    $scheduler->syncStateTimeouts(
+                        $timeout->workflow_name,
+                        $timeout->entity_table,
+                        $entity,
+                        $definition->getState((string)$entity->get($field)),
+                    );
 
                     return true;
                 });

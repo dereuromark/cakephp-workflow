@@ -20,9 +20,11 @@ use Workflow\Attribute\OnEnter;
 use Workflow\Attribute\OnExit;
 use Workflow\Attribute\RequireReason;
 use Workflow\Attribute\StateMachine;
+use Workflow\Attribute\Timeout as TimeoutAttr;
 use Workflow\Attribute\Transition as TransitionAttr;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\StateTimeout;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Exception\WorkflowException;
 use Workflow\State\AbstractState;
@@ -287,6 +289,14 @@ class AttributeLoader implements LoaderInterface
         $requireReasonAttr = $reflection->getAttributes(RequireReason::class);
         $requireReasonFor = $requireReasonAttr ? $requireReasonAttr[0]->newInstance()->for : [];
 
+        $timeouts = array_map(
+            fn ($attr) => new StateTimeout(
+                $attr->newInstance()->after,
+                $attr->newInstance()->transition,
+            ),
+            $reflection->getAttributes(TimeoutAttr::class),
+        );
+
         return new State(
             name: $stateName,
             label: $label,
@@ -298,6 +308,7 @@ class AttributeLoader implements LoaderInterface
             onEnter: $onEnter,
             onExit: $onExit,
             requireReasonFor: $requireReasonFor,
+            timeouts: $timeouts,
         );
     }
 

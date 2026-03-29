@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Model\Behavior;
 
 use ArrayObject;
+use Cake\Core\Configure;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
@@ -18,6 +19,7 @@ use Workflow\Engine\TransitionResult;
 use Workflow\Exception\WorkflowException;
 use Workflow\Model\Entity\WorkflowLock;
 use Workflow\Service\LockManager;
+use Workflow\Service\TimeoutScheduler;
 use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
 
@@ -41,6 +43,7 @@ class WorkflowBehavior extends Behavior
         'autoLog' => false,
         'entityTable' => null, // Auto-detected if not set
         'useLocking' => null, // null=auto-detect, true=force on, false=force off
+        'useTimeouts' => null, // null=auto-detect, true=force on, false=force off
         'useTransaction' => true, // Wrap transition+save+log in database transaction
     ];
 
@@ -52,7 +55,11 @@ class WorkflowBehavior extends Behavior
 
     private ?LockManager $lockManager = null;
 
+    private ?TimeoutScheduler $timeoutScheduler = null;
+
     private ?bool $lockTableExists = null;
+
+    private ?bool $timeoutsTableExists = null;
 
     public function initialize(array $config): void
     {
@@ -227,7 +234,7 @@ class WorkflowBehavior extends Behavior
      * @param \Cake\Datasource\EntityInterface $entity
      * @param string $transition
      * @param array<string, mixed> $context
-     * @param array{save?: bool, log?: bool, lock?: bool|null, transaction?: bool} $options
+     * @param array{save?: bool, log?: bool, lock?: bool|null, timeouts?: bool|null, transaction?: bool} $options
      */
     public function transition(
         EntityInterface $entity,
@@ -239,6 +246,7 @@ class WorkflowBehavior extends Behavior
             'save' => true,
             'log' => true,
             'lock' => null,
+            'timeouts' => null,
             'transaction' => true,
         ];
 
@@ -246,6 +254,7 @@ class WorkflowBehavior extends Behavior
             'autoSave' => (bool)$options['save'],
             'autoLog' => (bool)$options['log'],
             'useLocking' => $options['lock'],
+            'useTimeouts' => $options['timeouts'],
             'useTransaction' => (bool)$options['transaction'],
         ], fn (): TransitionResult => $this->applyTransition($entity, $transition, $context));
     }
@@ -283,6 +292,10 @@ class WorkflowBehavior extends Behavior
             // Auto-log if enabled - within same transaction
             if ($this->getConfig('autoLog')) {
                 $this->logTransition($entity, $result, $transition, $context);
+            }
+
+            if ($this->shouldSyncTimeouts()) {
+                $this->syncTimeouts($entity);
             }
 
             return $result;
@@ -335,6 +348,10 @@ class WorkflowBehavior extends Behavior
 
                 if ($this->getConfig('autoLog')) {
                     $this->logTransition($entity, $result, $transition, $context);
+                }
+
+                if ($this->shouldSyncTimeouts()) {
+                    $this->syncTimeouts($entity);
                 }
             }
         }
@@ -420,6 +437,22 @@ class WorkflowBehavior extends Behavior
         return $this;
     }
 
+    protected function getTimeoutScheduler(): TimeoutScheduler
+    {
+        if ($this->timeoutScheduler === null) {
+            $this->timeoutScheduler = new TimeoutScheduler();
+        }
+
+        return $this->timeoutScheduler;
+    }
+
+    public function setTimeoutScheduler(TimeoutScheduler $timeoutScheduler): static
+    {
+        $this->timeoutScheduler = $timeoutScheduler;
+
+        return $this;
+    }
+
     /**
      * Determine if locking should be used.
      *
@@ -441,6 +474,27 @@ class WorkflowBehavior extends Behavior
 
         // Auto-detect: use locking if table exists
         return $this->lockTableExists();
+    }
+
+    protected function shouldSyncTimeouts(): bool
+    {
+        if (!$this->getConfig('autoSave')) {
+            return false;
+        }
+
+        $config = $this->getConfig('useTimeouts');
+        if ($config === true) {
+            return true;
+        }
+        if ($config === false) {
+            return false;
+        }
+
+        if (!(bool)Configure::read('Workflow.timeouts', true)) {
+            return false;
+        }
+
+        return $this->timeoutsTableExists();
     }
 
     /**
@@ -465,6 +519,24 @@ class WorkflowBehavior extends Behavior
         }
 
         return $this->lockTableExists;
+    }
+
+    protected function timeoutsTableExists(): bool
+    {
+        if ($this->timeoutsTableExists !== null) {
+            return $this->timeoutsTableExists;
+        }
+
+        try {
+            $connection = $this->_table->getConnection();
+            $schemaCollection = $connection->getSchemaCollection();
+            $tables = $schemaCollection->listTables();
+            $this->timeoutsTableExists = in_array('workflow_timeouts', $tables, true);
+        } catch (Throwable) {
+            $this->timeoutsTableExists = false;
+        }
+
+        return $this->timeoutsTableExists;
     }
 
     /**
@@ -510,6 +582,20 @@ class WorkflowBehavior extends Behavior
         $this->logger = $logger;
 
         return $this;
+    }
+
+    protected function syncTimeouts(EntityInterface $entity): void
+    {
+        $definition = $this->getWorkflowDefinition();
+        $currentState = $this->getCurrentState($entity);
+        $state = $definition->getState($currentState);
+
+        $this->getTimeoutScheduler()->syncStateTimeouts(
+            $this->getConfig('workflow'),
+            $this->getConfig('entityTable'),
+            $entity,
+            $state,
+        );
     }
 
     /**

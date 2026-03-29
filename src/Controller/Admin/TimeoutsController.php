@@ -8,6 +8,7 @@ use Cake\Http\Response;
 use Cake\I18n\DateTime;
 use RuntimeException;
 use Throwable;
+use Workflow\Service\TimeoutScheduler;
 use Workflow\Service\TransitionLogger;
 
 class TimeoutsController extends WorkflowAppController
@@ -174,6 +175,7 @@ class TimeoutsController extends WorkflowAppController
                 $entityTable,
                 $timeoutsTable,
                 $context,
+                $field,
                 &$result,
             ): bool {
                 $result = $engine->apply($definition, $entity, $timeout->transition_name, $context);
@@ -197,6 +199,14 @@ class TimeoutsController extends WorkflowAppController
 
                 $timeout->processed = true;
                 $timeoutsTable->saveOrFail($timeout);
+
+                $scheduler = new TimeoutScheduler();
+                $scheduler->syncStateTimeouts(
+                    $timeout->workflow_name,
+                    $timeout->entity_table,
+                    $entity,
+                    $definition->getState((string)$entity->get($field)),
+                );
 
                 return true;
             });

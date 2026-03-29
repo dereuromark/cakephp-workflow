@@ -52,4 +52,15 @@ class AttributeLoaderTest extends TestCase
             $result->getBlockedBy()['TestApp\\Workflow\\Order\\PendingState::ensurePayable'],
         );
     }
+
+    public function testLoadAttributeWorkflowIncludesStateTimeouts(): void
+    {
+        $definition = $this->loader->load('attribute_order');
+        $pending = $definition->getState('pending');
+
+        $this->assertTrue($pending->hasTimeouts());
+        $this->assertCount(1, $pending->getTimeouts());
+        $this->assertSame('PT1H', $pending->getTimeouts()[0]->getAfter());
+        $this->assertSame('pay', $pending->getTimeouts()[0]->getTransition());
+    }
 }

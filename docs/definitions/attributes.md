@@ -145,6 +145,8 @@ Method-level:
 - `OnExit` - callback when leaving the state
 - `Timeout` - automatic transition after duration
 
+Timeout durations support ISO-8601 intervals like `PT30M` and relative strings like `2 hours`.
+
 ## Why the Current Model Uses State Methods
 
 The current API keeps guards and commands close to the state that owns them.
@@ -156,4 +158,3 @@ That gives:
 - clearer workflow reading for most app teams
 
 It is especially effective when the logic is specific to one workflow.
-

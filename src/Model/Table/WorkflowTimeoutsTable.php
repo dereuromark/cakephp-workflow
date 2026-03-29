@@ -105,4 +105,17 @@ class WorkflowTimeoutsTable extends Table
                 'processed' => false,
             ]);
     }
+
+    public function markPendingProcessed(string $workflow, string $table, string $id): int
+    {
+        return $this->updateAll(
+            ['processed' => true],
+            [
+                'workflow_name' => $workflow,
+                'entity_table' => $table,
+                'entity_id' => $id,
+                'processed' => false,
+            ],
+        );
+    }
 }

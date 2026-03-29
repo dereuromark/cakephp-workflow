@@ -310,4 +310,43 @@ class WorkflowBehaviorTest extends TestCase
 
         $behavior->getWorkflowDefinition();
     }
+
+    public function testGetStateNamesWithFlag(): void
+    {
+        $behavior = $this->addBehavior();
+
+        // 'done' flag is on 'completed' state
+        $stateNames = $behavior->getStateNamesWithFlag('done');
+        $this->assertSame(['completed'], $stateNames);
+
+        // Non-existent flag
+        $stateNames = $behavior->getStateNamesWithFlag('nonexistent');
+        $this->assertSame([], $stateNames);
+    }
+
+    public function testGetStateNamesWithoutFlag(): void
+    {
+        $behavior = $this->addBehavior();
+
+        // States without 'done' flag (all except 'completed')
+        $stateNames = $behavior->getStateNamesWithoutFlag('done');
+        $this->assertContains('pending', $stateNames);
+        $this->assertContains('paid', $stateNames);
+        $this->assertContains('shipped', $stateNames);
+        $this->assertContains('cancelled', $stateNames);
+        $this->assertNotContains('completed', $stateNames);
+    }
+
+    public function testGetFinalStateNames(): void
+    {
+        $behavior = $this->addBehavior();
+
+        $finalStates = $behavior->getFinalStateNames();
+
+        $this->assertContains('completed', $finalStates);
+        $this->assertContains('cancelled', $finalStates);
+        $this->assertNotContains('pending', $finalStates);
+        $this->assertNotContains('paid', $finalStates);
+        $this->assertNotContains('shipped', $finalStates);
+    }
 }

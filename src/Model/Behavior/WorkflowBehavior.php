@@ -9,6 +9,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Cake\ORM\Query\SelectQuery;
 use Throwable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\EngineInterface;
@@ -515,6 +516,204 @@ class WorkflowBehavior extends Behavior
         $stateObj = $this->getWorkflowDefinition()->getState($currentState);
 
         return $stateObj->hasFlag($flag);
+    }
+
+    /**
+     * Custom finder to get entities in states with a specific flag.
+     *
+     * Usage:
+     * ```php
+     * // Find all completed orders (states with 'done' flag)
+     * $completedOrders = $this->Orders->find('withFlag', flag: 'done');
+     *
+     * // Find all failed orders
+     * $failedOrders = $this->Orders->find('withFlag', flag: 'failed');
+     * ```
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     * @param string $flag The flag to filter by
+     *
+     * @return \Cake\ORM\Query\SelectQuery
+     */
+    public function findWithFlag(SelectQuery $query, string $flag): SelectQuery
+    {
+        $stateNames = $this->getStateNamesWithFlag($flag);
+
+        if (!$stateNames) {
+            // No states have this flag, return empty result
+            $query->where(['1 = 0']);
+
+            return $query;
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+
+        return $query->where([
+            $this->_table->aliasField($field) . ' IN' => $stateNames,
+        ]);
+    }
+
+    /**
+     * Custom finder to get entities NOT in states with a specific flag.
+     *
+     * Usage:
+     * ```php
+     * // Find all orders that are not yet done
+     * $pendingOrders = $this->Orders->find('withoutFlag', flag: 'done');
+     *
+     * // Find all orders that haven't failed
+     * $activeOrders = $this->Orders->find('withoutFlag', flag: 'failed');
+     * ```
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     * @param string $flag The flag to exclude
+     *
+     * @return \Cake\ORM\Query\SelectQuery
+     */
+    public function findWithoutFlag(SelectQuery $query, string $flag): SelectQuery
+    {
+        $stateNames = $this->getStateNamesWithFlag($flag);
+
+        if (!$stateNames) {
+            // No states have this flag, so all entities match
+            return $query;
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+
+        return $query->where([
+            $this->_table->aliasField($field) . ' NOT IN' => $stateNames,
+        ]);
+    }
+
+    /**
+     * Custom finder to get entities in final states.
+     *
+     * Usage:
+     * ```php
+     * $completedOrders = $this->Orders->find('inFinalState');
+     * ```
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     *
+     * @return \Cake\ORM\Query\SelectQuery
+     */
+    public function findInFinalState(SelectQuery $query): SelectQuery
+    {
+        $stateNames = $this->getFinalStateNames();
+
+        if (!$stateNames) {
+            $query->where(['1 = 0']);
+
+            return $query;
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+
+        return $query->where([
+            $this->_table->aliasField($field) . ' IN' => $stateNames,
+        ]);
+    }
+
+    /**
+     * Custom finder to get entities NOT in final states (still active).
+     *
+     * Usage:
+     * ```php
+     * $activeOrders = $this->Orders->find('notInFinalState');
+     * ```
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     *
+     * @return \Cake\ORM\Query\SelectQuery
+     */
+    public function findNotInFinalState(SelectQuery $query): SelectQuery
+    {
+        $stateNames = $this->getFinalStateNames();
+
+        if (!$stateNames) {
+            // No final states, all entities are active
+            return $query;
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+
+        return $query->where([
+            $this->_table->aliasField($field) . ' NOT IN' => $stateNames,
+        ]);
+    }
+
+    /**
+     * Custom finder to get entities in a specific state.
+     *
+     * Usage:
+     * ```php
+     * $pendingOrders = $this->Orders->find('inState', state: 'pending');
+     * ```
+     *
+     * @param \Cake\ORM\Query\SelectQuery $query
+     * @param string $state The state name to filter by
+     *
+     * @return \Cake\ORM\Query\SelectQuery
+     */
+    public function findInState(SelectQuery $query, string $state): SelectQuery
+    {
+        $field = $this->getWorkflowDefinition()->getField();
+
+        return $query->where([
+            $this->_table->aliasField($field) => $state,
+        ]);
+    }
+
+    /**
+     * Get state names that have a specific flag.
+     *
+     * @param string $flag
+     *
+     * @return array<string>
+     */
+    public function getStateNamesWithFlag(string $flag): array
+    {
+        $states = $this->getWorkflowDefinition()->getStatesWithFlag($flag);
+
+        return array_map(fn ($state) => $state->getName(), $states);
+    }
+
+    /**
+     * Get state names that do NOT have a specific flag.
+     *
+     * @param string $flag
+     *
+     * @return array<string>
+     */
+    public function getStateNamesWithoutFlag(string $flag): array
+    {
+        $definition = $this->getWorkflowDefinition();
+        $allStates = $definition->getStates();
+        $flaggedStates = $this->getStateNamesWithFlag($flag);
+
+        return array_values(array_filter(
+            array_map(fn ($state) => $state->getName(), $allStates),
+            fn ($name) => !in_array($name, $flaggedStates, true),
+        ));
+    }
+
+    /**
+     * Get names of all final states.
+     *
+     * @return array<string>
+     */
+    public function getFinalStateNames(): array
+    {
+        $definition = $this->getWorkflowDefinition();
+
+        return array_values(array_map(
+            fn ($state) => $state->getName(),
+            array_filter(
+                $definition->getStates(),
+                fn ($state) => $state->isFinal(),
+            ),
+        ));
     }
 
     /**

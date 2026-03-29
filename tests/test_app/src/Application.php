@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace TestApp;
 
+use Bake\BakePlugin;
 use Cake\Http\BaseApplication;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\Middleware\RoutingMiddleware;
@@ -13,7 +14,7 @@ class Application extends BaseApplication
 {
     public function bootstrap(): void
     {
-        if (class_exists(\Bake\BakePlugin::class)) {
+        if (class_exists(BakePlugin::class)) {
             $this->addPlugin('Bake');
         }
 

@@ -319,12 +319,16 @@ $transitionCount = count($definition->getTransitions());
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const diagramContainer = document.getElementById('diagram');
-    const svg = diagramContainer?.querySelector('svg');
+(function() {
     let scale = 1;
+    const diagramContainer = document.getElementById('diagram');
+
+    function getSvg() {
+        return diagramContainer?.querySelector('svg');
+    }
 
     document.getElementById('zoom-in')?.addEventListener('click', function() {
+        const svg = getSvg();
         if (svg) {
             scale = Math.min(scale + 0.2, 3);
             svg.style.transform = 'scale(' + scale + ')';
@@ -333,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('zoom-out')?.addEventListener('click', function() {
+        const svg = getSvg();
         if (svg) {
             scale = Math.max(scale - 0.2, 0.5);
             svg.style.transform = 'scale(' + scale + ')';
@@ -349,5 +354,5 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-});
+})();
 </script>

@@ -33,35 +33,35 @@ $transitionCount = count($definition->getTransitions());
 <!-- Tabs -->
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">
-        <a class="nav-link active" href="#">Overview</a>
+        <a class="nav-link active" href="#diagram">Overview</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#">States (<?= $stateCount ?>)</a>
+        <a class="nav-link" href="#states">States (<?= $stateCount ?>)</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#">Transitions (<?= $transitionCount ?>)</a>
+        <a class="nav-link" href="#transitions">Transitions (<?= $transitionCount ?>)</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#">Items (<?= $totalActive ?>)</a>
+        <a class="nav-link" href="<?= $this->Url->build(['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]]) ?>">Items (<?= $totalActive ?>)</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="#">History</a>
+        <a class="nav-link" href="<?= $this->Url->build(['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]]) ?>">History</a>
     </li>
 </ul>
 
 <div class="row">
     <!-- Diagram -->
     <div class="col-lg-8">
-        <div class="diagram-container mb-4">
+        <div class="diagram-container mb-4" id="diagram">
             <div class="d-flex gap-2 mb-3">
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-outline-secondary active">Diagram</button>
                     <button class="btn btn-outline-secondary">Code</button>
                 </div>
                 <div class="btn-group btn-group-sm ms-auto">
-                    <button class="btn btn-outline-secondary" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
-                    <button class="btn btn-outline-secondary" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
-                    <button class="btn btn-outline-secondary" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
+                    <button class="btn btn-outline-secondary" id="zoom-in" title="Zoom In"><i class="bi bi-zoom-in"></i></button>
+                    <button class="btn btn-outline-secondary" id="zoom-out" title="Zoom Out"><i class="bi bi-zoom-out"></i></button>
+                    <button class="btn btn-outline-secondary" id="fullscreen" title="Fullscreen"><i class="bi bi-arrows-fullscreen"></i></button>
                 </div>
             </div>
             <?= $this->Workflow->diagram($definition) ?>
@@ -74,7 +74,7 @@ $transitionCount = count($definition->getTransitions());
         </div>
 
         <!-- States Table -->
-        <div class="card mb-4">
+        <div class="card mb-4" id="states">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>States</span>
                 <span class="badge bg-secondary"><?= $stateCount ?> states</span>
@@ -135,7 +135,7 @@ $transitionCount = count($definition->getTransitions());
         </div>
 
         <!-- Transitions Table -->
-        <div class="card">
+        <div class="card" id="transitions">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span>Transitions</span>
                 <span class="badge bg-secondary"><?= $transitionCount ?> transitions</span>
@@ -317,3 +317,37 @@ $transitionCount = count($definition->getTransitions());
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const diagramContainer = document.getElementById('diagram');
+    const svg = diagramContainer?.querySelector('svg');
+    let scale = 1;
+
+    document.getElementById('zoom-in')?.addEventListener('click', function() {
+        if (svg) {
+            scale = Math.min(scale + 0.2, 3);
+            svg.style.transform = 'scale(' + scale + ')';
+            svg.style.transformOrigin = 'top left';
+        }
+    });
+
+    document.getElementById('zoom-out')?.addEventListener('click', function() {
+        if (svg) {
+            scale = Math.max(scale - 0.2, 0.5);
+            svg.style.transform = 'scale(' + scale + ')';
+            svg.style.transformOrigin = 'top left';
+        }
+    });
+
+    document.getElementById('fullscreen')?.addEventListener('click', function() {
+        if (diagramContainer) {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                diagramContainer.requestFullscreen();
+            }
+        }
+    });
+});
+</script>

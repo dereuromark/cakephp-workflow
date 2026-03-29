@@ -60,7 +60,7 @@ composer require symfony/yaml
 
 ## Configure the Path
 
-```php
+```php [config/app.php]
 'Workflow' => [
     'loader' => [
         'configPath' => CONFIG . 'workflows' . DS,

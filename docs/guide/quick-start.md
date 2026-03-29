@@ -24,7 +24,7 @@ bin/cake bake workflow_state Order/Shipped --transition-to Delivered --transitio
 
 In your table class:
 
-```php
+```php [src/Model/Table/OrdersTable.php]
 public function initialize(array $config): void
 {
     parent::initialize($config);
@@ -37,7 +37,7 @@ public function initialize(array $config): void
 
 ## 3. Apply Transitions
 
-```php
+```php [src/Controller/OrdersController.php]
 $order = $this->Orders->get($id);
 
 if ($this->Orders->canTransition($order, 'completed')) {

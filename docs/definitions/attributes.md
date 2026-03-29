@@ -4,7 +4,7 @@ Attributes are the recommended way to define workflows.
 
 ## Base State Class
 
-```php
+```php [src/Workflow/Order/BaseOrderState.php]
 namespace App\Workflow\Order;
 
 use Workflow\Attribute\StateMachine;
@@ -24,7 +24,7 @@ This marks the workflow root and defines:
 
 ## Initial State
 
-```php
+```php [src/Workflow/Order/State/PendingState.php]
 use Workflow\Attribute\InitialState;
 use Workflow\Attribute\Transition;
 
@@ -37,7 +37,7 @@ class PendingState extends BaseOrderState
 
 ## Final State
 
-```php
+```php [src/Workflow/Order/State/PaidState.php]
 use Workflow\Attribute\FinalState;
 
 #[FinalState]

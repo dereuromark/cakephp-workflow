@@ -72,6 +72,10 @@ $this->assign('title', 'Orphaned Items');
     </div>
 </div>
 
+<?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
+    <?= $this->Form->create(null, ['url' => ['action' => 'bulkFix', $selectedWorkflow], 'id' => 'bulk-fix-form']) ?>
+<?php } ?>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span>Orphaned Items</span>
@@ -81,16 +85,27 @@ $this->assign('title', 'Orphaned Items');
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
+                    <?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="select-all" class="form-check-input">
+                        </th>
+                    <?php } ?>
                     <th>Workflow</th>
                     <th>Table</th>
                     <th>Entity ID</th>
                     <th>Current State</th>
                     <th>Valid States</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php foreach ($orphans as $orphan) { ?>
                     <tr class="table-danger">
+                        <?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
+                            <td>
+                                <input type="checkbox" name="entity_ids[]" value="<?= h($orphan['entity']->get('id')) ?>" class="form-check-input entity-checkbox">
+                            </td>
+                        <?php } ?>
                         <td>
                             <?= $this->Html->link(
                                 h($orphan['workflow']),
@@ -109,11 +124,18 @@ $this->assign('title', 'Orphaned Items');
                                 <span class="badge bg-secondary"><?= h($validState) ?></span>
                             <?php } ?>
                         </td>
+                        <td>
+                            <?= $this->Html->link(
+                                '<i class="bi bi-wrench"></i> Fix',
+                                ['action' => 'fix', $orphan['workflow'], $orphan['entity']->get('id')],
+                                ['class' => 'btn btn-sm btn-warning', 'escapeTitle' => false],
+                            ) ?>
+                        </td>
                     </tr>
                 <?php } ?>
                 <?php if (empty($orphans)) { ?>
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">
+                        <td colspan="<?= ($selectedWorkflow && $totalOrphans > 0) ? 7 : 6 ?>" class="text-center text-muted py-4">
                             <i class="bi bi-check-circle text-success me-2"></i>
                             No orphaned items found. All items have valid states.
                         </td>
@@ -122,7 +144,69 @@ $this->assign('title', 'Orphaned Items');
             </tbody>
         </table>
     </div>
+
+    <?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
+        <?php
+        $definition = null;
+        if ($this->getRequest()->getQuery('workflow') && isset($this->viewBuilder()->getVar('workflowRegistry'))) {
+            // Get valid states for bulk fix dropdown
+        }
+        ?>
+        <div class="card-footer">
+            <div class="row align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Bulk Fix Selected</label>
+                    <select name="new_state" class="form-select" required>
+                        <option value="">-- Select Target State --</option>
+                        <?php foreach ($orphans[0]['valid_states'] ?? [] as $state) { ?>
+                            <option value="<?= h($state) ?>"><?= h($state) ?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Reason</label>
+                    <input type="text" name="reason" class="form-control" placeholder="Bulk fix reason...">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-warning" id="bulk-fix-btn" disabled>
+                        <i class="bi bi-wrench"></i> Fix Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    <?php } ?>
 </div>
+
+<?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
+    <?= $this->Form->end() ?>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.entity-checkbox');
+        const bulkFixBtn = document.getElementById('bulk-fix-btn');
+
+        function updateBulkButton() {
+            const checked = document.querySelectorAll('.entity-checkbox:checked');
+            bulkFixBtn.disabled = checked.length === 0;
+            bulkFixBtn.textContent = checked.length > 0
+                ? 'Fix Selected (' + checked.length + ')'
+                : 'Fix Selected';
+        }
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateBulkButton();
+            });
+        }
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateBulkButton);
+        });
+    });
+    </script>
+<?php } ?>
 
 <?php if (!empty($orphans)) { ?>
     <div class="card mt-4">

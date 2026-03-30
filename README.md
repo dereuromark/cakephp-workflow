@@ -1,5 +1,11 @@
 # CakePHP Workflow Plugin
 
+[![CI](https://github.com/dereuromark/cakephp-workflow/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/dereuromark/cakephp-workflow/actions/workflows/ci.yml?query=branch%3Amaster)
+[![codecov](https://img.shields.io/codecov/c/github/dereuromark/cakephp-workflow/master.svg)](https://codecov.io/gh/dereuromark/cakephp-workflow)
+[![Latest Stable Version](https://poser.pugx.org/dereuromark/cakephp-workflow/v/stable.svg)](https://packagist.org/packages/dereuromark/cakephp-workflow)
+[![Minimum PHP Version](https://img.shields.io/badge/php-%3E%3D%208.2-8892BF.svg)](https://php.net/)
+[![License](https://poser.pugx.org/dereuromark/cakephp-workflow/license.svg)](LICENSE)
+
 State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON config support, and admin UI.
 
 ## Requirements

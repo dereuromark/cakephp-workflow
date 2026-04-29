@@ -33,9 +33,9 @@
     },
     "require-dev": {
         "cakephp/bake": "^3.0",
-        "cakephp/migrations": "^4.0.0",
+        "cakephp/migrations": "^5.0.0",
         "nette/neon": "^3.0",
-        "php-collective/code-sniffer": "^0.5.4",
+        "php-collective/code-sniffer": "^0.6.0",
         "phpunit/phpunit": "^11.5 || ^12.5 || ^13.0",
         "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
     },

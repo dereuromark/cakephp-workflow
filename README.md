@@ -11,7 +11,6 @@ State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON c
 
 ## Requirements
 
-- PHP 8.2+
 - CakePHP 5.2+
 
 ## Installation

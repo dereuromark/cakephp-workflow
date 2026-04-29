@@ -9,6 +9,9 @@
 
 State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON config support, and admin UI.
 
+> [!TIP]
+> Try the live demo: <https://sandbox.dereuromark.de/workflow-sandbox>
+
 ## Requirements
 
 - CakePHP 5.2+

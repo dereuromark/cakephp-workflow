@@ -16,6 +16,9 @@ hero:
       text: Definition Guide
       link: /definitions/
     - theme: alt
+      text: Live Demo
+      link: https://sandbox.dereuromark.de/workflow-sandbox
+    - theme: alt
       text: View on GitHub
       link: https://github.com/dereuromark/cakephp-workflow
 

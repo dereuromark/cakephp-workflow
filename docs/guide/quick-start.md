@@ -2,6 +2,10 @@
 
 This example uses attribute-based definitions.
 
+::: tip Try it live
+A working sandbox app is available at <https://sandbox.dereuromark.de/workflow-sandbox> - explore the admin UI, transitions, and diagrams without installing anything.
+:::
+
 ## 1. Generate a Workflow Skeleton
 
 ```bash

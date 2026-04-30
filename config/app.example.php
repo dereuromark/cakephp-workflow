@@ -9,6 +9,25 @@
 return [
     'Workflow' => [
         /**
+         * Admin access gate. REQUIRED — the host application MUST set this
+         * to a Closure that returns literal `true` to grant access to
+         * /admin/workflow/...; anything else (unset, non-Closure, returns
+         * false, returns a truthy non-bool, or throws) yields a 403.
+         *
+         * The admin UI can rewrite workflow definitions and trigger
+         * transitions; the controllers extend the bare Cake\Controller\Controller
+         * (not the host's AppController), so per-controller auth wired through
+         * AppController would never run anyway. The default policy is deny.
+         *
+         * Example — admin role check on the cakephp/authentication identity:
+         */
+        'adminAccess' => function (\Cake\Http\ServerRequest $request): bool {
+            $identity = $request->getAttribute('identity');
+
+            return $identity !== null && in_array('admin', (array)$identity->roles, true);
+        },
+
+        /**
          * Path to workflow definition files (YAML, NEON, or PHP).
          * Relative to APP or absolute path.
          *

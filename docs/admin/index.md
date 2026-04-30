@@ -6,7 +6,42 @@ The admin UI provides a visual interface for inspecting and managing workflows.
 
 Default URL: `/admin/workflow`
 
-The admin interface requires authentication in your application. The plugin does not enforce access control - integrate with your existing auth system.
+## Security: `Workflow.adminAccess` (required, default-deny)
+
+The admin UI can rewrite workflow definitions and trigger transitions, so the
+plugin **fails closed** by default. The host application MUST set
+`Workflow.adminAccess` to a `Closure` that receives the current request and
+returns literal `true` to grant access. Anything else (unset, non-`Closure`,
+returns `false`, returns a truthy non-bool, or throws) yields a `403`.
+
+```php
+// In config/bootstrap.php (or wherever your plugin config lives):
+
+// Example 1 — admin role check (cakephp/authentication identity):
+Configure::write('Workflow.adminAccess', function (\Cake\Http\ServerRequest $request): bool {
+    $identity = $request->getAttribute('identity');
+    return $identity !== null && in_array('admin', (array)$identity->roles, true);
+});
+
+// Example 2 — IP allow-list for a private staging environment:
+Configure::write('Workflow.adminAccess', function (\Cake\Http\ServerRequest $request): bool {
+    return in_array($request->clientIp(), ['10.0.0.5', '10.0.0.6'], true);
+});
+
+// Example 3 — wide-open on local dev only (do NOT ship this to production):
+if (Configure::read('debug')) {
+    Configure::write('Workflow.adminAccess', fn () => true);
+}
+```
+
+The gate runs in `beforeFilter` for every admin controller in the plugin and
+plays nicely with the cakephp/authorization plugin (it calls
+`skipAuthorization()` so the policy layer doesn't double-reject).
+
+> **Why default-deny?** The workflow controllers extend the bare
+> `Cake\Controller\Controller`, not your application's `AppController`, so
+> per-controller auth wired via your AppController would never run anyway.
+> The explicit gate makes that deliberate rather than implicit.
 
 ## Dashboard Overview
 

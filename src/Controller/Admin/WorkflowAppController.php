@@ -7,10 +7,34 @@ namespace Workflow\Controller\Admin;
 use Cake\Controller\Controller;
 use Cake\Core\Configure;
 use Cake\Event\EventInterface;
+use Cake\Http\Exception\ForbiddenException;
+use Cake\Log\Log;
+use Closure;
 use Throwable;
 use Workflow\Service\WorkflowRegistry;
 use Workflow\Service\WorkflowRegistryLocator;
 
+/**
+ * Base controller for the Workflow admin backend.
+ *
+ * The admin UI can rewrite workflow definitions and trigger transitions, so
+ * the default policy is **deny**. The host application MUST configure
+ * `Workflow.adminAccess` as a Closure that receives the current request and
+ * returns literal `true` to grant access; anything else (unset, non-Closure,
+ * returns false, returns a truthy non-bool, or throws) yields a 403.
+ *
+ * ```php
+ * Configure::write('Workflow.adminAccess', function (\Cake\Http\ServerRequest $request): bool {
+ *     $identity = $request->getAttribute('identity');
+ *     return $identity !== null && in_array('admin', (array)$identity->roles, true);
+ * });
+ * ```
+ *
+ * Because this plugin's controllers extend the bare `Cake\Controller\Controller`
+ * (not the host app's `AppController`), per-controller auth wired through the
+ * host AppController would never run anyway. The explicit gate makes that
+ * deliberate rather than implicit.
+ */
 class WorkflowAppController extends Controller
 {
     protected ?WorkflowRegistry $workflowRegistry = null;
@@ -25,6 +49,50 @@ class WorkflowAppController extends Controller
         $registry = WorkflowRegistryLocator::get() ?? Configure::read('Workflow.registry');
         if ($registry instanceof WorkflowRegistry) {
             $this->workflowRegistry = $registry;
+        }
+    }
+
+    /**
+     * Default-deny access gate.
+     *
+     * @param \Cake\Event\EventInterface<\Cake\Controller\Controller> $event
+     *
+     * @throws \Cake\Http\Exception\ForbiddenException When access is denied or unconfigured.
+     *
+     * @return void
+     */
+    public function beforeFilter(EventInterface $event): void
+    {
+        parent::beforeFilter($event);
+
+        // Coexist with cakephp/authorization: this gate IS the authorization
+        // decision for the workflow admin, so silence the policy check.
+        if ($this->components()->has('Authorization') && method_exists($this->components()->get('Authorization'), 'skipAuthorization')) {
+            $this->components()->get('Authorization')->skipAuthorization();
+        }
+
+        $gate = Configure::read('Workflow.adminAccess');
+        if (!($gate instanceof Closure)) {
+            throw new ForbiddenException(__d('workflow', 'Workflow admin backend is not configured. Set Workflow.adminAccess to a Closure that returns true for permitted callers.'));
+        }
+
+        try {
+            $allowed = $gate($this->request) === true;
+        } catch (ForbiddenException $e) {
+            // Caller explicitly chose the 403 path — respect it.
+            throw $e;
+        } catch (Throwable $e) {
+            Log::warning(sprintf(
+                'Workflow.adminAccess threw %s: %s',
+                $e::class,
+                $e->getMessage(),
+            ));
+
+            throw new ForbiddenException(__d('workflow', 'Workflow admin access denied.'));
+        }
+
+        if (!$allowed) {
+            throw new ForbiddenException(__d('workflow', 'Workflow admin access denied.'));
         }
     }
 

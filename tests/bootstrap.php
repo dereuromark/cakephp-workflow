@@ -84,3 +84,8 @@ Configure::write('Workflow', [
     'locking' => true,
     'timeouts' => true,
 ]);
+
+// Permissive default for test runs. Production installs MUST configure their
+// own Closure (default-deny). Individual tests may override with their own
+// Configure::write to exercise the deny path.
+Configure::write('Workflow.adminAccess', fn () => true);

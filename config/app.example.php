@@ -5,6 +5,7 @@
  *
  * Copy this file to your application's config/app_local.php and customize.
  */
+use Cake\Http\ServerRequest;
 
 return [
     'Workflow' => [
@@ -21,7 +22,7 @@ return [
          *
          * Example — admin role check on the cakephp/authentication identity:
          */
-        'adminAccess' => function (\Cake\Http\ServerRequest $request): bool {
+        'adminAccess' => function (ServerRequest $request): bool {
             $identity = $request->getAttribute('identity');
 
             return $identity !== null && in_array('admin', (array)$identity->roles, true);

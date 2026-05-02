@@ -690,6 +690,8 @@ class WorkflowsController extends WorkflowAppController
      */
     public function forceTransition(string $name, string $entityId): ?Response
     {
+        // GET renders the form, POST mutates. Restrict the action to safe-method
+        // for rendering and require POST (with CSRF) for any state mutation.
         $this->request->allowMethod(['get', 'post']);
 
         if ($this->workflowRegistry === null) {
@@ -718,6 +720,10 @@ class WorkflowsController extends WorkflowAppController
         }
 
         if ($this->request->is('post')) {
+            // Defense in depth: enforce POST for the mutating leg so a future
+            // refactor cannot accidentally serve this branch on GET.
+            $this->request->allowMethod(['post']);
+
             $transitionName = $this->request->getData('transition');
             $reason = $this->request->getData('reason');
 
@@ -796,6 +802,7 @@ class WorkflowsController extends WorkflowAppController
     ): void {
         try {
             $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
+            $userId = $this->getCurrentUserId();
             $transition = $transitionsTable->newEntity([
                 'workflow_name' => $workflow,
                 'entity_table' => $tableName,
@@ -804,11 +811,15 @@ class WorkflowsController extends WorkflowAppController
                 'from_state' => $fromState,
                 'to_state' => $toState,
                 'workflow_version' => $version,
+                'user_id' => $userId,
+                'reason' => $reason,
                 'context' => json_encode([
                     'type' => 'forced_transition',
                     'reason' => $reason,
                     'admin_action' => true,
                     'guards_bypassed' => true,
+                    'user_id' => $userId,
+                    'client_ip' => $this->request->clientIp(),
                 ]),
             ]);
             $transitionsTable->save($transition);

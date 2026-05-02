@@ -109,6 +109,41 @@ class WorkflowAppController extends Controller
     }
 
     /**
+     * Resolve the current operator id from the request identity.
+     *
+     * Coerces the identity primary key to a string suitable for the
+     * `workflow_transitions.user_id` column. Returns null when no identity
+     * is attached or when the id cannot be coerced.
+     *
+     * @return string|null
+     */
+    protected function getCurrentUserId(): ?string
+    {
+        $identity = $this->request->getAttribute('identity');
+        if ($identity === null) {
+            return null;
+        }
+
+        try {
+            $id = $identity->getIdentifier();
+        } catch (Throwable) {
+            return null;
+        }
+
+        if ($id === null) {
+            return null;
+        }
+
+        if (is_int($id) || is_string($id)) {
+            $value = (string)$id;
+
+            return $value !== '' ? $value : null;
+        }
+
+        return null;
+    }
+
+    /**
      * Get workflow stats for sidebar.
      *
      * @return array<string, array{name: string, count: int}>

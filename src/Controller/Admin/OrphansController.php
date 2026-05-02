@@ -97,6 +97,8 @@ class OrphansController extends WorkflowAppController
      */
     public function fix(string $workflow, string $entityId): ?Response
     {
+        // GET renders the form, POST mutates. Restrict the action to safe-method
+        // for rendering and require POST (with CSRF) for any state mutation.
         $this->request->allowMethod(['get', 'post']);
 
         if ($this->workflowRegistry === null) {
@@ -119,6 +121,10 @@ class OrphansController extends WorkflowAppController
         }
 
         if ($this->request->is('post')) {
+            // Defense in depth: enforce POST for the mutating leg so a future
+            // refactor cannot accidentally serve this branch on GET.
+            $this->request->allowMethod(['post']);
+
             $newState = $this->request->getData('new_state');
             $reason = $this->request->getData('reason');
 
@@ -265,6 +271,7 @@ class OrphansController extends WorkflowAppController
     ): void {
         try {
             $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
+            $userId = $this->getCurrentUserId();
             $transition = $transitionsTable->newEntity([
                 'workflow_name' => $workflow,
                 'entity_table' => $tableName,
@@ -272,10 +279,14 @@ class OrphansController extends WorkflowAppController
                 'transition_name' => '_admin_fix',
                 'from_state' => $oldState ?? '_orphaned',
                 'to_state' => $newState,
+                'user_id' => $userId,
+                'reason' => $reason,
                 'context' => json_encode([
                     'type' => 'orphan_fix',
                     'reason' => $reason,
                     'admin_action' => true,
+                    'user_id' => $userId,
+                    'client_ip' => $this->request->clientIp(),
                 ]),
             ]);
             $transitionsTable->save($transition);

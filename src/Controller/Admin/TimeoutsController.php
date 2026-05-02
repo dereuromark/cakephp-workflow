@@ -161,9 +161,13 @@ class TimeoutsController extends WorkflowAppController
 
             $engine = $this->workflowRegistry->getEngine($timeout->workflow_name);
             $connection = $entityTable->getConnection();
+            $userId = $this->getCurrentUserId();
             $context = [
                 'triggered_by' => 'admin_manual',
                 'timeout_id' => $timeout->id,
+                'admin_action' => true,
+                'user_id' => $userId,
+                'client_ip' => $this->request->clientIp(),
             ];
             $result = null;
 

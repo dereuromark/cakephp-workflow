@@ -29,6 +29,21 @@ return [
         },
 
         /**
+         * Back-to-App link in the admin sidebar (opt-in).
+         *
+         * When set, a "Back to App" entry appears at the bottom of the
+         * sidebar so admins can escape the plugin-isolated layout. Accepts
+         * anything Router::url() takes — Cake URL array, path string, or
+         * full URL. Use 'plugin' => false to anchor the URL builder to the
+         * host app rather than the Workflow plugin.
+         *
+         * 'adminBackLabel' is optional and defaults to "Back to App"
+         * (translated through the `workflow` domain).
+         */
+        // 'adminBackUrl' => ['plugin' => false, 'prefix' => 'Admin', 'controller' => 'Overview', 'action' => 'index'],
+        // 'adminBackLabel' => 'Back to admin',
+
+        /**
          * Path to workflow definition files (YAML, NEON, or PHP).
          * Relative to APP or absolute path.
          *

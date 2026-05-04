@@ -120,4 +120,20 @@ $currentAction = $this->request->getParam('action');
             ) ?>
         </li>
     </ul>
+
+    <?php
+    $adminBackUrl = Configure::read('Workflow.adminBackUrl');
+    $adminBackLabel = (string)Configure::read('Workflow.adminBackLabel', __d('workflow', 'Back to App'));
+    ?>
+    <?php if ($adminBackUrl !== null && $adminBackUrl !== '') { ?>
+    <ul class="sidebar-nav mt-auto">
+        <li>
+            <?= $this->Html->link(
+                '<i class="bi bi-arrow-left"></i> ' . h($adminBackLabel),
+                $adminBackUrl,
+                ['class' => 'nav-link', 'escapeTitle' => false],
+            ) ?>
+        </li>
+    </ul>
+    <?php } ?>
 </nav>

@@ -7,6 +7,8 @@
 [![License](https://poser.pugx.org/dereuromark/cakephp-workflow/license.svg)](LICENSE)
 [![Coding Standards](https://img.shields.io/badge/cs-PhpCollective-purple.svg?style=flat-square)](https://github.com/php-collective/code-sniffer)
 
+This branch is for **CakePHP 5.2+**. See [version map](https://github.com/dereuromark/cakephp-workflow/wiki#cakephp-version-map) for details.
+
 State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON config support, and admin UI.
 
 > [!TIP]

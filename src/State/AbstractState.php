@@ -7,8 +7,14 @@ namespace Workflow\State;
 use Cake\Datasource\EntityInterface;
 use ReflectionClass;
 
+/**
+ * @template TEntity of \Cake\Datasource\EntityInterface
+ */
 abstract class AbstractState
 {
+    /**
+     * @phpstan-var TEntity|null
+     */
     protected ?EntityInterface $entity = null;
 
     /**
@@ -52,7 +58,7 @@ abstract class AbstractState
     /**
      * Bind the current transition context to this state instance.
      *
-     * @param \Cake\Datasource\EntityInterface $entity
+     * @param TEntity $entity
      * @param array<string, mixed> $context
      */
     public function bind(EntityInterface $entity, array $context = []): static
@@ -63,6 +69,9 @@ abstract class AbstractState
         return $this;
     }
 
+    /**
+     * @return TEntity|null
+     */
     public function getEntity(): ?EntityInterface
     {
         return $this->entity;

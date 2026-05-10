@@ -20,9 +20,16 @@ use Workflow\Engine\TransitionResult;
  *     $result = $workflow->apply('pay', ['user_id' => $userId]);
  * }
  * ```
+ *
+ * @template TEntity of \Cake\Datasource\EntityInterface
  */
 class Workflow
 {
+    /**
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param TEntity $entity
+     * @param \Workflow\Engine\EngineInterface $engine
+     */
     public function __construct(
         private Definition $definition,
         private EntityInterface $entity,
@@ -158,7 +165,7 @@ class Workflow
     /**
      * Get the entity.
      *
-     * @return \Cake\Datasource\EntityInterface
+     * @return TEntity
      */
     public function getEntity(): EntityInterface
     {

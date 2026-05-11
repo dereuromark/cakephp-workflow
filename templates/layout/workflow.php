@@ -237,10 +237,43 @@
             color: #adb5bd;
             opacity: 1;
         }
+
+        /* Mobile topbar — visible only below the lg breakpoint */
+        .workflow-topbar {
+            background: #1a1a2e;
+            color: #fff;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+        }
+
+        /* Below lg: collapse sidebar into Bootstrap offcanvas, drop the desktop margin */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                position: static;
+                width: 280px;
+                height: 100%;
+                top: auto;
+                left: auto;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+            }
+        }
     </style>
     <?= $this->fetch('css') ?>
 </head>
 <body>
+    <nav class="workflow-topbar navbar navbar-dark d-lg-none">
+        <div class="container-fluid">
+            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#workflowSidebar" aria-controls="workflowSidebar" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <span class="navbar-brand mb-0"><i class="bi bi-diagram-3"></i> Workflow</span>
+        </div>
+    </nav>
+
     <?= $this->element('Workflow.sidebar', [
         'workflowStats' => $workflowStats ?? [],
         'pendingTimeoutsCount' => $pendingTimeoutsCount ?? 0,

@@ -14,8 +14,12 @@ $orphanCount = $orphanCount ?? 0;
 $currentController = $this->request->getParam('controller');
 $currentAction = $this->request->getParam('action');
 ?>
-<nav class="sidebar">
-    <div class="sidebar-brand">
+<nav class="sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="workflowSidebar" aria-labelledby="workflowSidebarLabel">
+    <div class="offcanvas-header d-lg-none">
+        <h5 class="offcanvas-title text-white" id="workflowSidebarLabel"><i class="bi bi-diagram-3"></i> Workflow</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#workflowSidebar" aria-label="Close"></button>
+    </div>
+    <div class="sidebar-brand d-none d-lg-block">
         <h4><i class="bi bi-diagram-3"></i> Workflow</h4>
         <small>CakePHP Plugin</small>
     </div>

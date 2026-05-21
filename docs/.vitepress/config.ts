@@ -12,6 +12,7 @@ export default defineConfig({
   title: 'cakephp-workflow',
   description: 'State machine and workflow engine for CakePHP with attributes, YAML/NEON support, and admin tooling.',
   base: '/cakephp-workflow/',
+  cleanUrls: true,
   head: [
     ['link', { rel: 'icon', href: '/cakephp-workflow/favicon.svg', type: 'image/svg+xml' }],
   ],

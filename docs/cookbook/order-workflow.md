@@ -19,6 +19,36 @@ Typical transitions:
 - `complete`
 - `cancel`
 
+## Diagram
+
+The happy path (green) runs `pay → pack → ship → complete`; `cancel` branches off to a failed state.
+
+```mermaid
+flowchart TD
+    pending([Pending])
+    paid([Paid])
+    packed([Packed])
+    shipped([Shipped])
+    completed([Completed])
+    cancelled([Cancelled])
+    pending -->|pay| paid
+    paid -->|pack| packed
+    packed -->|ship| shipped
+    shipped -->|complete| completed
+    pending -->|cancel| cancelled
+    classDef initial fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px
+    classDef final fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    classDef failed fill:#ffebee,stroke:#f44336,stroke-width:2px
+    class pending initial
+    class completed final
+    class cancelled failed
+    linkStyle 0,1,2,3 stroke:#2e7d32,stroke-width:2px
+```
+
+::: tip
+This is exactly what `bin/cake workflow show order --mermaid` outputs, and what the [View Helper](/integration/view-helper)'s `diagram()` renders in your app — initial states are gray, final states green, failed states red, and happy-path transitions are highlighted. You never have to draw these by hand.
+:::
+
 ## Good Practices
 
 - keep transition names action-oriented

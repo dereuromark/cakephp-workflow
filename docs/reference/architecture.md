@@ -1,6 +1,34 @@
 # Architecture
 
-At runtime, the package is composed of a few clear layers.
+At runtime, the package is composed of a few clear layers. Definitions flow down through the loaders into the registry and engine; the operational and UI layers (dashed) read from the engine and registry without sitting in the apply path.
+
+```mermaid
+flowchart TD
+    attr[Attributes]
+    yaml[YAML]
+    neon[NEON]
+    chain[ChainLoader]
+    registry[WorkflowRegistry]
+    engine[StateMachineEngine]
+    behavior[WorkflowBehavior]
+    orm[(Cake ORM)]
+    logger[TransitionLogger]
+    lock[LockManager]
+    helper[WorkflowHelper]
+    mermaid[MermaidRenderer]
+    attr --> chain
+    yaml --> chain
+    neon --> chain
+    chain --> registry
+    registry --> engine
+    engine --> behavior
+    behavior --> orm
+    engine -.-> logger
+    engine -.-> lock
+    registry -.-> helper
+    registry -.-> mermaid
+    linkStyle 7,8,9,10 stroke:#ff9800,stroke-width:1px
+```
 
 ## Loaders
 

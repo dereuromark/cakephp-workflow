@@ -28,17 +28,26 @@ States have types:
 | **Failed** | Error state (implies final) |
 | *Regular* | Any state that isn't initial, final, or failed |
 
-Example with state types:
+Example with state types (initial state gray, final green, failed red):
 
 ```mermaid
-stateDiagram-v2
-    [*] --> pending : (initial)
-    pending --> paid
-    paid --> shipped
-    shipped --> completed
-    pending --> cancelled
-    completed --> [*] : (final)
-    cancelled --> [*] : (failed)
+flowchart TD
+    pending([Pending])
+    paid([Paid])
+    shipped([Shipped])
+    completed([Completed])
+    cancelled([Cancelled])
+    pending -->|pay| paid
+    paid -->|ship| shipped
+    shipped -->|complete| completed
+    pending -->|cancel| cancelled
+    classDef initial fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px
+    classDef final fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    classDef failed fill:#ffebee,stroke:#f44336,stroke-width:2px
+    class pending initial
+    class completed final
+    class cancelled failed
+    linkStyle 0,1,2 stroke:#2e7d32,stroke-width:2px
 ```
 
 ## Transitions
@@ -57,13 +66,16 @@ Transitions have a **name** (like `pay`, `ship`, `cancel`) that you use in code.
 
 Mark primary transitions as "happy" to highlight the ideal flow:
 
-```
-pending ──(pay)──► paid ──(ship)──► shipped ──(complete)──► completed
-    │
-    └──(cancel)──► cancelled
+```mermaid
+flowchart LR
+    pending([Pending]) -->|pay| paid([Paid])
+    paid -->|ship| shipped([Shipped])
+    shipped -->|complete| completed([Completed])
+    pending -->|cancel| cancelled([Cancelled])
+    linkStyle 0,1,2 stroke:#2e7d32,stroke-width:2px
 ```
 
-The `pay → ship → complete` path is the happy path. The `cancel` transition is an alternative path.
+The `pay → ship → complete` path is the happy path (highlighted green). The `cancel` transition is an alternative path.
 
 ## Guards
 

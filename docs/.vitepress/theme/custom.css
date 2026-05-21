@@ -25,3 +25,9 @@
 .vp-doc .custom-block.tip {
   border-color: var(--vp-c-brand-1);
 }
+
+.vp-doc .mermaid {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+}

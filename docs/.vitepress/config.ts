@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import { withMermaid } from 'vitepress-plugin-mermaid'
 import { readFileSync } from 'fs'
 import { dirname, resolve } from 'path'
 import { fileURLToPath } from 'url'
@@ -8,7 +9,7 @@ const neonGrammar = JSON.parse(
   readFileSync(resolve(__dirname, 'grammars/neon.tmLanguage.json'), 'utf-8')
 )
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: 'cakephp-workflow',
   description: 'State machine and workflow engine for CakePHP with attributes, YAML/NEON support, and admin tooling.',
   base: '/cakephp-workflow/',
@@ -130,4 +131,7 @@ export default defineConfig({
       copyright: 'Copyright Mark Scherer',
     },
   },
-})
+  mermaid: {
+    // https://mermaid.js.org/config/setup/modules/mermaidAPI.html#mermaidapi-configuration-defaults
+  },
+}))

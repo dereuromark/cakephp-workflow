@@ -32,6 +32,29 @@ Render a visual workflow diagram:
 <?= $this->Workflow->diagram($definition) ?>
 ```
 
+For an order workflow this renders a diagram like the following, with the current state highlighted in amber when you pass the entity's state:
+
+```mermaid
+flowchart TD
+    pending([Pending])
+    paid([Paid])
+    shipped([Shipped])
+    completed([Completed])
+    cancelled([Cancelled])
+    pending -->|pay| paid
+    paid -->|ship| shipped
+    shipped -->|complete| completed
+    pending -->|cancel| cancelled
+    classDef current fill:#ffc107,stroke:#ff9800,stroke-width:3px,font-weight:bold
+    classDef initial fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px
+    classDef final fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    classDef failed fill:#ffebee,stroke:#f44336,stroke-width:2px
+    class paid current
+    class completed final
+    class cancelled failed
+    linkStyle 0,1,2 stroke:#2e7d32,stroke-width:2px
+```
+
 With options:
 
 ```php

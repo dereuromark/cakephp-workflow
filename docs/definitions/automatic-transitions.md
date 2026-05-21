@@ -12,6 +12,22 @@ This is useful for:
 - conditional branching
 - auto-completion flows
 
+In diagrams (and in the generated Mermaid output) automatic transitions are drawn as **dashed orange** arrows to set them apart from user-triggered ones. The first matching condition wins; an unconditioned transition acts as the fallback:
+
+```mermaid
+flowchart TD
+    submitted([Submitted])
+    auto_approved([Auto Approved])
+    manual_review([Manual Review])
+    submitted -.->|amount < 100| auto_approved
+    submitted -.->|fallback| manual_review
+    classDef initial fill:#f5f5f5,stroke:#9e9e9e,stroke-width:2px
+    classDef final fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    class submitted initial
+    class auto_approved final
+    linkStyle 0,1 stroke:#ff9800,stroke-width:1px
+```
+
 ## How Selection Works
 
 The engine evaluates automatic transitions in order:

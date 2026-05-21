@@ -48,8 +48,49 @@ return [
          * Relative to APP or absolute path.
          *
          * Default: CONFIG . 'Workflows/'
+         *
+         * NOTE: This top-level key is NOT read by the plugin at runtime. The
+         * registry builder reads the nested `loader.configPath` below instead
+         * (see WorkflowPlugin::buildRegistry()), whose default directory is
+         * lower-case `workflows/`. Reconcile these two before relying on either.
          */
         'configPath' => CONFIG . 'Workflows' . DS,
+
+        /**
+         * Workflow definition loaders (read by WorkflowPlugin::buildRegistry()).
+         *
+         * The registry chains an attribute loader and YAML/NEON file loaders.
+         * At least one of `namespaces` (for PHP attribute definitions) or a
+         * valid `configPath` directory (for YAML/NEON files) must be set, or
+         * building the registry throws a RuntimeException.
+         */
+        'loader' => [
+            /**
+             * Namespaces scanned by the AttributeLoader for state classes
+             * carrying workflow attributes. Empty disables the attribute loader.
+             *
+             * Default: []
+             */
+            'namespaces' => [],
+
+            /**
+             * Namespace-prefix to base-path map for the AttributeLoader, e.g.
+             * ['App\\' => APP]. Helps resolve class files for the scanned
+             * namespaces.
+             *
+             * Default: []
+             */
+            'pathMap' => [],
+
+            /**
+             * Directory scanned for YAML/NEON workflow definition files
+             * (requires symfony/yaml and/or nette/neon). Only used when the
+             * directory exists.
+             *
+             * Default: CONFIG . 'workflows/' (lower-case)
+             */
+            'configPath' => CONFIG . 'workflows' . DS,
+        ],
 
         /**
          * Enable transition logging to database.
@@ -98,5 +139,24 @@ return [
          * Default: false
          */
         'strictMode' => false,
+
+        /**
+         * Maximum number of times a single event may re-fire within one
+         * transition before the registry stops to guard against infinite loops.
+         *
+         * Default: 10
+         */
+        'maxEventRepeats' => 10,
+
+        /**
+         * Workflow registry instance.
+         *
+         * Normally auto-resolved: the plugin builds a WorkflowRegistry from the
+         * `loader` config above, and the WorkflowRegistryLocator (DI container)
+         * is consulted first. This key is only read as a fallback and must be an
+         * actual Workflow\Service\WorkflowRegistry OBJECT, not a scalar. Set it
+         * only for advanced/custom registry wiring.
+         */
+        // 'registry' => new \Workflow\Service\WorkflowRegistry(/* ... */),
     ],
 ];

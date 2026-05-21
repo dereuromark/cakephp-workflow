@@ -391,4 +391,68 @@ class WorkflowsControllerTest extends IntegrationTestCase
             'nonexistent',
         ]);
     }
+
+    public function testForceTransitionGetRendersForm(): void
+    {
+        $orderId = $this->createOrder('pending');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'forceTransition',
+            'order',
+            (string)$orderId,
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('Force Transition');
+        $this->assertResponseContains('pending');
+    }
+
+    public function testForceTransitionPostLogsLegacySessionActor(): void
+    {
+        $this->enableRetainFlashMessages();
+        $this->session([
+            'Auth' => [
+                'User' => [
+                    'id' => 'legacy-admin',
+                ],
+            ],
+        ]);
+
+        $orderId = $this->createOrder('pending');
+
+        $this->post([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'forceTransition',
+            'order',
+            (string)$orderId,
+        ], [
+            'transition' => 'pay',
+            'reason' => 'Manual override',
+        ]);
+
+        $this->assertRedirect([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'view',
+            'order',
+        ]);
+        $this->assertFlashMessage('Transition "pay" forced: pending → paid');
+
+        $order = $this->fetchTable('Orders')->get($orderId);
+        $this->assertSame('paid', $order->get('state'));
+
+        $transition = $this->fetchTable('Workflow.WorkflowTransitions')->find()->firstOrFail();
+        $this->assertSame('legacy-admin', $transition->user_id);
+        $this->assertSame('success', $transition->status);
+        $this->assertIsArray($transition->context);
+        $this->assertTrue($transition->context['admin_action']);
+        $this->assertTrue($transition->context['guards_bypassed']);
+        $this->assertSame('legacy-admin', $transition->context['user_id']);
+    }
 }

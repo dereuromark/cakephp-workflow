@@ -109,33 +109,50 @@ class WorkflowAppController extends Controller
     }
 
     /**
-     * Resolve the current operator id from the request identity.
+     * Resolve the current operator id from the request identity/session.
      *
-     * Coerces the identity primary key to a string suitable for the
-     * `workflow_transitions.user_id` column. Returns null when no identity
-     * is attached or when the id cannot be coerced.
+     * Coerces the authenticated identity primary key to a string suitable for
+     * the `workflow_transitions.user_id` column. Falls back to the legacy
+     * `Auth.User.id` session key when no request identity is attached.
      *
      * @return string|null
      */
     protected function getCurrentUserId(): ?string
     {
         $identity = $this->request->getAttribute('identity');
-        if ($identity === null) {
-            return null;
+        if ($identity !== null) {
+            try {
+                $id = $identity->getIdentifier();
+            } catch (Throwable) {
+                $id = null;
+            }
+
+            $normalizedId = $this->normalizeUserId($id);
+            if ($normalizedId !== null) {
+                return $normalizedId;
+            }
         }
 
         try {
-            $id = $identity->getIdentifier();
+            $id = $this->request->getSession()->read('Auth.User.id');
         } catch (Throwable) {
             return null;
         }
 
-        if ($id === null) {
-            return null;
-        }
+        return $this->normalizeUserId($id);
+    }
 
+    /**
+     * Normalize an actor identifier to the workflow_transitions.user_id shape.
+     *
+     * @param mixed $id
+     *
+     * @return string|null
+     */
+    protected function normalizeUserId(mixed $id): ?string
+    {
         if (is_int($id) || is_string($id)) {
-            $value = (string)$id;
+            $value = trim((string)$id);
 
             return $value !== '' ? $value : null;
         }

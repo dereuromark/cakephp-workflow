@@ -62,6 +62,7 @@ abstract class DatabaseTestCase extends TestCase
                     transition_name VARCHAR(64) NOT NULL,
                     from_state VARCHAR(64) NOT NULL,
                     to_state VARCHAR(64) NOT NULL,
+                    status VARCHAR(16) NOT NULL DEFAULT "success",
                     user_id VARCHAR(36),
                     reason TEXT,
                     context TEXT,
@@ -87,6 +88,26 @@ abstract class DatabaseTestCase extends TestCase
                 )
             ');
         }
+
+        if (!in_array('orders', $existingTables, true)) {
+            $connection->execute('
+                CREATE TABLE orders (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    state VARCHAR(64),
+                    total DECIMAL(10,2),
+                    payment_captured BOOLEAN DEFAULT 0 NOT NULL
+                )
+            ');
+        }
+
+        if (!in_array('payments', $existingTables, true)) {
+            $connection->execute('
+                CREATE TABLE payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    status VARCHAR(64)
+                )
+            ');
+        }
     }
 
     /**
@@ -98,5 +119,7 @@ abstract class DatabaseTestCase extends TestCase
         $connection->execute('DELETE FROM workflow_locks');
         $connection->execute('DELETE FROM workflow_transitions');
         $connection->execute('DELETE FROM workflow_timeouts');
+        $connection->execute('DELETE FROM orders');
+        $connection->execute('DELETE FROM payments');
     }
 }

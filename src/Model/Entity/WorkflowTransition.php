@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Workflow\Model\Entity;
 
+use Cake\Core\Configure;
 use Cake\ORM\Entity;
+use Closure;
 use Workflow\Service\TransitionLogger;
 
 /**
@@ -127,5 +129,111 @@ class WorkflowTransition extends Entity
     public function usedLock(): bool
     {
         return $this->context['_runtime']['used_lock'] ?? false;
+    }
+
+    /**
+     * Check if this transition was triggered by an admin operation.
+     */
+    public function isAdminAction(): bool
+    {
+        return (bool)($this->context['admin_action'] ?? false);
+    }
+
+    /**
+     * Get the recorded client IP, if available.
+     */
+    public function getClientIp(): ?string
+    {
+        $clientIp = $this->context['client_ip'] ?? null;
+
+        return is_string($clientIp) && $clientIp !== '' ? $clientIp : null;
+    }
+
+    /**
+     * Get a display label for the transition actor.
+     */
+    public function getActorLabel(): ?string
+    {
+        $actorMeta = $this->resolveActorMeta();
+
+        return $actorMeta['label'] ?? $this->user_id;
+    }
+
+    /**
+     * Get an optional URL for the transition actor.
+     *
+     * @return array<string, mixed>|string|null
+     */
+    public function getActorUrl(): array|string|null
+    {
+        $actorMeta = $this->resolveActorMeta();
+
+        return $actorMeta['url'] ?? null;
+    }
+
+    /**
+     * Backfill stringified JSON contexts from older releases.
+     *
+     * @param mixed $value
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function _getContext(mixed $value): ?array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (!is_string($value) || $value === '') {
+            return null;
+        }
+
+        $decoded = json_decode($value, true);
+        if (!is_array($decoded)) {
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * Resolve actor metadata from optional application configuration.
+     *
+     * @return array{label?: string, url?: array<string, mixed>|string|null}|null
+     */
+    protected function resolveActorMeta(): ?array
+    {
+        if (!$this->user_id) {
+            return null;
+        }
+
+        $resolver = Configure::read('Workflow.adminActorResolver');
+        if (!($resolver instanceof Closure)) {
+            return null;
+        }
+
+        $resolved = $resolver($this->user_id, $this);
+        if (is_string($resolved) && $resolved !== '') {
+            return ['label' => $resolved];
+        }
+
+        if (!is_array($resolved)) {
+            return null;
+        }
+
+        $label = $resolved['label'] ?? null;
+        $url = $resolved['url'] ?? null;
+        if (!is_string($label) || $label === '') {
+            return null;
+        }
+
+        if ($url !== null && !is_string($url) && !is_array($url)) {
+            $url = null;
+        }
+
+        return [
+            'label' => $label,
+            'url' => $url,
+        ];
     }
 }

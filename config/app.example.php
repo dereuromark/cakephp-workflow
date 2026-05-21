@@ -44,6 +44,21 @@ return [
         // 'adminBackLabel' => 'Back to admin',
 
         /**
+         * Optional actor presentation hook for persisted transition views.
+         *
+         * Receives the stored `user_id` plus the WorkflowTransition entity and
+         * may return either a string label or an array with `label` and `url`
+         * keys so the admin UI can show a friendly name/link instead of only
+         * the raw identifier.
+         */
+        // 'adminActorResolver' => function (string $userId, \Workflow\Model\Entity\WorkflowTransition $transition): array {
+        //     return [
+        //         'label' => 'Admin #' . $userId,
+        //         'url' => ['plugin' => false, 'controller' => 'Users', 'action' => 'view', $userId],
+        //     ];
+        // },
+
+        /**
          * Workflow definition loaders (read by WorkflowPlugin::buildRegistry()).
          *
          * The registry chains an attribute loader and YAML/NEON file loaders.

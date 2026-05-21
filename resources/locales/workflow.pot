@@ -20,3 +20,5 @@ msgstr ""
 msgid "Workflow admin access denied."
 msgstr ""
 
+msgid "Back to App"
+msgstr ""

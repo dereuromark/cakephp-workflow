@@ -24,6 +24,18 @@ $this->assign('title', 'Timeouts');
             </ol>
         </nav>
     </div>
+    <div>
+        <?= $this->Form->postLink(
+            '<i class="bi bi-lightning-charge"></i> Execute Due Now',
+            ['action' => 'executeDue'],
+            [
+                'class' => 'btn btn-outline-warning',
+                'confirm' => 'Execute all due pending timeouts now?',
+                'escapeTitle' => false,
+                'block' => true,
+            ],
+        ) ?>
+    </div>
 </div>
 
 <!-- Filters -->
@@ -64,10 +76,14 @@ $this->assign('title', 'Timeouts');
 </div>
 
 <div class="card">
+    <?= $this->Form->create(null, ['url' => ['action' => 'bulkExecute']]) ?>
     <div class="card-body p-0">
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
+                    <th style="width: 1%">
+                        <input type="checkbox" class="form-check-input" data-timeout-select-all>
+                    </th>
                     <th>ID</th>
                     <th>Workflow</th>
                     <th>Entity</th>
@@ -85,6 +101,15 @@ $this->assign('title', 'Timeouts');
                     $isOverdue = !$timeout->processed && $timeout->due_at < $now;
                     ?>
                     <tr class="<?= $isOverdue ? 'table-warning' : '' ?>">
+                        <td>
+                            <?php if (!$timeout->processed) { ?>
+                                <?= $this->Form->checkbox('timeout_ids[]', [
+                                    'value' => $timeout->id,
+                                    'hiddenField' => false,
+                                    'class' => 'form-check-input',
+                                ]) ?>
+                            <?php } ?>
+                        </td>
                         <td><?= h($timeout->id) ?></td>
                         <td>
                             <?= $this->Html->link(
@@ -161,16 +186,51 @@ $this->assign('title', 'Timeouts');
                 <?php } ?>
                 <?php if (!$timeouts->count()) { ?>
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No timeouts found.</td>
+                        <td colspan="9" class="text-center text-muted py-4">No timeouts found.</td>
                     </tr>
                 <?php } ?>
             </tbody>
         </table>
     </div>
     <div class="card-footer">
-        <?= $this->Paginator->counter('Showing {{start}} to {{end}} of {{count}} timeouts') ?>
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <?= $this->Paginator->counter('Showing {{start}} to {{end}} of {{count}} timeouts') ?>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-success">
+                    <i class="bi bi-play-fill"></i> Execute Selected
+                </button>
+                <?= $this->Form->button(
+                    '<i class="bi bi-x-circle"></i> Cancel Selected',
+                    [
+                        'type' => 'submit',
+                        'formaction' => $this->Url->build(['action' => 'bulkCancel']),
+                        'formmethod' => 'post',
+                        'class' => 'btn btn-sm btn-outline-danger',
+                        'escapeTitle' => false,
+                    ],
+                ) ?>
+            </div>
+        </div>
         <div class="pagination justify-content-center mb-0 mt-3">
             <?= $this->Paginator->numbers() ?>
         </div>
     </div>
+    <?= $this->Form->end() ?>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.querySelector('[data-timeout-select-all]');
+    if (!selectAll) {
+        return;
+    }
+
+    selectAll.addEventListener('change', function () {
+        document.querySelectorAll('input[name="timeout_ids[]"]').forEach(function (checkbox) {
+            checkbox.checked = selectAll.checked;
+        });
+    });
+});
+</script>

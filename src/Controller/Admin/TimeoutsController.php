@@ -80,6 +80,54 @@ class TimeoutsController extends WorkflowAppController
     }
 
     /**
+     * Cancel multiple pending timeouts in one request.
+     */
+    public function bulkCancel(): ?Response
+    {
+        $this->request->allowMethod(['post']);
+
+        /** @var \Workflow\Model\Table\WorkflowTimeoutsTable $timeoutsTable */
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        $timeoutIds = array_map('intval', (array)$this->request->getData('timeout_ids', []));
+        $timeoutIds = array_values(array_filter($timeoutIds));
+
+        if (!$timeoutIds) {
+            $this->Flash->error('Select at least one timeout to cancel.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        $cancelled = 0;
+        $skipped = 0;
+
+        /** @var array<\Workflow\Model\Entity\WorkflowTimeout> $timeouts */
+        $timeouts = $timeoutsTable->find()->where(['id IN' => $timeoutIds])->all()->toArray();
+        foreach ($timeouts as $timeout) {
+            if ($timeout->processed) {
+                $skipped++;
+
+                continue;
+            }
+
+            $timeout->processed = true;
+            if ($timeoutsTable->save($timeout)) {
+                $cancelled++;
+            } else {
+                $skipped++;
+            }
+        }
+
+        if ($cancelled > 0) {
+            $this->Flash->success(sprintf('Cancelled %d timeout(s).', $cancelled));
+        }
+        if ($skipped > 0) {
+            $this->Flash->warning(sprintf('Skipped %d timeout(s).', $skipped));
+        }
+
+        return $this->redirect(['action' => 'index']);
+    }
+
+    /**
      * Retry a processed/failed timeout.
      *
      * Creates a new timeout entry with the same parameters, due immediately.
@@ -119,6 +167,8 @@ class TimeoutsController extends WorkflowAppController
 
     /**
      * Execute a single timeout immediately (manual trigger).
+     *
+     * @throws \RuntimeException
      */
     public function execute(int $id): ?Response
     {
@@ -139,6 +189,161 @@ class TimeoutsController extends WorkflowAppController
             return $this->redirect(['action' => 'index']);
         }
 
+        $execution = $this->executeTimeoutRecord($timeoutsTable, $timeout);
+        if ($execution['status'] === 'success') {
+            $this->Flash->success(sprintf(
+                'Timeout executed. Entity #%s transitioned to "%s".',
+                $timeout->entity_id,
+                $execution['toState'] ?? 'unknown',
+            ));
+        } elseif ($execution['status'] === 'stale') {
+            $this->Flash->warning(sprintf(
+                'Entity state changed from "%s" to "%s". Timeout marked as processed.',
+                $timeout->current_state,
+                $execution['actualState'] ?? 'unknown',
+            ));
+        } elseif ($execution['status'] === 'blocked') {
+            $blockedBy = $execution['blockedBy'] ?? ['unknown' => 'Transaction failed'];
+            $this->Flash->warning('Transition blocked: ' . json_encode($blockedBy));
+        } else {
+            $this->Flash->error('Error executing timeout: ' . ($execution['message'] ?? 'Unknown error'));
+        }
+
+        return $this->redirect(['action' => 'index']);
+    }
+
+    /**
+     * Execute multiple selected timeouts.
+     */
+    public function bulkExecute(): ?Response
+    {
+        $this->request->allowMethod(['post']);
+
+        /** @var \Workflow\Model\Table\WorkflowTimeoutsTable $timeoutsTable */
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        $timeoutIds = array_map('intval', (array)$this->request->getData('timeout_ids', []));
+        $timeoutIds = array_values(array_filter($timeoutIds));
+
+        if (!$timeoutIds) {
+            $this->Flash->error('Select at least one timeout to execute.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        $summary = [
+            'success' => 0,
+            'blocked' => 0,
+            'stale' => 0,
+            'error' => 0,
+        ];
+
+        /** @var array<\Workflow\Model\Entity\WorkflowTimeout> $timeouts */
+        $timeouts = $timeoutsTable->find()->where(['id IN' => $timeoutIds])->all()->toArray();
+        foreach ($timeouts as $timeout) {
+            if ($timeout->processed) {
+                $summary['error']++;
+
+                continue;
+            }
+
+            $execution = $this->executeTimeoutRecord($timeoutsTable, $timeout);
+            $summary[$execution['status']]++;
+        }
+
+        $this->flashTimeoutExecutionSummary($summary, count($timeouts));
+
+        return $this->redirect(['action' => 'index']);
+    }
+
+    /**
+     * Execute every timeout that is already due.
+     */
+    public function executeDue(): ?Response
+    {
+        $this->request->allowMethod(['post']);
+
+        /** @var \Workflow\Model\Table\WorkflowTimeoutsTable $timeoutsTable */
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        /** @var array<\Workflow\Model\Entity\WorkflowTimeout> $timeouts */
+        $timeouts = $timeoutsTable->find()
+            ->where([
+                'processed' => false,
+                'due_at <=' => DateTime::now(),
+            ])
+            ->orderBy(['due_at' => 'ASC'])
+            ->all()
+            ->toArray();
+
+        if (!$timeouts) {
+            $this->Flash->warning('No due timeouts found.');
+
+            return $this->redirect(['action' => 'index']);
+        }
+
+        $summary = [
+            'success' => 0,
+            'blocked' => 0,
+            'stale' => 0,
+            'error' => 0,
+        ];
+
+        foreach ($timeouts as $timeout) {
+            $execution = $this->executeTimeoutRecord($timeoutsTable, $timeout);
+            $summary[$execution['status']]++;
+        }
+
+        $this->flashTimeoutExecutionSummary($summary, count($timeouts));
+
+        return $this->redirect(['action' => 'index']);
+    }
+
+    /**
+     * View details of a single timeout.
+     */
+    public function view(int $id): void
+    {
+        /** @var \Workflow\Model\Table\WorkflowTimeoutsTable $timeoutsTable */
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        /** @var \Workflow\Model\Entity\WorkflowTimeout $timeout */
+        $timeout = $timeoutsTable->get($id);
+
+        $entity = null;
+        $currentState = null;
+        $stateMatches = null;
+
+        try {
+            $entityTable = $this->fetchTable($timeout->entity_table);
+            $entity = $entityTable->get($timeout->entity_id);
+
+            if ($this->workflowRegistry !== null) {
+                $definition = $this->workflowRegistry->getWorkflow($timeout->workflow_name);
+                $currentState = $entity->get($definition->getField());
+                $stateMatches = $currentState === $timeout->current_state;
+            }
+        } catch (Throwable) {
+            // Entity might not exist
+        }
+
+        $this->set(compact('timeout', 'entity', 'currentState', 'stateMatches'));
+    }
+
+    /**
+     * Execute a timeout record and return a normalized result payload.
+     *
+     * @param \Workflow\Model\Table\WorkflowTimeoutsTable $timeoutsTable
+     * @param \Workflow\Model\Entity\WorkflowTimeout $timeout
+     *
+     * @return array{status: 'success'|'blocked'|'stale'|'error', toState?: string|null, actualState?: string|null, blockedBy?: array<string, mixed>, message?: string}
+     */
+    protected function executeTimeoutRecord($timeoutsTable, $timeout): array
+    {
+        if ($this->workflowRegistry === null) {
+            return [
+                'status' => 'error',
+                'message' => 'Workflow registry not configured',
+            ];
+        }
+
         try {
             $definition = $this->workflowRegistry->getWorkflow($timeout->workflow_name);
             $field = $definition->getField();
@@ -150,13 +355,10 @@ class TimeoutsController extends WorkflowAppController
                 $timeout->processed = true;
                 $timeoutsTable->save($timeout);
 
-                $this->Flash->warning(sprintf(
-                    'Entity state changed from "%s" to "%s". Timeout marked as processed.',
-                    $timeout->current_state,
-                    $entity->get($field),
-                ));
-
-                return $this->redirect(['action' => 'index']);
+                return [
+                    'status' => 'stale',
+                    'actualState' => (string)$entity->get($field),
+                ];
             }
 
             $engine = $this->workflowRegistry->getEngine($timeout->workflow_name);
@@ -216,49 +418,47 @@ class TimeoutsController extends WorkflowAppController
             });
 
             if ($success) {
-                $this->Flash->success(sprintf(
-                    'Timeout executed. Entity #%s transitioned to "%s".',
-                    $timeout->entity_id,
-                    $result?->getToState() ?? 'unknown',
-                ));
-            } else {
-                $blockedBy = $result !== null ? $result->getBlockedBy() : ['unknown' => 'Transaction failed'];
-                $this->Flash->warning('Transition blocked: ' . json_encode($blockedBy));
+                return [
+                    'status' => 'success',
+                    'toState' => $result?->getToState(),
+                ];
             }
-        } catch (Throwable $e) {
-            $this->Flash->error('Error executing timeout: ' . $e->getMessage());
-        }
 
-        return $this->redirect(['action' => 'index']);
+            return [
+                'status' => 'blocked',
+                'blockedBy' => $result?->getBlockedBy() ?? ['unknown' => 'Transaction failed'],
+            ];
+        } catch (Throwable $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ];
+        }
     }
 
     /**
-     * View details of a single timeout.
+     * Flash a compact bulk-execution summary.
+     *
+     * @param array{success:int, blocked:int, stale:int, error:int} $summary
+     * @param int $total
      */
-    public function view(int $id): void
+    protected function flashTimeoutExecutionSummary(array $summary, int $total): void
     {
-        /** @var \Workflow\Model\Table\WorkflowTimeoutsTable $timeoutsTable */
-        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
-        /** @var \Workflow\Model\Entity\WorkflowTimeout $timeout */
-        $timeout = $timeoutsTable->get($id);
-
-        $entity = null;
-        $currentState = null;
-        $stateMatches = null;
-
-        try {
-            $entityTable = $this->fetchTable($timeout->entity_table);
-            $entity = $entityTable->get($timeout->entity_id);
-
-            if ($this->workflowRegistry !== null) {
-                $definition = $this->workflowRegistry->getWorkflow($timeout->workflow_name);
-                $currentState = $entity->get($definition->getField());
-                $stateMatches = $currentState === $timeout->current_state;
-            }
-        } catch (Throwable) {
-            // Entity might not exist
+        if ($summary['success'] > 0) {
+            $this->Flash->success(sprintf(
+                'Processed %d timeout(s): %d executed.',
+                $total,
+                $summary['success'],
+            ));
         }
-
-        $this->set(compact('timeout', 'entity', 'currentState', 'stateMatches'));
+        if ($summary['blocked'] > 0 || $summary['stale'] > 0 || $summary['error'] > 0) {
+            $this->Flash->warning(sprintf(
+                'Skipped %d timeout(s): %d blocked, %d stale, %d errors.',
+                $summary['blocked'] + $summary['stale'] + $summary['error'],
+                $summary['blocked'],
+                $summary['stale'],
+                $summary['error'],
+            ));
+        }
     }
 }

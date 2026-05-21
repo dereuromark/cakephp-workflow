@@ -42,6 +42,11 @@ Configure the plugin in your `config/app.php`:
 
 ```php
 'Workflow' => [
+    'adminAccess' => function (\Cake\Http\ServerRequest $request): bool {
+        $identity = $request->getAttribute('identity');
+
+        return $identity !== null && in_array('admin', (array)$identity->roles, true);
+    },
     'loader' => [
         'namespaces' => [
             'App\\Workflow',
@@ -52,8 +57,17 @@ Configure the plugin in your `config/app.php`:
     'locking' => true,
     'timeouts' => true,
     'lockDuration' => 30,
+    'adminBackUrl' => ['plugin' => false, 'controller' => 'Dashboard', 'action' => 'index'],
+    'adminActorResolver' => function (string $userId): string {
+        return 'Admin #' . $userId;
+    },
 ],
 ```
+
+The admin UI is fail-closed by default: you must provide `Workflow.adminAccess`
+to expose `/admin/workflow/...`. Manual admin actions also record actor and
+context metadata; when you still rely on legacy session auth, the admin logger
+falls back to `Auth.User.id` automatically.
 
 ## Defining Workflows
 

@@ -38,6 +38,7 @@ export default withMermaid(defineConfig({
       {
         text: 'Links',
         items: [
+          { text: 'Live Demo', link: 'https://sandbox.dereuromark.de/workflow-sandbox' },
           { text: 'GitHub', link: 'https://github.com/dereuromark/cakephp-workflow' },
           { text: 'Packagist', link: 'https://packagist.org/packages/dereuromark/cakephp-workflow' },
           { text: 'Issues', link: 'https://github.com/dereuromark/cakephp-workflow/issues' },

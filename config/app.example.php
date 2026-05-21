@@ -44,19 +44,6 @@ return [
         // 'adminBackLabel' => 'Back to admin',
 
         /**
-         * Path to workflow definition files (YAML, NEON, or PHP).
-         * Relative to APP or absolute path.
-         *
-         * Default: CONFIG . 'Workflows/'
-         *
-         * NOTE: This top-level key is NOT read by the plugin at runtime. The
-         * registry builder reads the nested `loader.configPath` below instead
-         * (see WorkflowPlugin::buildRegistry()), whose default directory is
-         * lower-case `workflows/`. Reconcile these two before relying on either.
-         */
-        'configPath' => CONFIG . 'Workflows' . DS,
-
-        /**
          * Workflow definition loaders (read by WorkflowPlugin::buildRegistry()).
          *
          * The registry chains an attribute loader and YAML/NEON file loaders.

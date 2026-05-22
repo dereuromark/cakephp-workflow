@@ -148,7 +148,8 @@ class TimeoutsController extends WorkflowAppController
             'entity_id' => $originalTimeout->entity_id,
             'transition_name' => $originalTimeout->transition_name,
             'current_state' => $originalTimeout->current_state,
-            'due_at' => DateTime::now(),
+            // due_at is stored/compared in UTC (see TimeoutScheduler + findDue).
+            'due_at' => DateTime::now('UTC'),
             'processed' => false,
         ]);
 
@@ -268,7 +269,7 @@ class TimeoutsController extends WorkflowAppController
         $timeouts = $timeoutsTable->find()
             ->where([
                 'processed' => false,
-                'due_at <=' => DateTime::now(),
+                'due_at <=' => DateTime::now('UTC'),
             ])
             ->orderBy(['due_at' => 'ASC'])
             ->all()

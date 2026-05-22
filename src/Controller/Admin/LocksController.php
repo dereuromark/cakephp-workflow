@@ -27,7 +27,8 @@ class LocksController extends WorkflowAppController
 
         // Filter by status
         $status = $this->request->getQuery('status', 'active');
-        $now = DateTime::now();
+        // expires_at is stored in UTC (see LockManager); compare in UTC.
+        $now = DateTime::now('UTC');
         if ($status === 'active') {
             $query->where(['expires_at >' => $now]);
         } elseif ($status === 'expired') {
@@ -75,7 +76,7 @@ class LocksController extends WorkflowAppController
 
         $locksTable = $this->fetchTable('Workflow.WorkflowLocks');
         $deleted = $locksTable->deleteAll([
-            'expires_at <=' => DateTime::now(),
+            'expires_at <=' => DateTime::now('UTC'),
         ]);
 
         $this->Flash->success(sprintf('%d expired lock(s) cleaned up.', $deleted));

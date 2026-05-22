@@ -42,7 +42,9 @@ reference your entities through a generic `entity_id` column. It is **not** a re
 foreign key — each row can point at a different table — so it cannot be constrained.
 
 By default `entity_id` is a `biginteger`, which matches the common case of integer
-primary keys and keeps the indexes compact.
+primary keys and keeps the indexes compact. Its signedness follows your
+`Migrations.unsigned_primary_keys` setting, so it lines up with how your application's
+primary keys are defined (signed by default; unsigned only takes effect on MySQL).
 
 If your workflow-enabled tables use **UUID / char primary keys**, widen the column in
 your own app migration before storing anything (an integer column cannot hold a UUID):

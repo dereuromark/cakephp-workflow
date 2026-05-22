@@ -84,7 +84,7 @@ class WorkflowHelper extends Helper
      */
     public function stateBadge(Definition $definition, string $state, array $options = []): string
     {
-        $stateObj = $definition->getState($state);
+        $stateObj = $definition->resolveState($state);
         $color = $stateObj->getColor() ?? '#6c757d';
         $label = $stateObj->getDisplayName();
 
@@ -107,7 +107,7 @@ class WorkflowHelper extends Helper
      */
     public function getStateColor(Definition $definition, string $state): string
     {
-        $stateObj = $definition->getState($state);
+        $stateObj = $definition->resolveState($state);
 
         return $stateObj->getColor() ?? '#6c757d';
     }

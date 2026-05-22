@@ -706,7 +706,7 @@ class WorkflowBehavior extends Behavior
     public function isFinal(EntityInterface $entity): bool
     {
         $currentState = $this->getCurrentState($entity);
-        $stateObj = $this->getWorkflowDefinition()->getState($currentState);
+        $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->isFinal();
     }
@@ -717,7 +717,7 @@ class WorkflowBehavior extends Behavior
     public function hasFlag(EntityInterface $entity, string $flag): bool
     {
         $currentState = $this->getCurrentState($entity);
-        $stateObj = $this->getWorkflowDefinition()->getState($currentState);
+        $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->hasFlag($flag);
     }

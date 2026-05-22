@@ -33,3 +33,6 @@ Thumbs.db
 
 # Temp files
 /_*.md
+
+# Working docs (specs, plans) - not version controlled
+/docs/superpowers/

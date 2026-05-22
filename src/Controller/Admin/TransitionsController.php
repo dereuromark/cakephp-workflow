@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Workflow\Controller\Admin;
 
+use Cake\Database\Expression\QueryExpression;
 use Cake\Http\Exception\NotFoundException;
-use Cake\ORM\Query\Expression\QueryExpression;
+use DateTimeImmutable;
 
 class TransitionsController extends WorkflowAppController
 {
@@ -60,8 +61,10 @@ class TransitionsController extends WorkflowAppController
 
         $createdTo = $this->request->getQuery('created_to');
         if (is_string($createdTo) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $createdTo)) {
-            $date = date('Y-m-d', strtotime($createdTo . ' +1 day'));
-            $query->where(['created <' => $date . ' 00:00:00']);
+            $date = DateTimeImmutable::createFromFormat('Y-m-d', $createdTo);
+            if ($date !== false) {
+                $query->where(['created <' => $date->modify('+1 day')->format('Y-m-d') . ' 00:00:00']);
+            }
         }
 
         $transitions = $this->paginate($query, [

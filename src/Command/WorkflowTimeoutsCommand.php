@@ -99,7 +99,7 @@ class WorkflowTimeoutsCommand extends Command
                 } catch (RecordNotFoundException $e) {
                     $io->warning('  Entity no longer exists, marking timeout processed.');
                     $timeout->processed = true;
-                    $timeoutsTable->save($timeout);
+                    $timeoutsTable->saveOrFail($timeout);
 
                     continue;
                 }
@@ -112,7 +112,7 @@ class WorkflowTimeoutsCommand extends Command
                         $entity->get($field),
                     ));
                     $timeout->processed = true;
-                    $timeoutsTable->save($timeout);
+                    $timeoutsTable->saveOrFail($timeout);
 
                     continue;
                 }

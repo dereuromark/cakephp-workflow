@@ -96,7 +96,8 @@ abstract class DatabaseTestCase extends TestCase
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     state VARCHAR(64),
                     total DECIMAL(10,2),
-                    payment_captured BOOLEAN DEFAULT 0 NOT NULL
+                    payment_captured BOOLEAN DEFAULT 0 NOT NULL,
+                    state_changed_at DATETIME
                 )
             ');
         }

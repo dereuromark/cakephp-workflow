@@ -137,19 +137,22 @@ class WorkflowInitCommand extends Command
         $io->out(sprintf('Workflow name: %s', $workflowName));
         $io->out('Next steps:');
         $io->out(sprintf(
-            '  1. Add the behavior + trait to %s:',
-            $table . 'Table',
-        ));
-        $io->out('       use Workflow\Model\Table\WorkflowTableTrait;');
-        $io->out(sprintf(
-            '       $this->addBehavior(\'Workflow.Workflow\', [\'workflow\' => \'%s\']);',
+            '  1. Add the behavior to %sTable: $this->addBehavior(\'Workflow.Workflow\', [\'workflow\' => \'%s\']);',
+            $table,
             $workflowName,
         ));
-        $io->out('  2. Add WorkflowTrait to the entity for $entity->currentState()/canTransition().');
+        $step = 2;
         if (!$args->getOption('migration')) {
-            $io->out('  3. Add a "' . $field . '" column to the table (re-run with --migration to scaffold it).');
+            $io->out(sprintf(
+                '  %d. Add a "%s" column to the table (re-run with --migration to scaffold it).',
+                $step++,
+                $field,
+            ));
         }
-        $io->out('  4. Render actions in a view: $this->Workflow->panel($definition, $entity, $transitions, [...]).');
+        $io->out(sprintf(
+            '  %d. Run the migrations, then see the docs for the convenience traits and the panel() view helper.',
+            $step,
+        ));
 
         return self::CODE_SUCCESS;
     }

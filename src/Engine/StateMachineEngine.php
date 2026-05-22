@@ -457,7 +457,10 @@ class StateMachineEngine implements EngineInterface
      */
     private function evaluateCondition(string $conditionName, EntityInterface $entity, array $context): bool
     {
-        if (!isset($this->conditions[$conditionName])) {
+        // Resolve a registered callable or a "Class::method" reference (e.g. an
+        // attribute #[Condition] on a state class), the same way guards/commands do.
+        $handler = $this->resolveHandler($conditionName, $this->conditions);
+        if ($handler === null) {
             if ($this->strictMode) {
                 throw new WorkflowException(
                     "Condition '{$conditionName}' is not registered. "
@@ -470,7 +473,7 @@ class StateMachineEngine implements EngineInterface
         }
 
         try {
-            return (bool)($this->conditions[$conditionName])($entity, $context);
+            return (bool)$this->invokeHandler($handler, $entity, $context);
         } catch (WorkflowException $e) {
             // Configuration errors should propagate
             throw $e;

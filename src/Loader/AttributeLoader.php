@@ -10,6 +10,7 @@ use ReflectionClass;
 use ReflectionMethod;
 use Workflow\Attribute\Color;
 use Workflow\Attribute\Command as CommandAttr;
+use Workflow\Attribute\Condition as ConditionAttr;
 use Workflow\Attribute\FailedState;
 use Workflow\Attribute\FinalState;
 use Workflow\Attribute\Flag;
@@ -326,6 +327,7 @@ class AttributeLoader implements LoaderInterface
 
         $guards = [];
         $commands = [];
+        $conditions = [];
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             foreach ($method->getAttributes(GuardAttr::class) as $guardAttr) {
@@ -335,6 +337,10 @@ class AttributeLoader implements LoaderInterface
             foreach ($method->getAttributes(CommandAttr::class) as $cmdAttr) {
                 $cmd = $cmdAttr->newInstance();
                 $commands[$cmd->transition][] = $reflection->getName() . '::' . $method->getName();
+            }
+            foreach ($method->getAttributes(ConditionAttr::class) as $conditionAttr) {
+                $condition = $conditionAttr->newInstance();
+                $conditions[$condition->transition] = $reflection->getName() . '::' . $method->getName();
             }
         }
 
@@ -349,6 +355,8 @@ class AttributeLoader implements LoaderInterface
                 happy: $transitionDef->happy,
                 guards: $guards[$transitionDef->name] ?? [],
                 commands: $commands[$transitionDef->name] ?? [],
+                condition: $conditions[$transitionDef->name] ?? null,
+                automatic: $transitionDef->automatic,
             );
         }
 
@@ -393,6 +401,8 @@ class AttributeLoader implements LoaderInterface
                     happy: $existing->isHappy() || $transition->isHappy(),
                     guards: array_unique(array_merge($existing->getGuards(), $transition->getGuards())),
                     commands: array_unique(array_merge($existing->getCommands(), $transition->getCommands())),
+                    condition: $existing->getCondition() ?? $transition->getCondition(),
+                    automatic: $existing->isAutomatic() || $transition->isAutomatic(),
                 );
             }
         }

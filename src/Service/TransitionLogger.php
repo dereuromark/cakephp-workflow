@@ -91,6 +91,7 @@ class TransitionLogger
             'user_id' => $context['user_id'] ?? null,
             'reason' => $context['reason'] ?? null,
             'context' => $contextWithRuntime ?: null,
+            'idempotency_key' => $context['_idempotency_key'] ?? null,
             'workflow_version' => $workflowVersion,
         ]);
 

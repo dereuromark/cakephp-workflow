@@ -105,6 +105,7 @@ class WorkflowBehaviorIdempotencyTest extends DatabaseTestCase
             'to_state' => 'open',
             'status' => 'blocked',
             'context' => ['_idempotency_key' => 'KEY-3'],
+            'idempotency_key' => 'KEY-3',
             'created' => DateTime::now(),
         ]));
 
@@ -112,6 +113,32 @@ class WorkflowBehaviorIdempotencyTest extends DatabaseTestCase
             ->transition($ticket, 'touch', ['_idempotency_key' => 'KEY-3'], ['log' => true, 'lock' => true]);
 
         $this->assertTrue($result->isSuccess());
+    }
+
+    public function testKeyWithLikeAndJsonMetacharactersMatchesExactly(): void
+    {
+        // A key full of LIKE wildcards and JSON-significant characters must match
+        // only itself - exact column comparison, no LIKE/JSON fragility.
+        $key = 'a%_"\\b';
+        $options = ['log' => true, 'lock' => true];
+
+        $ticket = $this->ticketsTable->newEntity(['state' => 'open']);
+        $this->ticketsTable->saveOrFail($ticket);
+
+        $first = $this->ticketsTable->getBehavior('Workflow')
+            ->transition($ticket, 'touch', ['_idempotency_key' => $key], $options);
+        $this->assertTrue($first->isSuccess());
+
+        // Same exotic key -> duplicate.
+        $reloaded = $this->ticketsTable->get($ticket->get('id'));
+        $replay = $this->ticketsTable->getBehavior('Workflow')
+            ->transition($reloaded, 'touch', ['_idempotency_key' => $key], $options);
+        $this->assertTrue($replay->isBlocked());
+
+        // A different key that the old LIKE pattern could have falsely matched is allowed.
+        $other = $this->ticketsTable->getBehavior('Workflow')
+            ->transition($reloaded, 'touch', ['_idempotency_key' => 'axyzb'], $options);
+        $this->assertTrue($other->isSuccess());
     }
 
     private function createMockRegistry(): WorkflowRegistry

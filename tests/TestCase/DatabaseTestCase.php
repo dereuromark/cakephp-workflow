@@ -66,6 +66,7 @@ abstract class DatabaseTestCase extends TestCase
                     user_id VARCHAR(36),
                     reason TEXT,
                     context TEXT,
+                    idempotency_key VARCHAR(255),
                     workflow_version VARCHAR(16),
                     created DATETIME NOT NULL
                 )

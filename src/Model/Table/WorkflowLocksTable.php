@@ -88,13 +88,11 @@ class WorkflowLocksTable extends Table
     }
 
     /**
-     * Get current time for lock comparisons.
-     *
-     * Uses UTC to ensure consistent behavior regardless of app timezone.
-     * The database should store timestamps in UTC for this to work correctly.
+     * Get current time for lock comparisons, in the app's configured timezone — the
+     * same basis lock rows are written with, so writes and reads always agree.
      */
     protected function getCurrentTime(): DateTime
     {
-        return DateTime::now('UTC');
+        return DateTime::now();
     }
 }

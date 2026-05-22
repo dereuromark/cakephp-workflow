@@ -80,6 +80,8 @@ class WorkflowTimeoutsTable extends Table
     {
         return $query
             ->where([
+                // Compare in the app timezone, the same basis due_at is written with
+                // (TimeoutScheduler), so writes and reads always agree.
                 'due_at <=' => DateTime::now(),
                 'processed' => false,
             ])

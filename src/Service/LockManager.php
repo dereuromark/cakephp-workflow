@@ -109,7 +109,7 @@ class LockManager
             'entity_table' => $entityTable,
             'entity_id' => $entityId,
             'locked_by' => $lockedBy,
-            'expires_at' => DateTime::now('UTC')->addSeconds($this->lockDurationSeconds),
+            'expires_at' => DateTime::now()->addSeconds($this->lockDurationSeconds),
         ]);
 
         try {
@@ -172,11 +172,12 @@ class LockManager
     }
 
     /**
-     * Current UTC time used for expiry comparisons.
+     * Current time used for expiry comparisons, in the app's configured timezone
+     * (the same basis lock rows are written with).
      */
     protected function currentTime(): DateTime
     {
-        return DateTime::now('UTC');
+        return DateTime::now();
     }
 
     /**

@@ -18,6 +18,7 @@ use Nette\Neon\Neon;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Workflow\Command\BakeWorkflowStateCommand;
+use Workflow\Command\WorkflowApplyCommand;
 use Workflow\Command\WorkflowBatchCommand;
 use Workflow\Command\WorkflowInitCommand;
 use Workflow\Command\WorkflowListCommand;
@@ -28,6 +29,7 @@ use Workflow\Command\WorkflowValidateCommand;
 use Workflow\Loader\AttributeLoader;
 use Workflow\Loader\ChainLoader;
 use Workflow\Loader\NeonLoader;
+use Workflow\Loader\PhpLoader;
 use Workflow\Loader\YamlLoader;
 use Workflow\Service\WorkflowRegistry;
 use Workflow\Service\WorkflowRegistryLocator;
@@ -80,6 +82,7 @@ class WorkflowPlugin extends BasePlugin
         $commands->add('workflow init', WorkflowInitCommand::class);
         $commands->add('workflow list', WorkflowListCommand::class);
         $commands->add('workflow show', WorkflowShowCommand::class);
+        $commands->add('workflow apply', WorkflowApplyCommand::class);
         $commands->add('workflow batch', WorkflowBatchCommand::class);
         $commands->add('workflow timeouts', WorkflowTimeoutsCommand::class);
         $commands->add('workflow validate', WorkflowValidateCommand::class);
@@ -134,6 +137,8 @@ class WorkflowPlugin extends BasePlugin
 
         $configPath = $config['loader']['configPath'] ?? null;
         if ($configPath && is_dir($configPath)) {
+            // Native PHP definitions need no extra dependency.
+            $loaders[] = new PhpLoader($configPath);
             if (class_exists(Yaml::class)) {
                 $loaders[] = new YamlLoader($configPath);
             }

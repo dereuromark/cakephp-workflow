@@ -8,7 +8,13 @@ Scaffold an attribute-based workflow skeleton.
 
 ```bash
 bin/cake workflow init order Orders
+bin/cake workflow init order Orders --migration   # also scaffold the state-column migration
 ```
+
+With `--migration` the command additionally writes a migration that adds the state
+column (default `state`, see `--field`) to the table, into `config/Migrations`
+(override with `--migrations-path`). The output then walks you through adding the
+behavior and points you to the convenience traits and `panel()` view helper.
 
 ### `workflow list`
 
@@ -62,6 +68,20 @@ flowchart TD
     class cancelled failed
     linkStyle 0,1,2 stroke:#2e7d32,stroke-width:2px
 ```
+
+### `workflow apply`
+
+Apply a transition to a single record from the command line — handy for ops, debugging, and scripted/cron-driven transitions.
+
+```bash
+bin/cake workflow apply order 42 pay
+bin/cake workflow apply order 42 pay --reason "manual capture" --user 7
+bin/cake workflow apply order 42 pay --dry-run
+```
+
+It loads the record, runs the transition through the behavior (save + log, plus lock when enabled), and prints the outcome. `--dry-run` only checks whether the transition is allowed. Exit code is non-zero when the transition is blocked, locked, errored, or the record is missing.
+
+The transition audit trail is browsable in the admin UI (`/admin/workflow/transitions`).
 
 ### `workflow validate`
 

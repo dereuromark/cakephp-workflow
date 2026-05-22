@@ -65,7 +65,6 @@ class WorkflowBehaviorPersistenceTest extends DatabaseTestCase
             CREATE TABLE orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 state VARCHAR(64) NOT NULL,
-                workflow_version VARCHAR(16),
                 created DATETIME,
                 modified DATETIME
             )

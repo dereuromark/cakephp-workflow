@@ -47,8 +47,6 @@ class WorkflowBehavior extends Behavior
         'useLocking' => null, // null=auto-detect, true=force on, false=force off
         'useTimeouts' => null, // null=auto-detect, true=force on, false=force off
         'useTransaction' => true, // Wrap transition+save+log in database transaction
-        'versioning' => false, // When true, stamp the definition version hash onto the entity
-        'versionField' => 'workflow_version', // Nullable column on the entity table holding the stamp
     ];
 
     private ?Definition $definition = null;
@@ -64,8 +62,6 @@ class WorkflowBehavior extends Behavior
     private ?bool $lockTableExists = null;
 
     private ?bool $timeoutsTableExists = null;
-
-    private ?bool $versionColumnExists = null;
 
     public function initialize(array $config): void
     {
@@ -94,13 +90,6 @@ class WorkflowBehavior extends Behavior
      */
     public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
     {
-        // Stamp new entities with the current version (plugin-managed metadata, so any
-        // client-supplied value is overwritten). Existing entities are stamped in
-        // executeTransition(). Runs independently of validateOnSave.
-        if ($entity->isNew()) {
-            $this->stampVersion($entity);
-        }
-
         if (!$this->getConfig('validateOnSave')) {
             return;
         }
@@ -201,16 +190,6 @@ class WorkflowBehavior extends Behavior
      */
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
     {
-        // Check for idempotency key to prevent duplicate transitions
-        $idempotencyKey = $context['_idempotency_key'] ?? null;
-        if ($idempotencyKey !== null && $this->isDuplicateTransition($entity, $transition, $idempotencyKey)) {
-            $currentState = $this->getCurrentState($entity);
-
-            return TransitionResult::blocked($currentState, [
-                'idempotency' => "Transition '{$transition}' already applied with this idempotency key",
-            ]);
-        }
-
         // Acquire lock if enabled (null=auto-detect, true=force, false=skip)
         $lock = null;
         $usedLock = false;
@@ -230,6 +209,17 @@ class WorkflowBehavior extends Behavior
         }
 
         try {
+            // Idempotency check happens inside the lock: a check before the lock
+            // lets two concurrent callers with the same key both pass it (the log
+            // row of the first is not yet committed). Holding the mutex serialises
+            // them so the second sees the first's logged transition and is blocked.
+            $idempotencyKey = $context['_idempotency_key'] ?? null;
+            if ($idempotencyKey !== null && $this->isDuplicateTransition($entity, $transition, $idempotencyKey)) {
+                return TransitionResult::blocked($this->getCurrentState($entity), [
+                    'idempotency' => "Transition '{$transition}' already applied with this idempotency key",
+                ]);
+            }
+
             // Execute with or without transaction based on config
             if ($this->getConfig('useTransaction')) {
                 return $this->executeTransitionInTransaction($entity, $transition, $context, $usedLock);
@@ -354,9 +344,6 @@ class WorkflowBehavior extends Behavior
             // Mark the entity so beforeSave knows this change came through the workflow
             $entity->set(self::TRANSITION_MARKER, true);
 
-            // Stamp the active definition version so drift can be detected later
-            $this->stampVersion($entity);
-
             // Create new result with lock info if lock was used
             if ($usedLock) {
                 $result = TransitionResult::success(
@@ -408,12 +395,25 @@ class WorkflowBehavior extends Behavior
         $entityId = (string)$entity->get('id');
 
         $existing = $table->find()
-            ->where([
-                'workflow_name' => $this->getConfig('workflow'),
-                'entity_id' => $entityId,
-                'transition_name' => $transition,
-                'context LIKE' => '%"_idempotency_key":"' . $idempotencyKey . '"%',
-            ])
+            ->where(
+                [
+                    'workflow_name' => $this->getConfig('workflow'),
+                    // Scope to the same entity table too: the same workflow name and
+                    // id could otherwise collide across tables.
+                    'entity_table' => $this->getConfig('entityTable'),
+                    'entity_id' => $entityId,
+                    'transition_name' => $transition,
+                    // Only a previously SUCCESSFUL application counts as a duplicate;
+                    // a prior blocked/locked/error attempt with the same key must not
+                    // prevent a later legitimate retry.
+                    'status' => TransitionLogger::STATUS_SUCCESS,
+                    'context LIKE' => '%"_idempotency_key":"' . $idempotencyKey . '"%',
+                ],
+                // Override the column's json type for this comparison: otherwise the
+                // LIKE pattern is JSON-encoded when bound and never matches the stored
+                // context text.
+                ['context' => 'string'],
+            )
             ->first();
 
         return $existing !== null;
@@ -724,78 +724,6 @@ class WorkflowBehavior extends Behavior
         $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->hasFlag($flag);
-    }
-
-    /**
-     * Stamp the active definition version hash onto the entity when versioning is enabled.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity
-     */
-    protected function stampVersion(EntityInterface $entity): void
-    {
-        if (!$this->getConfig('versioning')) {
-            return;
-        }
-
-        // Don't dirty a column that does not exist yet (e.g. versioning enabled before the
-        // schema migration lands) — that would make every save fail at the SQL layer.
-        if (!$this->versionColumnExists()) {
-            return;
-        }
-
-        $entity->set($this->getConfig('versionField'), $this->getWorkflowDefinition()->getVersionHash());
-    }
-
-    /**
-     * Whether the configured version column exists on the entity table.
-     *
-     * Result is cached for the lifetime of this behavior instance. When the schema cannot
-     * be introspected (e.g. no connection in unit tests), assume present so stamping is
-     * not silently disabled.
-     */
-    protected function versionColumnExists(): bool
-    {
-        if ($this->versionColumnExists !== null) {
-            return $this->versionColumnExists;
-        }
-
-        try {
-            $this->versionColumnExists = $this->_table->getSchema()->hasColumn($this->getConfig('versionField'));
-        } catch (Throwable) {
-            $this->versionColumnExists = true;
-        }
-
-        return $this->versionColumnExists;
-    }
-
-    /**
-     * Get the version stamp currently stored on the entity, or null when unversioned.
-     */
-    public function getVersionStamp(EntityInterface $entity): ?string
-    {
-        $stamp = $entity->get($this->getConfig('versionField'));
-
-        return $stamp === null ? null : (string)$stamp;
-    }
-
-    /**
-     * Whether the entity's version stamp differs from the current definition.
-     *
-     * Returns false when versioning is disabled or the entity is unversioned (null stamp);
-     * unversioned records are reported separately by the tooling and resolved via backfill.
-     */
-    public function isStale(EntityInterface $entity): bool
-    {
-        if (!$this->getConfig('versioning')) {
-            return false;
-        }
-
-        $stamp = $this->getVersionStamp($entity);
-        if ($stamp === null) {
-            return false;
-        }
-
-        return $stamp !== $this->getWorkflowDefinition()->getVersionHash();
     }
 
     /**

@@ -55,7 +55,7 @@ export default withMermaid(defineConfig({
             { text: 'Concepts', link: '/guide/concepts' },
             { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Behavior Integration', link: '/guide/behavior' },
-            { text: 'Versioning & Drift Safety', link: '/guide/versioning' },
+            { text: 'Drift Safety', link: '/guide/versioning' },
           ],
         },
       ],

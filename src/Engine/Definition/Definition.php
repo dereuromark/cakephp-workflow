@@ -231,43 +231,14 @@ final class Definition
         ));
     }
 
-    /**
-     * Structural fingerprint of the definition, used as the authoritative drift signal.
-     *
-     * Covers the version number plus every state and transition attribute (not just the
-     * state graph), so that behavior-only changes — flags, guards, commands, callbacks,
-     * timeouts, colors/labels — or a manual version bump all change the hash.
-     */
     public function getVersionHash(): string
     {
         $data = [
-            'version' => $this->version,
-            'states' => array_map(fn (State $s) => [
-                'name' => $s->getName(),
-                'label' => $s->getLabel(),
-                'color' => $s->getColor(),
-                'initial' => $s->isInitial(),
-                'final' => $s->isFinal(),
-                'failed' => $s->isFailed(),
-                'flags' => $s->getFlags(),
-                'onEnter' => $s->getOnEnter(),
-                'onExit' => $s->getOnExit(),
-                'requireReasonFor' => $s->getRequireReasonFor(),
-                'timeouts' => array_map(
-                    fn (StateTimeout $t) => [$t->getAfter(), $t->getTransition()],
-                    $s->getTimeouts(),
-                ),
-            ], $this->states),
-            'transitions' => array_map(fn (Transition $t) => [
-                'name' => $t->getName(),
-                'from' => $t->getFrom(),
-                'to' => $t->getTo(),
-                'guards' => $t->getGuards(),
-                'commands' => $t->getCommands(),
-                'condition' => $t->getCondition(),
-                'automatic' => $t->isAutomatic(),
-                'happy' => $t->isHappy(),
-            ], $this->transitions),
+            'states' => array_map(fn (State $s) => $s->getName(), $this->states),
+            'transitions' => array_map(
+                fn (Transition $t) => [$t->getName(), $t->getFrom(), $t->getTo()],
+                $this->transitions,
+            ),
         ];
 
         $json = json_encode($data);

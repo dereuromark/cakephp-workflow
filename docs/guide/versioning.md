@@ -1,10 +1,9 @@
-# Versioning & Drift Safety
+# Drift Safety
 
-When you change a workflow definition while records already sit in various
-states, those records can become **orphaned** (their stored state no longer
-exists) or **stale** (their state still exists, but the definition has changed).
-This page explains what the plugin does about that, and the opt-in versioning
-you can enable for production workflows.
+When you change a workflow definition while records already exist, some records
+can be left in a state that no longer exists — they become **orphaned**. This
+page explains what the plugin does about that. It works out of the box: there is
+nothing to enable and no schema to add.
 
 ## Graceful degradation (always on)
 
@@ -27,98 +26,54 @@ This is unconditional and free — it only ever does anything when a record is
 actually in an undefined state.
 :::
 
-## Opt-in version stamping
+## Finding orphaned records
 
-Graceful degradation keeps you running; **versioning** lets you *detect and fix*
-drift deliberately. It is off by default and adds nothing until you enable it.
+Records whose stored state is no longer defined are detected by comparing the
+state against the current definition — no version tracking required.
 
-Enable it on the behavior:
+In the admin UI, the **Orphans** view (`/admin/workflow/orphans`) lists orphaned
+records across all workflows, with a live count badge in the sidebar.
 
-```php
-$this->addBehavior('Workflow.Workflow', [
-    'workflow' => 'order',
-    'versioning' => true,
-    'versionField' => 'workflow_version', // default; nullable string column
-]);
-```
-
-Add the nullable column to your table (the plugin does not own your tables, so
-this is yours to add — exactly like the `state` field):
-
-```php
-// in a migration
-$table->addColumn('workflow_version', 'string', [
-    'limit' => 16,
-    'null' => true,
-    'default' => null,
-]);
-```
-
-With versioning on, the plugin stamps the definition's **structural hash**
-(`Definition::getVersionHash()`) onto each record:
-
-- on every successful transition, and
-- when a new record is first saved (so fresh records are never left unversioned).
-
-The hash is the authoritative drift signal — it changes exactly when states or
-transitions change, even if you forget to bump the human `version` number. (The
-human version integer is still recorded in the transition log.)
-
-You then get:
-
-```php
-$behavior->getVersionStamp($entity); // e.g. '593a40ae' or null (unversioned)
-$behavior->isStale($entity);         // true when the stamp != current definition
-```
-
-`isStale()` returns `false` for unversioned (`null`) records — those are reported
-separately and resolved with a one-time backfill.
-
-## Adopting it on an existing table
+From the CLI:
 
 ```bash
-# 1. Add the nullable column + set versioning => true (see above)
-
-# 2. Backfill existing records with the current version (one-time)
-bin/cake workflow stamp order
-
-# 3. See what drifted at any later point
 bin/cake workflow validate order --check-data
 ```
 
-> [!IMPORTANT]
-> The stamp is **forward-looking from the moment you enable it**. Running
-> `workflow stamp` marks every existing record as the *current* version (v1 for
-> you). History before that point is not reconstructed.
+reports any records sitting in states that no longer exist.
 
-## Reconciling drift
+## Fixing orphaned records
 
-When you change a definition later, move records forward with `workflow migrate`:
+Move orphaned records to a valid state, either interactively in the Orphans view
+or headlessly with the migrate command:
 
 ```bash
-# Re-stamp stale records (state still valid) to the current version,
-# and map orphaned records whose state was removed/renamed:
+# Map each orphaned state to a valid target; refuses to run if any orphaned
+# state is left unmapped, so nothing is silently lost:
 bin/cake workflow migrate order --map old_state:new_state,legacy:pending
 
 # Preview without writing:
 bin/cake workflow migrate order --map legacy:pending --dry-run
 ```
 
-- **Stale** records (valid state, old stamp) are re-stamped — no state change.
-- **Orphaned** records are moved to the mapped target state, re-stamped, and each
-  move is logged as a transition (`_migrate`).
-- The command **refuses to run** if any orphaned state has no mapping, listing
-  the offenders — so nothing is silently lost.
+Each move is logged as a transition (`_migrate`) and, when state timeouts are in
+use, the target state's timeouts are scheduled for the moved record. The batch
+runs in a single transaction, so a failure rolls the whole run back.
 
-::: tip
-For ad-hoc, per-record fixes from the browser, the admin
-[Orphans view](../admin/validation.md) does the same thing interactively.
-:::
+> [!NOTE]
+> The migrate command assumes the audit (`workflow_transitions`) and timeout
+> (`workflow_timeouts`) tables share the entity table's database connection, as
+> the rest of the plugin does. On a single-connection app (the common case) the
+> rollback guarantee holds.
 
-## What this does not do (yet)
+## On workflow versions
 
-This model keeps a **single live definition** per workflow and resolves drift by
-migrating records *forward*. It does not run multiple definition versions
-concurrently (old records executing the old definition while new records use the
-new one). The per-record stamp is the same primitive that capability would build
-on, so adopting versioning now costs nothing toward it.
+A definition carries a `version` number (default `1`) that you bump when making
+breaking changes; it is recorded on every transition in
+`workflow_transitions.workflow_version` for auditing, and shown by
+`bin/cake workflow show`. Records do not carry a per-record version — drift is
+handled by detecting and migrating orphaned records as above, which needs no
+extra column or configuration.
+
+Running multiple definition versions concurrently (old records executing the old
+definition while new records use the new one) is not supported.

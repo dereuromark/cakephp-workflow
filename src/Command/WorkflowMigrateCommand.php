@@ -21,19 +21,18 @@ use Workflow\Service\WorkflowRegistry;
 use Workflow\Service\WorkflowRegistryLocator;
 
 /**
- * Reconcile records with the current definition after a workflow changes.
+ * Move orphaned records forward after a workflow definition changes.
  *
- * - Stale records (valid state, outdated version) are re-stamped to the current hash.
- * - Orphaned records (state no longer defined) are moved to a mapped target state,
- *   re-stamped, and logged as a transition.
+ * Orphaned records are those whose stored state no longer exists in the current
+ * definition. Each is moved to a mapped target state, logged as a transition, and
+ * (when enabled) has its timeouts resynced. The command refuses to run when any
+ * orphaned state has no mapping, so no record is left behind or silently lost.
  *
- * Refuses to run when any orphaned state has no mapping, so no record is left behind
- * or silently lost.
+ * The headless counterpart to the admin Orphans view.
  */
 class WorkflowMigrateCommand extends Command
 {
     use LocatorAwareTrait;
-    use VersionFieldOptionTrait;
 
     public static function defaultName(): string
     {
@@ -43,14 +42,10 @@ class WorkflowMigrateCommand extends Command
     protected function buildOptionParser(ConsoleOptionParser $parser): ConsoleOptionParser
     {
         $parser
-            ->setDescription('Migrate records forward to the current workflow definition.')
+            ->setDescription('Move orphaned records forward to valid states after a definition change.')
             ->addArgument('name', [
                 'help' => 'Workflow name',
                 'required' => true,
-            ])
-            ->addOption('version-field', [
-                'help' => 'Entity column holding the version stamp '
-                    . '(defaults to the behavior\'s configured field, else workflow_version)',
             ])
             ->addOption('map', [
                 'help' => 'Comma-separated old:new state mappings for orphaned records, '
@@ -77,7 +72,6 @@ class WorkflowMigrateCommand extends Command
         }
 
         $definition = $registry->getWorkflow($name);
-        $hash = $definition->getVersionHash();
 
         try {
             $table = $this->fetchTable($definition->getTable());
@@ -87,22 +81,10 @@ class WorkflowMigrateCommand extends Command
             return self::CODE_ERROR;
         }
 
-        $versionField = $this->resolveVersionField($args, $table);
-
-        if (!$table->getSchema()->hasColumn($versionField)) {
-            $io->error(
-                "Column '{$versionField}' does not exist on table '{$definition->getTable()}'. "
-                . 'Add a nullable string column or pass --version-field.',
-            );
-
-            return self::CODE_ERROR;
-        }
-
         $field = $definition->getField();
         $validStates = array_map(fn ($s) => $s->getName(), $definition->getStates());
         $map = $this->parseMap((string)$args->getOption('map'));
 
-        // Validate mapping targets up front.
         foreach ($map as $old => $new) {
             if (!in_array($new, $validStates, true)) {
                 $io->error("Mapping target '{$new}' is not a defined state in workflow '{$name}'.");
@@ -112,6 +94,11 @@ class WorkflowMigrateCommand extends Command
         }
 
         $orphanStates = $this->findOrphanStates($table, $field, $validStates);
+        if (!$orphanStates) {
+            $io->success('No orphaned records found.');
+
+            return self::CODE_SUCCESS;
+        }
 
         $unmapped = array_values(array_filter($orphanStates, fn ($state) => !isset($map[$state])));
         if ($unmapped) {
@@ -121,15 +108,7 @@ class WorkflowMigrateCommand extends Command
             return self::CODE_ERROR;
         }
 
-        $staleConditions = [
-            $field . ' IN' => $validStates,
-            $versionField . ' IS NOT' => null,
-            $versionField . ' !=' => $hash,
-        ];
-        $staleCount = $table->find()->where($staleConditions)->count();
-
         if ($args->getOption('dry-run')) {
-            $io->out(sprintf('[dry-run] Would re-stamp %d stale record(s).', $staleCount));
             foreach ($orphanStates as $state) {
                 $count = $table->find()->where([$field => $state])->count();
                 $io->out(sprintf("[dry-run] Would migrate %d record(s) from '%s' to '%s'.", $count, $state, $map[$state]));
@@ -138,28 +117,17 @@ class WorkflowMigrateCommand extends Command
             return self::CODE_SUCCESS;
         }
 
-        // Apply re-stamping and migrations atomically: if any audit-log write fails,
-        // the whole batch rolls back so no record is changed without its log entry.
+        // Apply migrations atomically: if any audit-log write fails, the whole batch
+        // rolls back so no record is changed without its log entry. This assumes the
+        // audit/timeout tables share the entity table's connection, as elsewhere in
+        // the plugin (TransitionLogger / TimeoutScheduler).
         $syncTimeouts = $this->timeoutsEnabled($table);
         $migrated = [];
         try {
             $table->getConnection()->transactional(
-                function () use ($table, $definition, $field, $versionField, $hash, $staleConditions, $staleCount, $orphanStates, $map, $syncTimeouts, &$migrated): void {
-                    if ($staleCount > 0) {
-                        $table->updateAll([$versionField => $hash], $staleConditions);
-                    }
-
+                function () use ($table, $definition, $field, $orphanStates, $map, $syncTimeouts, &$migrated): void {
                     foreach ($orphanStates as $state) {
-                        $migrated[$state] = $this->migrateState(
-                            $table,
-                            $definition,
-                            $field,
-                            $versionField,
-                            $hash,
-                            $state,
-                            $map[$state],
-                            $syncTimeouts,
-                        );
+                        $migrated[$state] = $this->migrateState($table, $definition, $field, $state, $map[$state], $syncTimeouts);
                     }
                 },
             );
@@ -169,9 +137,6 @@ class WorkflowMigrateCommand extends Command
             return self::CODE_ERROR;
         }
 
-        if ($staleCount > 0) {
-            $io->success(sprintf('Re-stamped %d stale record(s).', $staleCount));
-        }
         foreach ($migrated as $state => $count) {
             $io->success(sprintf("Migrated %d record(s) from '%s' to '%s'.", $count, $state, $map[$state]));
         }
@@ -180,8 +145,8 @@ class WorkflowMigrateCommand extends Command
     }
 
     /**
-     * Move every record in $oldState to $newState, re-stamp it, log a transition, and
-     * (when enabled) resync the target state's timeouts.
+     * Move every record in $oldState to $newState, log a transition, and (when enabled)
+     * resync the target state's timeouts.
      *
      * @return int Number of records migrated
      */
@@ -189,21 +154,19 @@ class WorkflowMigrateCommand extends Command
         Table $table,
         Definition $definition,
         string $field,
-        string $versionField,
-        string $hash,
         string $oldState,
         string $newState,
         bool $syncTimeouts,
     ): int {
-        // Only the id is needed for logging and timeout syncing; selecting just that column
-        // keeps memory bounded. The id convention matches TransitionLogger / TimeoutScheduler.
+        // Only the id is needed for logging and timeout syncing; selecting just that
+        // column keeps memory bounded. The id convention matches the rest of the plugin.
         /** @var array<\Cake\Datasource\EntityInterface> $entities */
         $entities = $table->find()->select(['id'])->where([$field => $oldState])->toArray();
         if (!$entities) {
             return 0;
         }
 
-        $table->updateAll([$field => $newState, $versionField => $hash], [$field => $oldState]);
+        $table->updateAll([$field => $newState], [$field => $oldState]);
 
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
         $newStateObj = $definition->getState($newState);
@@ -220,9 +183,8 @@ class WorkflowMigrateCommand extends Command
                 'from_state' => $oldState,
                 'to_state' => $newState,
                 'status' => TransitionLogger::STATUS_SUCCESS,
-                'reason' => 'Version migration',
-                'context' => ['type' => 'version_migration'],
-                // Audit column holds the human workflow version, like normal transitions.
+                'reason' => 'Orphan migration',
+                'context' => ['type' => 'orphan_migration'],
                 'workflow_version' => (string)$definition->getVersion(),
             ]);
             $transitionsTable->saveOrFail($log);
@@ -270,6 +232,7 @@ class WorkflowMigrateCommand extends Command
             ->select([$field])
             ->distinct([$field])
             ->whereNotInList($field, $validStates)
+            ->all()
             ->toArray();
 
         $states = [];

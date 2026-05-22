@@ -39,63 +39,54 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
         parent::tearDown();
     }
 
-    public function testMigrateReStampsStaleRecords(): void
-    {
-        $this->insertOrder('paid', 'outdated');
-        $hash = $this->definition->getVersionHash();
-
-        $this->exec('workflow migrate order');
-
-        $this->assertExitSuccess();
-        $versions = $this->orderVersionsByState();
-        $this->assertSame($hash, $versions['paid']);
-    }
-
     public function testMigrateMapsOrphanedRecordsAndLogsTransition(): void
     {
-        $this->insertOrder('legacy', 'outdated');
-        $hash = $this->definition->getVersionHash();
+        $this->insertOrder('legacy');
 
         $this->exec('workflow migrate order --map legacy:pending');
 
         $this->assertExitSuccess();
-        $versions = $this->orderVersionsByState();
-        $this->assertArrayHasKey('pending', $versions);
-        $this->assertArrayNotHasKey('legacy', $versions);
-        $this->assertSame($hash, $versions['pending']);
+        $states = $this->orderStates();
+        $this->assertContains('pending', $states);
+        $this->assertNotContains('legacy', $states);
 
         $logRow = ConnectionManager::get('test')
             ->execute("SELECT COUNT(*) AS c, MAX(workflow_version) AS v FROM workflow_transitions WHERE from_state = 'legacy' AND to_state = 'pending'")
             ->fetch('assoc');
         $this->assertSame(1, (int)$logRow['c']);
-        // The audit column stores the human workflow version, consistent with normal transitions.
+        // The audit column holds the human workflow version, like normal transitions.
         $this->assertSame((string)$this->definition->getVersion(), $logRow['v']);
+    }
+
+    public function testMigrateReportsNoOrphans(): void
+    {
+        $this->insertOrder('pending');
+
+        $this->exec('workflow migrate order');
+
+        $this->assertExitSuccess();
+        $this->assertOutputContains('No orphaned records');
     }
 
     public function testMigrateRefusesWhenOrphanedStateUnmapped(): void
     {
-        $this->insertOrder('legacy', 'outdated');
+        $this->insertOrder('legacy');
 
         $this->exec('workflow migrate order');
 
         $this->assertExitError();
         $this->assertErrorContains('legacy');
-        // No change made
-        $versions = $this->orderVersionsByState();
-        $this->assertArrayHasKey('legacy', $versions);
-        $this->assertSame('outdated', $versions['legacy']);
+        $this->assertContains('legacy', $this->orderStates());
     }
 
     public function testMigrateDryRunMakesNoChanges(): void
     {
-        $this->insertOrder('legacy', 'outdated');
+        $this->insertOrder('legacy');
 
         $this->exec('workflow migrate order --map legacy:pending --dry-run');
 
         $this->assertExitSuccess();
-        $versions = $this->orderVersionsByState();
-        $this->assertArrayHasKey('legacy', $versions);
-        $this->assertSame('outdated', $versions['legacy']);
+        $this->assertContains('legacy', $this->orderStates());
     }
 
     public function testMigrateSchedulesTimeoutsForTargetState(): void
@@ -120,8 +111,8 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
         );
 
         ConnectionManager::get('test')->execute(
-            'INSERT INTO orders (id, state, workflow_version) VALUES (?, ?, ?)',
-            [1, 'legacy', 'outdated'],
+            'INSERT INTO orders (id, state) VALUES (?, ?)',
+            [1, 'legacy'],
         );
 
         $this->exec('workflow migrate order --map legacy:pending');
@@ -135,7 +126,7 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
 
     public function testMigrateAbortsAndRollsBackWhenAuditLogFails(): void
     {
-        $this->insertOrder('legacy', 'outdated');
+        $this->insertOrder('legacy');
         // Force audit-log writes to fail so the migration must roll back.
         ConnectionManager::get('test')->execute('DROP TABLE workflow_transitions');
 
@@ -143,10 +134,9 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
             $this->exec('workflow migrate order --map legacy:pending');
 
             $this->assertExitError();
-            $versions = $this->orderVersionsByState();
-            $this->assertArrayHasKey('legacy', $versions);
-            $this->assertSame('outdated', $versions['legacy']);
-            $this->assertArrayNotHasKey('pending', $versions);
+            $states = $this->orderStates();
+            $this->assertContains('legacy', $states);
+            $this->assertNotContains('pending', $states);
         } finally {
             $this->recreateTransitionsTable();
         }
@@ -217,28 +207,23 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
         };
     }
 
-    private function insertOrder(string $state, ?string $version): void
+    private function insertOrder(string $state): void
     {
         ConnectionManager::get('test')->execute(
-            'INSERT INTO orders (state, workflow_version) VALUES (?, ?)',
-            [$state, $version],
+            'INSERT INTO orders (state) VALUES (?)',
+            [$state],
         );
     }
 
     /**
-     * @return array<string, string|null>
+     * @return array<string>
      */
-    private function orderVersionsByState(): array
+    private function orderStates(): array
     {
         $rows = ConnectionManager::get('test')
-            ->execute('SELECT state, workflow_version FROM orders')
+            ->execute('SELECT state FROM orders')
             ->fetchAll('assoc');
 
-        $byState = [];
-        foreach ($rows as $row) {
-            $byState[$row['state']] = $row['workflow_version'];
-        }
-
-        return $byState;
+        return array_map(fn ($row) => $row['state'], $rows);
     }
 }

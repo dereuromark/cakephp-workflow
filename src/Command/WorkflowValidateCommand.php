@@ -127,10 +127,6 @@ class WorkflowValidateCommand extends Command
                     $workflowHasErrors = true;
                     $hasErrors = true;
                 }
-
-                if ($this->reportVersionDrift($definition, $io)) {
-                    $workflowHasErrors = true;
-                }
             }
 
             if (!$workflowHasErrors) {
@@ -291,61 +287,6 @@ class WorkflowValidateCommand extends Command
         }
 
         return $obsolete;
-    }
-
-    /**
-     * Report version drift (unversioned / stale records) when versioning is enabled.
-     *
-     * Only reports when the table actually has the Workflow behavior with versioning
-     * turned on and the version column is present — so a staged rollout (column added
-     * before the config is flipped) does not flag every row prematurely.
-     *
-     * Advisory: surfaces warnings and suppresses the "No issues found" message, but does
-     * not affect the exit code.
-     *
-     * @return bool True when drift was reported
-     */
-    private function reportVersionDrift(Definition $definition, ConsoleIo $io): bool
-    {
-        try {
-            $table = $this->fetchTable($definition->getTable());
-        } catch (Exception $e) {
-            return false;
-        }
-
-        if (!$table->hasBehavior('Workflow')) {
-            return false;
-        }
-
-        $behavior = $table->behaviors()->get('Workflow');
-        if (!$behavior->getConfig('versioning')) {
-            return false;
-        }
-
-        $versionField = (string)$behavior->getConfig('versionField');
-        if (!$table->getSchema()->hasColumn($versionField)) {
-            return false;
-        }
-
-        $field = $definition->getField();
-        $hash = $definition->getVersionHash();
-        $validStates = array_map(fn ($s) => $s->getName(), $definition->getStates());
-
-        $unversioned = $table->find()->where([$versionField . ' IS' => null])->count();
-        $stale = $table->find()->where([
-            $field . ' IN' => $validStates,
-            $versionField . ' IS NOT' => null,
-            $versionField . ' !=' => $hash,
-        ])->count();
-
-        if ($unversioned > 0) {
-            $io->warning("  {$unversioned} unversioned record(s) found. Run 'workflow stamp {$definition->getName()}'.");
-        }
-        if ($stale > 0) {
-            $io->warning("  {$stale} stale record(s) on an older version. Run 'workflow migrate {$definition->getName()}'.");
-        }
-
-        return $unversioned > 0 || $stale > 0;
     }
 
     private function getRegistry(): WorkflowRegistry

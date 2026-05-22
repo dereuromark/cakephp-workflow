@@ -187,51 +187,6 @@ class DefinitionTest extends TestCase
         $this->assertSame($hash, $definition2->getVersionHash());
     }
 
-    public function testGetVersionHashChangesWhenStateFlagChanges(): void
-    {
-        $base = $this->definition->getVersionHash();
-
-        $changed = new Definition(
-            name: 'order',
-            table: 'Orders',
-            field: 'state',
-            states: [
-                new State('pending', initial: true, flags: ['urgent']),
-                new State('paid'),
-                new State('completed', final: true),
-            ],
-            transitions: [
-                new Transition('pay', ['pending'], 'paid'),
-                new Transition('complete', ['paid'], 'completed'),
-            ],
-        );
-
-        $this->assertNotSame($base, $changed->getVersionHash());
-    }
-
-    public function testGetVersionHashChangesWhenVersionNumberChanges(): void
-    {
-        $base = $this->definition->getVersionHash();
-
-        $v2 = new Definition(
-            name: 'order',
-            table: 'Orders',
-            field: 'state',
-            states: [
-                new State('pending', initial: true),
-                new State('paid'),
-                new State('completed', final: true),
-            ],
-            transitions: [
-                new Transition('pay', ['pending'], 'paid'),
-                new Transition('complete', ['paid'], 'completed'),
-            ],
-            version: 2,
-        );
-
-        $this->assertNotSame($base, $v2->getVersionHash());
-    }
-
     public function testGetStatesWithFlag(): void
     {
         $definition = new Definition(

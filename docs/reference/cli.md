@@ -53,32 +53,18 @@ flowchart TD
 ### `workflow validate`
 
 Validate one or more workflows and surface analyzer findings. With `--check-data`
-it also reports records in obsolete states and, when versioning is enabled,
-unversioned and stale records.
+it also reports records sitting in states that no longer exist (orphaned records).
 
 ```bash
 bin/cake workflow validate
 bin/cake workflow validate order --check-data
 ```
 
-### `workflow stamp`
-
-Backfill the current definition version hash onto existing records. Run once when
-enabling versioning on a table that already holds data. Stamps unversioned (NULL)
-records by default; use `--all` to re-stamp every record.
-
-```bash
-bin/cake workflow stamp order
-bin/cake workflow stamp order --all
-bin/cake workflow stamp order --dry-run
-```
-
 ### `workflow migrate`
 
-Move records forward to the current definition: re-stamp stale records and map
-orphaned records (whose state was removed/renamed) to a valid state. Refuses to
-run if any orphaned state lacks a mapping. See
-[Versioning & Drift Safety](../guide/versioning.md).
+Move orphaned records (whose state was removed/renamed) forward to a valid state.
+Refuses to run if any orphaned state lacks a mapping; runs atomically and logs
+each move. See [Drift Safety](../guide/versioning.md).
 
 ```bash
 bin/cake workflow migrate order --map old_state:new_state,legacy:pending

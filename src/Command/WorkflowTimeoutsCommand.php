@@ -106,13 +106,37 @@ class WorkflowTimeoutsCommand extends Command
                     continue;
                 }
 
-                // Apply the transition with transaction wrapping
-                $engine = $registry->getEngine($timeout->workflow_name);
-                $connection = $entityTable->getConnection();
                 $context = [
                     'triggered_by' => 'timeout',
                     'timeout_id' => $timeout->id,
                 ];
+
+                // Prefer the behaviour so the transition goes through applyTransition():
+                // it sets the internal marker (so beforeSave's "no direct state change"
+                // guard does not reject the save) and handles save + log + lock + timeout
+                // sync consistently. Without this, the raw engine + saveOrFail below is
+                // rejected by the behaviour's beforeSave on any entity table that uses it.
+                if ($entityTable->hasBehavior('Workflow')) {
+                    /** @var \Workflow\Model\Behavior\WorkflowBehavior $behavior */
+                    $behavior = $entityTable->getBehavior('Workflow');
+                    $result = $behavior->transition($entity, $timeout->transition_name, $context);
+
+                    if ($result->isSuccess()) {
+                        $timeout->processed = true;
+                        $timeoutsTable->saveOrFail($timeout);
+                        $processed++;
+                        $io->success('  Transition applied and logged successfully.');
+                    } else {
+                        $io->warning('  Transition blocked: ' . json_encode($result->getBlockedBy()));
+                        $errors++;
+                    }
+
+                    continue;
+                }
+
+                // Fallback: entity table without the Workflow behaviour (no beforeSave guard).
+                $engine = $registry->getEngine($timeout->workflow_name);
+                $connection = $entityTable->getConnection();
                 $result = null;
 
                 $success = $connection->transactional(function () use (

@@ -87,6 +87,19 @@ class WorkflowApplyCommandTest extends DatabaseTestCase
         $this->assertErrorContains('not found');
     }
 
+    public function testApplyBlockedTransitionExitsWithError(): void
+    {
+        $order = $this->orders->newEntity(['state' => 'pending']);
+        $this->orders->saveOrFail($order);
+
+        // 'refund' is not a defined transition, so the engine returns a blocked result.
+        $this->exec(sprintf('workflow apply order %s refund', $order->get('id')));
+
+        $this->assertExitError();
+        $this->assertErrorContains('Blocked');
+        $this->assertSame('pending', $this->orders->get($order->get('id'))->get('state'));
+    }
+
     public function testApplyRejectsTableWithDifferentWorkflowBehavior(): void
     {
         $order = $this->orders->newEntity(['state' => 'pending']);

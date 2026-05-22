@@ -12,6 +12,7 @@ use Cake\Core\Configure;
 use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use RuntimeException;
+use Throwable;
 use Workflow\Service\WorkflowRegistry;
 use Workflow\Service\WorkflowRegistryLocator;
 
@@ -112,7 +113,15 @@ class WorkflowApplyCommand extends Command
             return $allowed ? self::CODE_SUCCESS : self::CODE_ERROR;
         }
 
-        $result = $behavior->transition($entity, $transition, $context);
+        try {
+            $result = $behavior->transition($entity, $transition, $context);
+        } catch (Throwable $e) {
+            // Persistence failures, misconfigured guards/commands, DB errors etc. should
+            // surface as a controlled non-zero exit, not an uncaught stack trace.
+            $io->error('Error: ' . $e->getMessage());
+
+            return self::CODE_ERROR;
+        }
 
         if ($result->isSuccess()) {
             $io->success(sprintf('%s #%s: %s -> %s (%s).', $workflow, $id, $from, $result->getToState(), $transition));

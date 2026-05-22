@@ -195,13 +195,10 @@ class WorkflowMigrateCommand extends Command
         string $newState,
         bool $syncTimeouts,
     ): int {
-        $primaryKey = $table->getPrimaryKey();
-        if (is_array($primaryKey)) {
-            $primaryKey = $primaryKey[0];
-        }
-
+        // Only the id is needed for logging and timeout syncing; selecting just that column
+        // keeps memory bounded. The id convention matches TransitionLogger / TimeoutScheduler.
         /** @var array<\Cake\Datasource\EntityInterface> $entities */
-        $entities = $table->find()->where([$field => $oldState])->toArray();
+        $entities = $table->find()->select(['id'])->where([$field => $oldState])->toArray();
         if (!$entities) {
             return 0;
         }
@@ -213,7 +210,7 @@ class WorkflowMigrateCommand extends Command
         $scheduler = $syncTimeouts ? new TimeoutScheduler() : null;
 
         foreach ($entities as $entity) {
-            $id = (string)$entity->get($primaryKey);
+            $id = (string)$entity->get('id');
 
             $log = $transitionsTable->newEntity([
                 'workflow_name' => $definition->getName(),

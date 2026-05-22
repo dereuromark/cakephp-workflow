@@ -10,7 +10,7 @@ use Cake\ORM\Entity;
  * @property int $id
  * @property string $workflow_name
  * @property string $entity_table
- * @property string $entity_id
+ * @property int|string $entity_id
  * @property string $current_state
  * @property string $transition_name
  * @property \Cake\I18n\DateTime $due_at

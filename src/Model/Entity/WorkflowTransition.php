@@ -14,7 +14,7 @@ use Workflow\Service\TransitionLogger;
  * @property int $id
  * @property string $workflow_name
  * @property string $entity_table
- * @property string $entity_id
+ * @property int|string $entity_id
  * @property string $transition_name
  * @property string $from_state
  * @property string $to_state

@@ -152,7 +152,7 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 workflow_name VARCHAR(64) NOT NULL,
                 entity_table VARCHAR(128) NOT NULL,
-                entity_id VARCHAR(36) NOT NULL,
+                entity_id BIGINT NOT NULL,
                 transition_name VARCHAR(64) NOT NULL,
                 from_state VARCHAR(64) NOT NULL,
                 to_state VARCHAR(64) NOT NULL,

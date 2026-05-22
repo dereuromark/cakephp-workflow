@@ -7,6 +7,7 @@ namespace Workflow\Test\TestCase\Loader;
 use Cake\Event\EventManager;
 use Cake\ORM\Entity;
 use Cake\TestSuite\TestCase;
+use Workflow\Exception\WorkflowException;
 use Workflow\Loader\AttributeLoader;
 use Workflow\Service\WorkflowRegistry;
 
@@ -63,5 +64,29 @@ class AttributeAutoTransitionTest extends TestCase
         $this->assertTrue($result->isSuccess());
         // Condition false -> stays in review.
         $this->assertSame('review', $entity->get('state'));
+    }
+
+    public function testDuplicateConditionOnSameStateThrows(): void
+    {
+        $loader = new AttributeLoader(
+            ['TestApp\\ConflictWorkflow\\Dup'],
+            ['TestApp\\' => TESTS . 'test_app' . DS . 'src' . DS],
+        );
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage('only one condition');
+        $loader->load('dup_condition');
+    }
+
+    public function testConflictingConditionsAcrossStatesThrows(): void
+    {
+        $loader = new AttributeLoader(
+            ['TestApp\\ConflictWorkflow\\Cross'],
+            ['TestApp\\' => TESTS . 'test_app' . DS . 'src' . DS],
+        );
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage('conflicting');
+        $loader->load('cross_condition');
     }
 }

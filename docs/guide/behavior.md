@@ -237,6 +237,58 @@ For existing entities:
 
 - state changes must go through `applyTransition()`
 
+## Convenience Traits
+
+Two optional traits give you statically-typed, discoverable access without reaching
+through `getBehavior('Workflow')`.
+
+Add `WorkflowTableTrait` to a table that has the behavior:
+
+```php
+use Cake\ORM\Table;
+use Workflow\Model\Table\WorkflowTableTrait;
+
+class OrdersTable extends Table
+{
+    use WorkflowTableTrait;
+
+    public function initialize(array $config): void
+    {
+        parent::initialize($config);
+        $this->addBehavior('Workflow.Workflow', ['workflow' => 'order']);
+    }
+}
+```
+
+```php
+$this->Orders->transition($order, 'pay', ['user_id' => $userId]); // save + log (+ lock when enabled)
+$this->Orders->canTransition($order, 'pay');
+$this->Orders->availableTransitions($order);
+$this->Orders->currentState($order);
+```
+
+Add `WorkflowTrait` to the entity for read-only inspection helpers (mutating
+transitions stay on the table):
+
+```php
+use Cake\ORM\Entity;
+use Workflow\Model\Entity\WorkflowTrait;
+
+class Order extends Entity
+{
+    use WorkflowTrait;
+}
+```
+
+```php
+$order->currentState();              // 'pending'
+$order->canTransition('pay');        // true
+$order->availableTransitions();      // ['pay']
+$order->isInState('pending');        // true
+$order->isFinalState();              // false
+$order->hasStateFlag('done');        // false
+```
+
 ## Next Steps
 
 - [Definitions](/definitions/) - Define workflows with attributes or config files

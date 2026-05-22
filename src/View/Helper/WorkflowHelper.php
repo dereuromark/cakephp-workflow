@@ -25,12 +25,12 @@ class WorkflowHelper extends Helper
      *
      * ```php
      * echo $this->Workflow->panel($definition, $order, $this->Orders->availableTransitions($order), [
-     *     'url' => ['action' => 'transition', $order->id],
+     *     'url' => ['action' => 'transition'],
      * ]);
      * ```
      *
-     * The buttons POST `transition` (and the entity id) to the given `url`, ready
-     * to be handled by `WorkflowComponent::handleTransition()`.
+     * The entity id and transition name are appended to `url` automatically, and the
+     * `transition` is also POSTed, ready for `WorkflowComponent::handleTransition()`.
      *
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param \Cake\Datasource\EntityInterface $entity

@@ -119,11 +119,12 @@ available transition — the whole status widget in one call:
 
 ```php
 <?= $this->Workflow->panel($definition, $order, $availableTransitions, [
-    'url' => ['controller' => 'Orders', 'action' => 'transition', $order->id],
+    'url' => ['controller' => 'Orders', 'action' => 'transition'],
 ]) ?>
 ```
 
-Each button POSTs `transition` (and the entity id) to the given URL, ready to be
+The entity id and transition name are appended to the URL automatically (e.g.
+`/orders/transition/42/pay`), and each button POSTs `transition`, ready to be
 handled by [`WorkflowComponent::handleTransition()`](/integration/component):
 
 ```php

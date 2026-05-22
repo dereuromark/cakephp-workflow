@@ -21,9 +21,9 @@ class WorkflowHelperTest extends TestCase
 
     protected function setUp(): void
     {
-        Router::createRouteBuilder('/')->connect('/{controller}/{action}/*');
-
         parent::setUp();
+        Router::reload();
+        Router::createRouteBuilder('/')->connect('/{controller}/{action}/*');
         $this->helper = new WorkflowHelper(new View());
         $this->definition = new Definition(
             name: 'order',
@@ -37,6 +37,12 @@ class WorkflowHelperTest extends TestCase
                 new Transition('pay', ['pending'], 'paid'),
             ],
         );
+    }
+
+    protected function tearDown(): void
+    {
+        Router::reload();
+        parent::tearDown();
     }
 
     public function testStateBadgeRendersKnownState(): void
@@ -73,6 +79,9 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('<form', $panel);
         $this->assertStringContainsString('Pay', $panel);
         $this->assertStringContainsString('data-transition="pay"', $panel);
+        // The POST carries the transition name and targets the entity id.
+        $this->assertMatchesRegularExpression('/name="transition"[^>]*value="pay"/', $panel);
+        $this->assertStringContainsString('/Orders/transition/7/pay', $panel);
     }
 
     public function testPanelWithoutTransitionsRendersBadgeOnly(): void

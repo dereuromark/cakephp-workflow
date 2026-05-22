@@ -8,6 +8,7 @@ use ArrayObject;
 use Cake\Core\Configure;
 use Cake\Datasource\EntityInterface;
 use Cake\Event\EventInterface;
+use Cake\I18n\DateTime;
 use Cake\ORM\Behavior;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Cake\ORM\Query\SelectQuery;
@@ -44,6 +45,9 @@ class WorkflowBehavior extends Behavior
         'autoLog' => false,
         'logAllOutcomes' => true, // When true, also log blocked/error transitions for audit trail
         'entityTable' => null, // Auto-detected if not set
+        // Column stamped with the current time on every state change. Auto-applied
+        // only when the table actually has this column; set to null/false to disable.
+        'stateTimestampField' => 'state_changed_at',
         'useLocking' => null, // null=auto-detect, true=force on, false=force off
         'useTimeouts' => null, // null=auto-detect, true=force on, false=force off
         'useTransaction' => true, // Wrap transition+save+log in database transaction
@@ -344,6 +348,8 @@ class WorkflowBehavior extends Behavior
             // Mark the entity so beforeSave knows this change came through the workflow
             $entity->set(self::TRANSITION_MARKER, true);
 
+            $this->stampStateChangedAt($entity, $result);
+
             // Create new result with lock info if lock was used
             if ($usedLock) {
                 $result = TransitionResult::success(
@@ -375,6 +381,27 @@ class WorkflowBehavior extends Behavior
         }
 
         return $result;
+    }
+
+    /**
+     * Stamp the configured timestamp column with the current time on a real state
+     * change. No-op when the column is disabled or absent from the table.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param \Workflow\Engine\TransitionResult $result
+     */
+    private function stampStateChangedAt(EntityInterface $entity, TransitionResult $result): void
+    {
+        $field = $this->getConfig('stateTimestampField');
+        if (!$field || $result->getToState() === $result->getFromState()) {
+            return;
+        }
+
+        if (!$this->_table->getSchema()->hasColumn($field)) {
+            return;
+        }
+
+        $entity->set($field, DateTime::now());
     }
 
     /**

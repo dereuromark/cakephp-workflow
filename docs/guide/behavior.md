@@ -75,7 +75,33 @@ $this->addBehavior('Workflow.Workflow', [
 | `autoLog` | bool | `false` | Log transitions to `workflow_transitions` table |
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
 | `entityTable` | string | `null` | Entity table name (defaults to table name) |
-| `useLocking` | bool | `false` | Use pessimistic locking for transitions |
+| `stateTimestampField` | string\|null | `state_changed_at` | Column stamped with the current time on each state change (auto-applied only if the column exists; `null` disables) |
+| `useLocking` | bool\|null | `null` | Pessimistic locking for transitions (`null` = auto-detect from the lock table) |
+
+## Time in State
+
+If the table has a `state_changed_at` column, the behavior stamps it with the current
+time on every state change — no configuration needed. This makes aging/SLA queries
+trivial:
+
+```php
+// Orders sitting in their current state for more than 3 days
+$stale = $this->Orders->find()
+    ->where(['state_changed_at <' => new \Cake\I18n\DateTime('-3 days')])
+    ->all();
+```
+
+Add the column with a migration:
+
+```php
+$this->table('orders')->addColumn('state_changed_at', 'datetime', [
+    'null' => true,
+    'default' => null,
+])->addIndex(['state_changed_at'])->update();
+```
+
+Use a different column name via `'stateTimestampField' => 'entered_state_at'`, or set it
+to `null` to disable. The stamp is only written when the state actually changes.
 
 ## Audit Logging
 

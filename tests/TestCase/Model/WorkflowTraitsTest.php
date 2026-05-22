@@ -9,10 +9,12 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Event\EventManager;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use TestApp\Model\Entity\TraitOrder;
 use TestApp\Model\Table\TraitOrdersTable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
+use Workflow\Exception\WorkflowException;
 use Workflow\Loader\LoaderInterface;
 use Workflow\Service\WorkflowRegistry;
 use Workflow\Test\TestCase\DatabaseTestCase;
@@ -83,6 +85,13 @@ class WorkflowTraitsTest extends DatabaseTestCase
         $this->assertSame('paid', $order->currentState());
         $this->assertTrue($order->isFinalState());
         $this->assertFalse($order->canTransition('pay'));
+    }
+
+    public function testEntityTraitThrowsWhenNoSourceTable(): void
+    {
+        $this->expectException(WorkflowException::class);
+
+        (new TraitOrder())->currentState();
     }
 
     private function createRegistry(): WorkflowRegistry

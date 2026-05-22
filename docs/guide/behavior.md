@@ -261,7 +261,7 @@ class OrdersTable extends Table
 ```
 
 ```php
-$this->Orders->transition($order, 'pay', ['user_id' => $userId]); // save + log + lock
+$this->Orders->transition($order, 'pay', ['user_id' => $userId]); // save + log (+ lock when enabled)
 $this->Orders->canTransition($order, 'pay');
 $this->Orders->availableTransitions($order);
 $this->Orders->currentState($order);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Model\Entity;
 
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Workflow\Exception\WorkflowException;
 use Workflow\Model\Behavior\WorkflowBehavior;
 
 /**
@@ -75,10 +76,20 @@ trait WorkflowTrait
 
     /**
      * Resolve the Workflow behavior from this entity's source table.
+     *
+     * @throws \Workflow\Exception\WorkflowException When the entity has no source
+     *   table set (e.g. created with `new Entity()` outside the ORM).
      */
     protected function workflowBehavior(): WorkflowBehavior
     {
-        $table = $this->fetchTable($this->getSource());
+        $source = $this->getSource();
+        if ($source === '') {
+            throw new WorkflowException(
+                'Cannot resolve the workflow behavior: this entity has no source table set.',
+            );
+        }
+
+        $table = $this->fetchTable($source);
         /** @var \Workflow\Model\Behavior\WorkflowBehavior $behavior */
         $behavior = $table->getBehavior('Workflow');
 

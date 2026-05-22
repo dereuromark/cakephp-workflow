@@ -49,7 +49,8 @@ trait WorkflowTableTrait
     }
 
     /**
-     * Apply a transition without the high-level save/log/lock defaults.
+     * Apply a transition without transition()'s orchestrated save + log. Locking
+     * still applies when it is enabled for the behavior.
      *
      * @param \Cake\Datasource\EntityInterface $entity
      * @param string $transition

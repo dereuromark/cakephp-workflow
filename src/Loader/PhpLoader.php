@@ -6,6 +6,7 @@ namespace Workflow\Loader;
 
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\StateTimeout;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Exception\WorkflowException;
 
@@ -141,8 +142,8 @@ class PhpLoader implements LoaderInterface
             field: $data['field'] ?? 'state',
             states: $states,
             transitions: $transitions,
-            label: isset($metadata['label']) ? (string)$metadata['label'] : null,
-            description: isset($metadata['description']) ? (string)$metadata['description'] : null,
+            label: isset($metadata['label']) && is_string($metadata['label']) ? $metadata['label'] : null,
+            description: isset($metadata['description']) && is_string($metadata['description']) ? $metadata['description'] : null,
             version: (int)($data['version'] ?? 1),
         );
     }
@@ -155,8 +156,8 @@ class PhpLoader implements LoaderInterface
     {
         return new State(
             name: $name,
-            label: isset($data['label']) ? (string)$data['label'] : null,
-            color: isset($data['color']) ? (string)$data['color'] : null,
+            label: isset($data['label']) && is_string($data['label']) ? $data['label'] : null,
+            color: isset($data['color']) && is_string($data['color']) ? $data['color'] : null,
             initial: (bool)($data['initial'] ?? false),
             final: (bool)($data['final'] ?? false),
             failed: (bool)($data['failed'] ?? false),
@@ -164,7 +165,37 @@ class PhpLoader implements LoaderInterface
             onEnter: $this->toStringList($data['onEnter'] ?? []),
             onExit: $this->toStringList($data['onExit'] ?? []),
             requireReasonFor: $this->toStringList($data['requireReasonFor'] ?? []),
+            timeouts: $this->buildTimeouts(isset($data['timeouts']) && is_array($data['timeouts']) ? $data['timeouts'] : []),
         );
+    }
+
+    /**
+     * @param array<mixed> $data
+     *
+     * @return array<\Workflow\Engine\Definition\StateTimeout>
+     */
+    private function buildTimeouts(array $data): array
+    {
+        $timeouts = [];
+        foreach ($data as $key => $timeoutData) {
+            if (is_array($timeoutData)) {
+                $after = $timeoutData['after'] ?? null;
+                $transition = $timeoutData['transition'] ?? null;
+            } elseif (is_string($key) && is_string($timeoutData)) {
+                $after = $key;
+                $transition = $timeoutData;
+            } else {
+                continue;
+            }
+
+            if (!is_string($after) || !is_string($transition) || $after === '' || $transition === '') {
+                continue;
+            }
+
+            $timeouts[] = new StateTimeout($after, $transition);
+        }
+
+        return $timeouts;
     }
 
     /**

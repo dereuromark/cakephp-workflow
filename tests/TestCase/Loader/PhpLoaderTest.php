@@ -24,7 +24,10 @@ return [
         'table' => 'Orders',
         'field' => 'state',
         'states' => [
-            'pending' => ['initial' => true],
+            'pending' => [
+                'initial' => true,
+                'timeouts' => [['after' => '1 hour', 'transition' => 'pay']],
+            ],
             'paid' => ['final' => true, 'color' => '#00AA00'],
         ],
         'transitions' => [
@@ -69,6 +72,11 @@ PHP);
         $this->assertSame(['pending'], $pay->getFrom());
         $this->assertSame('paid', $pay->getTo());
         $this->assertSame(['App\Foo::bar'], $pay->getGuards());
+
+        $timeouts = $definition->getState('pending')->getTimeouts();
+        $this->assertCount(1, $timeouts);
+        $this->assertSame('1 hour', $timeouts[0]->getAfter());
+        $this->assertSame('pay', $timeouts[0]->getTransition());
     }
 
     public function testLoadUnknownThrows(): void

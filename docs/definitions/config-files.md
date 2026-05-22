@@ -56,6 +56,7 @@ You can also define a whole workflow in a single native-PHP file — no extra pa
 required. Each file in the config path returns `[$workflowName => [...]]`:
 
 ```php [config/workflows/order.php]
+<?php
 return [
     'order' => [
         'table' => 'Orders',

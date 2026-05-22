@@ -27,6 +27,7 @@ use Workflow\Command\WorkflowValidateCommand;
 use Workflow\Loader\AttributeLoader;
 use Workflow\Loader\ChainLoader;
 use Workflow\Loader\NeonLoader;
+use Workflow\Loader\PhpLoader;
 use Workflow\Loader\YamlLoader;
 use Workflow\Service\WorkflowRegistry;
 use Workflow\Service\WorkflowRegistryLocator;
@@ -132,6 +133,8 @@ class WorkflowPlugin extends BasePlugin
 
         $configPath = $config['loader']['configPath'] ?? null;
         if ($configPath && is_dir($configPath)) {
+            // Native PHP definitions need no extra dependency.
+            $loaders[] = new PhpLoader($configPath);
             if (class_exists(Yaml::class)) {
                 $loaders[] = new YamlLoader($configPath);
             }

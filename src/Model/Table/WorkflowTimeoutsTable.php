@@ -80,9 +80,9 @@ class WorkflowTimeoutsTable extends Table
     {
         return $query
             ->where([
-                // due_at is stored in UTC (see TimeoutScheduler); compare in UTC too,
-                // otherwise a non-UTC app timezone fires timeouts off by the offset.
-                'due_at <=' => DateTime::now('UTC'),
+                // Compare in the app timezone, the same basis due_at is written with
+                // (TimeoutScheduler), so writes and reads always agree.
+                'due_at <=' => DateTime::now(),
                 'processed' => false,
             ])
             ->orderBy(['due_at' => 'ASC'])

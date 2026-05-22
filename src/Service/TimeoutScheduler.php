@@ -49,7 +49,7 @@ class TimeoutScheduler
 
     protected function calculateDueAt(string $after): DateTime
     {
-        $base = DateTime::now('UTC');
+        $base = DateTime::now();
         $interval = $this->parseInterval($after);
 
         return $base->add($interval);

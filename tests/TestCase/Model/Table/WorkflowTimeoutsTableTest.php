@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Test\TestCase\Model\Table;
 
 use Cake\Datasource\ConnectionManager;
+use Cake\I18n\DateTime;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Workflow\Model\Table\WorkflowTimeoutsTable;
 use Workflow\Test\TestCase\DatabaseTestCase;
@@ -24,16 +25,17 @@ class WorkflowTimeoutsTableTest extends DatabaseTestCase
         $this->timeouts = $timeouts;
     }
 
-    public function testFindDueComparesInUtcRegardlessOfAppTimezone(): void
+    public function testFindDueIsTimezoneConsistent(): void
     {
         $original = date_default_timezone_get();
-        // A non-UTC app timezone (UTC+9). due_at is stored in UTC, so the runner must
-        // compare in UTC; comparing in local time would fire the 1h-future timeout early.
+        // A non-UTC app timezone (UTC+9). due_at is written and compared on the same
+        // basis (DateTime::now(), app timezone), so the runner must stay self-consistent
+        // here. A read that switched to UTC would skew the comparison by the offset.
         date_default_timezone_set('Asia/Tokyo');
 
         try {
-            $this->insertTimeout('future', gmdate('Y-m-d H:i:s', time() + 3600));
-            $this->insertTimeout('past', gmdate('Y-m-d H:i:s', time() - 3600));
+            $this->insertTimeout('future', DateTime::now()->addHours(1));
+            $this->insertTimeout('past', DateTime::now()->subHours(1));
 
             /** @var array<\Workflow\Model\Entity\WorkflowTimeout> $due */
             $due = $this->timeouts->find('due')->all()->toArray();
@@ -45,7 +47,7 @@ class WorkflowTimeoutsTableTest extends DatabaseTestCase
         }
     }
 
-    private function insertTimeout(string $marker, string $dueAtUtc): void
+    private function insertTimeout(string $marker, DateTime $dueAt): void
     {
         ConnectionManager::get('test')->insert('workflow_timeouts', [
             'workflow_name' => 'order',
@@ -53,9 +55,9 @@ class WorkflowTimeoutsTableTest extends DatabaseTestCase
             'entity_id' => 1,
             'current_state' => $marker,
             'transition_name' => 'expire',
-            'due_at' => $dueAtUtc,
+            'due_at' => $dueAt->format('Y-m-d H:i:s'),
             'processed' => 0,
-            'created' => gmdate('Y-m-d H:i:s'),
+            'created' => $dueAt->format('Y-m-d H:i:s'),
         ]);
     }
 }

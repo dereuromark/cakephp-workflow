@@ -398,8 +398,15 @@ class WorkflowBehavior extends Behavior
             ->where(
                 [
                     'workflow_name' => $this->getConfig('workflow'),
+                    // Scope to the same entity table too: the same workflow name and
+                    // id could otherwise collide across tables.
+                    'entity_table' => $this->getConfig('entityTable'),
                     'entity_id' => $entityId,
                     'transition_name' => $transition,
+                    // Only a previously SUCCESSFUL application counts as a duplicate;
+                    // a prior blocked/locked/error attempt with the same key must not
+                    // prevent a later legitimate retry.
+                    'status' => TransitionLogger::STATUS_SUCCESS,
                     'context LIKE' => '%"_idempotency_key":"' . $idempotencyKey . '"%',
                 ],
                 // Override the column's json type for this comparison: otherwise the

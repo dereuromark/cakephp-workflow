@@ -6,6 +6,7 @@ namespace Workflow\Test\TestCase\Model\Behavior;
 
 use Cake\Datasource\ConnectionManager;
 use Cake\Event\EventManager;
+use Cake\I18n\DateTime;
 use Cake\ORM\Table;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Workflow\Engine\Definition\Definition;
@@ -85,6 +86,32 @@ class WorkflowBehaviorIdempotencyTest extends DatabaseTestCase
         $third = $this->ticketsTable->getBehavior('Workflow')
             ->transition($reloaded, 'touch', ['_idempotency_key' => 'KEY-2'], $options);
         $this->assertTrue($third->isSuccess());
+    }
+
+    public function testPriorNonSuccessfulAttemptWithSameKeyDoesNotBlockReplay(): void
+    {
+        $ticket = $this->ticketsTable->newEntity(['state' => 'open']);
+        $this->ticketsTable->saveOrFail($ticket);
+
+        // A previously logged but BLOCKED attempt carrying the same key must not
+        // be treated as a duplicate of a later legitimate application.
+        $transitions = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transitions->saveOrFail($transitions->newEntity([
+            'workflow_name' => 'ticket',
+            'entity_table' => 'Tickets',
+            'entity_id' => (string)$ticket->get('id'),
+            'transition_name' => 'touch',
+            'from_state' => 'open',
+            'to_state' => 'open',
+            'status' => 'blocked',
+            'context' => ['_idempotency_key' => 'KEY-3'],
+            'created' => DateTime::now(),
+        ]));
+
+        $result = $this->ticketsTable->getBehavior('Workflow')
+            ->transition($ticket, 'touch', ['_idempotency_key' => 'KEY-3'], ['log' => true, 'lock' => true]);
+
+        $this->assertTrue($result->isSuccess());
     }
 
     private function createMockRegistry(): WorkflowRegistry

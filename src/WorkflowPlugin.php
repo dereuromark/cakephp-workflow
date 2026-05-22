@@ -19,7 +19,6 @@ use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Workflow\Command\BakeWorkflowStateCommand;
 use Workflow\Command\WorkflowApplyCommand;
-use Workflow\Command\WorkflowHistoryCommand;
 use Workflow\Command\WorkflowInitCommand;
 use Workflow\Command\WorkflowListCommand;
 use Workflow\Command\WorkflowMigrateCommand;
@@ -82,7 +81,6 @@ class WorkflowPlugin extends BasePlugin
         $commands->add('workflow list', WorkflowListCommand::class);
         $commands->add('workflow show', WorkflowShowCommand::class);
         $commands->add('workflow apply', WorkflowApplyCommand::class);
-        $commands->add('workflow history', WorkflowHistoryCommand::class);
         $commands->add('workflow timeouts', WorkflowTimeoutsCommand::class);
         $commands->add('workflow validate', WorkflowValidateCommand::class);
         $commands->add('workflow migrate', WorkflowMigrateCommand::class);

@@ -18,7 +18,7 @@ use Workflow\Model\Behavior\WorkflowBehavior;
 use Workflow\Service\WorkflowRegistry;
 use Workflow\Test\TestCase\DatabaseTestCase;
 
-class WorkflowApplyHistoryCommandTest extends DatabaseTestCase
+class WorkflowApplyCommandTest extends DatabaseTestCase
 {
     use ConsoleIntegrationTestTrait;
 
@@ -112,18 +112,6 @@ class WorkflowApplyHistoryCommandTest extends DatabaseTestCase
         $this->assertErrorContains("not 'order'");
     }
 
-    public function testHistoryListsTransitions(): void
-    {
-        $order = $this->orders->newEntity(['state' => 'pending']);
-        $this->orders->saveOrFail($order);
-        $this->orders->getBehavior('Workflow')->transition($order, 'pay', ['reason' => 'manual']);
-
-        $this->exec(sprintf('workflow history order %s', $order->get('id')));
-
-        $this->assertExitSuccess();
-        $this->assertOutputContains('pay');
-        $this->assertOutputContains('paid');
-    }
 
     private function createRegistry(): WorkflowRegistry
     {

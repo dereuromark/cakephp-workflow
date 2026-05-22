@@ -62,24 +62,7 @@ bin/cake workflow apply order 42 pay --dry-run
 
 It loads the record, runs the transition through the behavior (save + log, plus lock when enabled), and prints the outcome. `--dry-run` only checks whether the transition is allowed. Exit code is non-zero when the transition is blocked, locked, errored, or the record is missing.
 
-### `workflow history`
-
-Show the transition audit trail for a single record.
-
-```bash
-bin/cake workflow history order 42
-bin/cake workflow history order 42 --success   # successful transitions only
-bin/cake workflow history order 42 --limit 20
-```
-
-```
-+------------------+------------+-----------+-----------+---------+------+--------+
-| When             | Transition | From      | To        | Status  | User | Reason |
-+------------------+------------+-----------+-----------+---------+------+--------+
-| 5/22/26, 4:42 PM | verify     | generated | verified  | success | 7    | qa ok  |
-| 5/22/26, 4:42 PM | generate   | preflight | generated | success |      |        |
-+------------------+------------+-----------+-----------+---------+------+--------+
-```
+The transition audit trail is browsable in the admin UI (`/admin/workflow/transitions`).
 
 ### `workflow validate`
 

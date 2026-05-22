@@ -94,6 +94,31 @@ class WorkflowTimeoutsCommandTest extends DatabaseTestCase
         $this->assertTrue((bool)$processedTimeout->get('processed'));
     }
 
+    public function testOrphanedTimeoutForDeletedEntityIsMarkedProcessed(): void
+    {
+        // A timeout pointing at an entity that no longer exists must be skipped and
+        // marked processed, not error on every run.
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => '999999',
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now('UTC')->subSeconds(60),
+            'processed' => false,
+        ]));
+
+        $this->exec('workflow timeouts');
+
+        $this->assertExitSuccess();
+        $this->assertOutputContains('Processed: 0, Errors: 0');
+        $this->assertErrorContains('Entity no longer exists');
+
+        $processedTimeout = $timeoutsTable->get($timeoutsTable->find()->firstOrFail()->get('id'));
+        $this->assertTrue((bool)$processedTimeout->get('processed'));
+    }
+
     private function createRegistry(): WorkflowRegistry
     {
         $definition = new Definition(

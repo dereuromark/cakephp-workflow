@@ -62,7 +62,7 @@ abstract class DatabaseTestCase extends TestCase
                     transition_name VARCHAR(64) NOT NULL,
                     from_state VARCHAR(64) NOT NULL,
                     to_state VARCHAR(64) NOT NULL,
-                    status VARCHAR(16) NOT NULL DEFAULT "success",
+                    status VARCHAR(16) NOT NULL DEFAULT \'success\',
                     user_id VARCHAR(36),
                     reason TEXT,
                     context TEXT,

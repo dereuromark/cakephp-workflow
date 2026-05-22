@@ -485,10 +485,16 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $this->assertTrue($timeoutsTable->get($timeoutA->id)->processed);
         $this->assertTrue($timeoutsTable->get($timeoutB->id)->processed);
 
-        $transitions = $this->fetchTable('Workflow.WorkflowTransitions')->find()->all()->toArray();
+        $transitions = $this->fetchTable('Workflow.WorkflowTransitions')
+            ->find()
+            ->orderBy(['id' => 'ASC'])
+            ->all()
+            ->toArray();
         $this->assertCount(2, $transitions);
-        $this->assertSame('legacy-admin', $transitions[0]->user_id);
-        $this->assertTrue($transitions[0]->isAdminAction());
+        foreach ($transitions as $transition) {
+            $this->assertSame('legacy-admin', $transition->user_id);
+            $this->assertTrue($transition->isAdminAction());
+        }
     }
 
     public function testExecuteDueRunsOnlyDueTimeouts(): void

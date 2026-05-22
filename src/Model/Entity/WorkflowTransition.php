@@ -7,6 +7,7 @@ namespace Workflow\Model\Entity;
 use Cake\Core\Configure;
 use Cake\ORM\Entity;
 use Closure;
+use ReflectionFunction;
 use Workflow\Service\TransitionLogger;
 
 /**
@@ -136,7 +137,9 @@ class WorkflowTransition extends Entity
      */
     public function isAdminAction(): bool
     {
-        return (bool)($this->context['admin_action'] ?? false);
+        $context = $this->context ?? [];
+
+        return (bool)($context['admin_action'] ?? false);
     }
 
     /**
@@ -144,7 +147,8 @@ class WorkflowTransition extends Entity
      */
     public function getClientIp(): ?string
     {
-        $clientIp = $this->context['client_ip'] ?? null;
+        $context = $this->context ?? [];
+        $clientIp = $context['client_ip'] ?? null;
 
         return is_string($clientIp) && $clientIp !== '' ? $clientIp : null;
     }
@@ -212,7 +216,7 @@ class WorkflowTransition extends Entity
             return null;
         }
 
-        $resolved = $resolver($this->user_id, $this);
+        $resolved = $this->invokeActorResolver($resolver);
         if (is_string($resolved) && $resolved !== '') {
             return ['label' => $resolved];
         }
@@ -235,5 +239,20 @@ class WorkflowTransition extends Entity
             'label' => $label,
             'url' => $url,
         ];
+    }
+
+    /**
+     * Invoke the actor resolver while remaining compatible with 1-arg callbacks.
+     *
+     * @return array<string, mixed>|string|null
+     */
+    protected function invokeActorResolver(Closure $resolver): array|string|null
+    {
+        $reflection = new ReflectionFunction($resolver);
+        if ($reflection->getNumberOfParameters() < 2) {
+            return $resolver($this->user_id);
+        }
+
+        return $resolver($this->user_id, $this);
     }
 }

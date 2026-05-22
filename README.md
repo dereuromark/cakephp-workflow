@@ -58,7 +58,7 @@ Configure the plugin in your `config/app.php`:
     'timeouts' => true,
     'lockDuration' => 30,
     'adminBackUrl' => ['plugin' => false, 'controller' => 'Dashboard', 'action' => 'index'],
-    'adminActorResolver' => function (string $userId): string {
+    'adminActorResolver' => function (string $userId, ?\Workflow\Model\Entity\WorkflowTransition $transition = null): string {
         return 'Admin #' . $userId;
     },
 ],

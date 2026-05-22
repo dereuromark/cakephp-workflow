@@ -51,7 +51,7 @@ return [
          * keys so the admin UI can show a friendly name/link instead of only
          * the raw identifier.
          */
-        // 'adminActorResolver' => function (string $userId, \Workflow\Model\Entity\WorkflowTransition $transition): array {
+        // 'adminActorResolver' => function (string $userId, ?\Workflow\Model\Entity\WorkflowTransition $transition = null): array {
         //     return [
         //         'label' => 'Admin #' . $userId,
         //         'url' => ['plugin' => false, 'controller' => 'Users', 'action' => 'view', $userId],

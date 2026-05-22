@@ -39,23 +39,11 @@ class WorkflowTimeoutsCommandTest extends DatabaseTestCase
         $registry = $this->createRegistry();
         Configure::write('Workflow.registry', $registry);
 
-        $connection = ConnectionManager::get('test');
-        if (!in_array('orders', $connection->getSchemaCollection()->listTables(), true)) {
-            $connection->execute('
-                CREATE TABLE orders (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    state VARCHAR(64) NOT NULL,
-                    created DATETIME,
-                    modified DATETIME
-                )
-            ');
-        }
-        $connection->execute('DELETE FROM orders');
-
+        // The orders table is created and truncated by DatabaseTestCase.
         $this->ordersTable = new Table([
             'table' => 'orders',
             'alias' => 'Orders',
-            'connection' => $connection,
+            'connection' => ConnectionManager::get('test'),
         ]);
         $this->ordersTable->setPrimaryKey('id');
         $this->ordersTable->addBehavior('Workflow', [

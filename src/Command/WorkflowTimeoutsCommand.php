@@ -116,9 +116,12 @@ class WorkflowTimeoutsCommand extends Command
                 // guard does not reject the save) and handles save + log + lock + timeout
                 // sync consistently. Without this, the raw engine + saveOrFail below is
                 // rejected by the behaviour's beforeSave on any entity table that uses it.
-                if ($entityTable->hasBehavior('Workflow')) {
-                    /** @var \Workflow\Model\Behavior\WorkflowBehavior $behavior */
-                    $behavior = $entityTable->getBehavior('Workflow');
+                // Only use the behaviour when it is configured for THIS timeout's
+                // workflow; a table may carry a Workflow behaviour for a different
+                // workflow, in which case we fall back to the engine for the right one.
+                /** @var \Workflow\Model\Behavior\WorkflowBehavior|null $behavior */
+                $behavior = $entityTable->hasBehavior('Workflow') ? $entityTable->getBehavior('Workflow') : null;
+                if ($behavior !== null && $behavior->getConfig('workflow') === $timeout->workflow_name) {
                     $result = $behavior->transition($entity, $timeout->transition_name, $context);
 
                     if ($result->isSuccess()) {

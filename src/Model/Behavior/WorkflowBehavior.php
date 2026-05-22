@@ -190,16 +190,6 @@ class WorkflowBehavior extends Behavior
      */
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
     {
-        // Check for idempotency key to prevent duplicate transitions
-        $idempotencyKey = $context['_idempotency_key'] ?? null;
-        if ($idempotencyKey !== null && $this->isDuplicateTransition($entity, $transition, $idempotencyKey)) {
-            $currentState = $this->getCurrentState($entity);
-
-            return TransitionResult::blocked($currentState, [
-                'idempotency' => "Transition '{$transition}' already applied with this idempotency key",
-            ]);
-        }
-
         // Acquire lock if enabled (null=auto-detect, true=force, false=skip)
         $lock = null;
         $usedLock = false;
@@ -219,6 +209,17 @@ class WorkflowBehavior extends Behavior
         }
 
         try {
+            // Idempotency check happens inside the lock: a check before the lock
+            // lets two concurrent callers with the same key both pass it (the log
+            // row of the first is not yet committed). Holding the mutex serialises
+            // them so the second sees the first's logged transition and is blocked.
+            $idempotencyKey = $context['_idempotency_key'] ?? null;
+            if ($idempotencyKey !== null && $this->isDuplicateTransition($entity, $transition, $idempotencyKey)) {
+                return TransitionResult::blocked($this->getCurrentState($entity), [
+                    'idempotency' => "Transition '{$transition}' already applied with this idempotency key",
+                ]);
+            }
+
             // Execute with or without transaction based on config
             if ($this->getConfig('useTransaction')) {
                 return $this->executeTransitionInTransaction($entity, $transition, $context, $usedLock);
@@ -394,12 +395,18 @@ class WorkflowBehavior extends Behavior
         $entityId = (string)$entity->get('id');
 
         $existing = $table->find()
-            ->where([
-                'workflow_name' => $this->getConfig('workflow'),
-                'entity_id' => $entityId,
-                'transition_name' => $transition,
-                'context LIKE' => '%"_idempotency_key":"' . $idempotencyKey . '"%',
-            ])
+            ->where(
+                [
+                    'workflow_name' => $this->getConfig('workflow'),
+                    'entity_id' => $entityId,
+                    'transition_name' => $transition,
+                    'context LIKE' => '%"_idempotency_key":"' . $idempotencyKey . '"%',
+                ],
+                // Override the column's json type for this comparison: otherwise the
+                // LIKE pattern is JSON-encoded when bound and never matches the stored
+                // context text.
+                ['context' => 'string'],
+            )
             ->first();
 
         return $existing !== null;

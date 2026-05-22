@@ -50,7 +50,33 @@ order:
 
 :::
 
+## Native PHP (no dependency)
+
+You can also define a whole workflow in a single native-PHP file — no extra package
+required. Each file in the config path returns `[$workflowName => [...]]`:
+
+```php [config/workflows/order.php]
+return [
+    'order' => [
+        'table' => 'Orders',
+        'field' => 'state',
+        'states' => [
+            'pending' => ['initial' => true],
+            'paid' => ['final' => true, 'color' => '#00AA00'],
+        ],
+        'transitions' => [
+            'pay' => ['from' => 'pending', 'to' => 'paid', 'happy' => true, 'guard' => 'App\\Workflow\\Order::ensurePayable'],
+        ],
+    ],
+];
+```
+
+The `PhpLoader` is always active for the config path, so this works out of the box.
+The structure matches the NEON/YAML format below.
+
 ## Install Loaders
+
+NEON and YAML need an optional parser (PHP definitions do not):
 
 ```bash
 composer require nette/neon

@@ -75,7 +75,7 @@ $this->addBehavior('Workflow.Workflow', [
 | `autoLog` | bool | `false` | Log transitions to `workflow_transitions` table |
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
 | `entityTable` | string | `null` | Entity table name (defaults to table name) |
-| `useLocking` | bool | `false` | Use pessimistic locking (lock table) for transitions |
+| `useLocking` | bool\|null | `null` | Pessimistic locking via the lock table (`null` = auto-detect from the lock table) |
 | `useOptimisticLock` | bool | `false` | Lock-free concurrency via compare-and-set on the state field (takes precedence over `useLocking`) |
 
 ## Concurrency: Pessimistic vs Optimistic
@@ -106,6 +106,16 @@ if ($result->isLocked()) {
 Optimistic locking needs no extra table or `version` column (it compares on the state
 field) and suits high-contention or multi-server setups; it takes precedence over
 `useLocking` when both are set. Wrap retries around the conflict result as needed.
+
+The claim is made **before** the transition's commands run, so a lost race executes no
+side effects, and the claim is rolled back if the transition then fails — keep
+`useTransaction` enabled (the default) so that rollback applies.
+
+Constraints:
+
+- Requires a **single-column primary key** (throws otherwise).
+- Detects conflicts only when the transition **changes the state value** — a self-loop
+  (same `from` and `to`) writes nothing to compare against.
 
 ## Audit Logging
 

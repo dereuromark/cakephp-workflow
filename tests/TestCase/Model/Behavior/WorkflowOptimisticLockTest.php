@@ -7,6 +7,7 @@ namespace Workflow\Test\TestCase\Model\Behavior;
 use Cake\Datasource\ConnectionManager;
 use Cake\Event\EventManager;
 use Cake\ORM\Table;
+use TestApp\Model\SideEffectRecorder;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
@@ -28,6 +29,7 @@ class WorkflowOptimisticLockTest extends DatabaseTestCase
         parent::setUp();
         $this->truncateTables();
 
+        SideEffectRecorder::$count = 0;
         $registry = $this->createRegistry();
         $this->orders = new Table([
             'table' => 'orders',
@@ -83,6 +85,9 @@ class WorkflowOptimisticLockTest extends DatabaseTestCase
         $this->assertSame('pending', $stale->get('state')); // reverted in memory
         // The row advanced exactly once.
         $this->assertSame('paid', $this->orders->get($id)->get('state'));
+        // Crucially, the command ran for the winner only - the lost claim executed
+        // no side effects (claim happens before commands).
+        $this->assertSame(1, SideEffectRecorder::$count);
     }
 
     private function createRegistry(): WorkflowRegistry
@@ -96,7 +101,13 @@ class WorkflowOptimisticLockTest extends DatabaseTestCase
                 new State('paid', final: true),
             ],
             transitions: [
-                new Transition('pay', ['pending'], 'paid', happy: true),
+                new Transition(
+                    'pay',
+                    ['pending'],
+                    'paid',
+                    happy: true,
+                    commands: [SideEffectRecorder::class . '::record'],
+                ),
             ],
         );
 

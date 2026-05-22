@@ -107,6 +107,38 @@ With custom URL and styling:
 
 Each button includes a `data-transition` attribute for JavaScript handling.
 
+::: warning
+`transitionButtons()` renders **GET links**. For state changes prefer `panel()` /
+`postTransitionButtons()` below, which render CSRF-protected POST forms.
+:::
+
+## Workflow Panel (drop-in)
+
+`panel()` renders the current-state badge plus a CSRF-protected POST button for each
+available transition — the whole status widget in one call:
+
+```php
+<?= $this->Workflow->panel($definition, $order, $availableTransitions, [
+    'url' => ['controller' => 'Orders', 'action' => 'transition'],
+]) ?>
+```
+
+The entity id and transition name are appended to the URL automatically (e.g.
+`/orders/transition/42/pay`), and each button POSTs `transition`, ready to be
+handled by [`WorkflowComponent::handleTransition()`](/integration/component):
+
+```php
+// OrdersController::transition()
+public function transition($id)
+{
+    $order = $this->Orders->get($id);
+
+    return $this->Workflow->handleTransition($this->Orders, $order, ['action' => 'view', $id]);
+}
+```
+
+Use `postTransitionButtons()` if you only want the buttons without the badge wrapper.
+
 ## Getting State Color
 
 Get the color configured for a state:

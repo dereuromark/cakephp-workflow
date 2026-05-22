@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\View\Helper;
 
+use Cake\ORM\Entity;
+use Cake\Routing\Router;
 use Cake\View\View;
 use PHPUnit\Framework\TestCase;
 use Workflow\Engine\Definition\Definition;
@@ -20,6 +22,8 @@ class WorkflowHelperTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Router::reload();
+        Router::createRouteBuilder('/')->connect('/{controller}/{action}/*');
         $this->helper = new WorkflowHelper(new View());
         $this->definition = new Definition(
             name: 'order',
@@ -33,6 +37,12 @@ class WorkflowHelperTest extends TestCase
                 new Transition('pay', ['pending'], 'paid'),
             ],
         );
+    }
+
+    protected function tearDown(): void
+    {
+        Router::reload();
+        parent::tearDown();
     }
 
     public function testStateBadgeRendersKnownState(): void
@@ -54,5 +64,33 @@ class WorkflowHelperTest extends TestCase
         $color = $this->helper->getStateColor($this->definition, 'ghost');
 
         $this->assertSame('#6c757d', $color);
+    }
+
+    public function testPanelRendersBadgeAndTransitionForms(): void
+    {
+        $entity = new Entity(['id' => 7, 'state' => 'pending']);
+
+        $panel = $this->helper->panel($this->definition, $entity, ['pay'], [
+            'url' => ['controller' => 'Orders', 'action' => 'transition'],
+        ]);
+
+        $this->assertStringContainsString('workflow-panel', $panel);
+        $this->assertStringContainsString('pending', $panel);
+        $this->assertStringContainsString('<form', $panel);
+        $this->assertStringContainsString('Pay', $panel);
+        $this->assertStringContainsString('data-transition="pay"', $panel);
+        // The POST carries the transition name and targets the entity id.
+        $this->assertMatchesRegularExpression('/name="transition"[^>]*value="pay"/', $panel);
+        $this->assertStringContainsString('/Orders/transition/7/pay', $panel);
+    }
+
+    public function testPanelWithoutTransitionsRendersBadgeOnly(): void
+    {
+        $entity = new Entity(['id' => 7, 'state' => 'pending']);
+
+        $panel = $this->helper->panel($this->definition, $entity, []);
+
+        $this->assertStringContainsString('pending', $panel);
+        $this->assertStringNotContainsString('<form', $panel);
     }
 }

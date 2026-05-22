@@ -209,6 +209,13 @@ class WorkflowBehavior extends Behavior
                 return TransitionResult::locked($this->getCurrentState($entity));
             }
             $usedLock = true;
+
+            // While holding the mutex, re-read the persisted state so the engine
+            // does not act on a stale in-memory value. Without this, two callers
+            // that both loaded the entity in the same `from` state would each pass
+            // the guard and re-apply the transition once they take turns on the
+            // lock (lost update / double execution).
+            $this->refreshWorkflowState($entity);
         }
 
         try {
@@ -630,6 +637,49 @@ class WorkflowBehavior extends Behavior
             $this->getWorkflowDefinition(),
             $entity,
         );
+    }
+
+    /**
+     * Re-read the persisted state field from the database onto the entity.
+     *
+     * Called while holding the lock so the engine evaluates the transition against
+     * the authoritative current state rather than a stale in-memory value. Only the
+     * state field is touched (and its dirty flag cleared so `beforeSave` does not
+     * treat the refresh as a direct state change). No-op for unpersisted entities.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     */
+    protected function refreshWorkflowState(EntityInterface $entity): void
+    {
+        if ($entity->isNew()) {
+            return;
+        }
+
+        $primaryKey = (array)$this->_table->getPrimaryKey();
+        $conditions = [];
+        foreach ($primaryKey as $column) {
+            $value = $entity->get($column);
+            if ($value === null) {
+                return;
+            }
+            $conditions[$this->_table->aliasField($column)] = $value;
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+
+        /** @var array<string, mixed>|null $row */
+        $row = $this->_table->find()
+            ->select([$field])
+            ->where($conditions)
+            ->disableHydration()
+            ->first();
+
+        if ($row === null) {
+            return;
+        }
+
+        $entity->set($field, $row[$field]);
+        $entity->setDirty($field, false);
     }
 
     /**

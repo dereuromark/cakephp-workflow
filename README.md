@@ -36,6 +36,10 @@ Run migrations:
 bin/cake migrations migrate --plugin Workflow
 ```
 
+The generic `entity_id` column defaults to `biginteger` (integer primary keys). If your
+workflow-enabled tables use UUID/char primary keys, widen it in your own migration — see
+[Installation: Entity id type](https://dereuromark.github.io/cakephp-workflow/guide/installation.html#entity-id-type-uuid-primary-keys).
+
 ## Configuration
 
 Configure the plugin in your `config/app.php`:

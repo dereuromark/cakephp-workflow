@@ -17,8 +17,7 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'string', [
-                'limit' => 36,
+            ->addColumn('entity_id', 'biginteger', [
                 'null' => false,
             ])
             ->addColumn('transition_name', 'string', [
@@ -65,8 +64,7 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'string', [
-                'limit' => 36,
+            ->addColumn('entity_id', 'biginteger', [
                 'null' => false,
             ])
             ->addColumn('locked_by', 'string', [
@@ -95,8 +93,7 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'string', [
-                'limit' => 36,
+            ->addColumn('entity_id', 'biginteger', [
                 'null' => false,
             ])
             ->addColumn('current_state', 'string', [

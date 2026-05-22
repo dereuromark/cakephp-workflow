@@ -82,6 +82,32 @@ class DefinitionTest extends TestCase
         $this->definition->getState('nonexistent');
     }
 
+    public function testFindStateReturnsNullForMissing(): void
+    {
+        $this->assertNull($this->definition->findState('nonexistent'));
+    }
+
+    public function testFindStateReturnsState(): void
+    {
+        $state = $this->definition->findState('paid');
+        $this->assertNotNull($state);
+        $this->assertSame('paid', $state->getName());
+    }
+
+    public function testResolveStateReturnsRealState(): void
+    {
+        $state = $this->definition->resolveState('paid');
+        $this->assertSame('paid', $state->getName());
+        $this->assertFalse($state->isUnknown());
+    }
+
+    public function testResolveStateReturnsUnknownForMissing(): void
+    {
+        $state = $this->definition->resolveState('ghost');
+        $this->assertSame('ghost', $state->getName());
+        $this->assertTrue($state->isUnknown());
+    }
+
     public function testGetInitialState(): void
     {
         $state = $this->definition->getInitialState();
@@ -159,6 +185,51 @@ class DefinitionTest extends TestCase
         );
 
         $this->assertSame($hash, $definition2->getVersionHash());
+    }
+
+    public function testGetVersionHashChangesWhenStateFlagChanges(): void
+    {
+        $base = $this->definition->getVersionHash();
+
+        $changed = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true, flags: ['urgent']),
+                new State('paid'),
+                new State('completed', final: true),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid'),
+                new Transition('complete', ['paid'], 'completed'),
+            ],
+        );
+
+        $this->assertNotSame($base, $changed->getVersionHash());
+    }
+
+    public function testGetVersionHashChangesWhenVersionNumberChanges(): void
+    {
+        $base = $this->definition->getVersionHash();
+
+        $v2 = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+                new State('completed', final: true),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid'),
+                new Transition('complete', ['paid'], 'completed'),
+            ],
+            version: 2,
+        );
+
+        $this->assertNotSame($base, $v2->getVersionHash());
     }
 
     public function testGetStatesWithFlag(): void

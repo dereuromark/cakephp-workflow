@@ -20,7 +20,9 @@ use Symfony\Component\Yaml\Yaml;
 use Workflow\Command\BakeWorkflowStateCommand;
 use Workflow\Command\WorkflowInitCommand;
 use Workflow\Command\WorkflowListCommand;
+use Workflow\Command\WorkflowMigrateCommand;
 use Workflow\Command\WorkflowShowCommand;
+use Workflow\Command\WorkflowStampCommand;
 use Workflow\Command\WorkflowTimeoutsCommand;
 use Workflow\Command\WorkflowValidateCommand;
 use Workflow\Loader\AttributeLoader;
@@ -80,6 +82,8 @@ class WorkflowPlugin extends BasePlugin
         $commands->add('workflow show', WorkflowShowCommand::class);
         $commands->add('workflow timeouts', WorkflowTimeoutsCommand::class);
         $commands->add('workflow validate', WorkflowValidateCommand::class);
+        $commands->add('workflow stamp', WorkflowStampCommand::class);
+        $commands->add('workflow migrate', WorkflowMigrateCommand::class);
 
         return $commands;
     }

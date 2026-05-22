@@ -47,6 +47,8 @@ class WorkflowBehavior extends Behavior
         'useLocking' => null, // null=auto-detect, true=force on, false=force off
         'useTimeouts' => null, // null=auto-detect, true=force on, false=force off
         'useTransaction' => true, // Wrap transition+save+log in database transaction
+        'versioning' => false, // When true, stamp the definition version hash onto the entity
+        'versionField' => 'workflow_version', // Nullable column on the entity table holding the stamp
     ];
 
     private ?Definition $definition = null;
@@ -62,6 +64,8 @@ class WorkflowBehavior extends Behavior
     private ?bool $lockTableExists = null;
 
     private ?bool $timeoutsTableExists = null;
+
+    private ?bool $versionColumnExists = null;
 
     public function initialize(array $config): void
     {
@@ -90,6 +94,12 @@ class WorkflowBehavior extends Behavior
      */
     public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
     {
+        // Stamp new entities so freshly created records are not left unversioned.
+        // Runs independently of validateOnSave; existing entities are stamped in executeTransition().
+        if ($entity->isNew()) {
+            $this->stampVersion($entity, onlyIfMissing: true);
+        }
+
         if (!$this->getConfig('validateOnSave')) {
             return;
         }
@@ -342,6 +352,9 @@ class WorkflowBehavior extends Behavior
         if ($result->isSuccess()) {
             // Mark the entity so beforeSave knows this change came through the workflow
             $entity->set(self::TRANSITION_MARKER, true);
+
+            // Stamp the active definition version so drift can be detected later
+            $this->stampVersion($entity);
 
             // Create new result with lock info if lock was used
             if ($usedLock) {
@@ -696,7 +709,7 @@ class WorkflowBehavior extends Behavior
     public function isFinal(EntityInterface $entity): bool
     {
         $currentState = $this->getCurrentState($entity);
-        $stateObj = $this->getWorkflowDefinition()->getState($currentState);
+        $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->isFinal();
     }
@@ -707,9 +720,87 @@ class WorkflowBehavior extends Behavior
     public function hasFlag(EntityInterface $entity, string $flag): bool
     {
         $currentState = $this->getCurrentState($entity);
-        $stateObj = $this->getWorkflowDefinition()->getState($currentState);
+        $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->hasFlag($flag);
+    }
+
+    /**
+     * Stamp the active definition version hash onto the entity when versioning is enabled.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param bool $onlyIfMissing When true, only stamps if the field is currently empty
+     */
+    protected function stampVersion(EntityInterface $entity, bool $onlyIfMissing = false): void
+    {
+        if (!$this->getConfig('versioning')) {
+            return;
+        }
+
+        // Don't dirty a column that does not exist yet (e.g. versioning enabled before the
+        // schema migration lands) — that would make every save fail at the SQL layer.
+        if (!$this->versionColumnExists()) {
+            return;
+        }
+
+        $field = $this->getConfig('versionField');
+        if ($onlyIfMissing && $entity->get($field) !== null) {
+            return;
+        }
+
+        $entity->set($field, $this->getWorkflowDefinition()->getVersionHash());
+    }
+
+    /**
+     * Whether the configured version column exists on the entity table.
+     *
+     * Result is cached for the lifetime of this behavior instance. When the schema cannot
+     * be introspected (e.g. no connection in unit tests), assume present so stamping is
+     * not silently disabled.
+     */
+    protected function versionColumnExists(): bool
+    {
+        if ($this->versionColumnExists !== null) {
+            return $this->versionColumnExists;
+        }
+
+        try {
+            $this->versionColumnExists = $this->_table->getSchema()->hasColumn($this->getConfig('versionField'));
+        } catch (Throwable) {
+            $this->versionColumnExists = true;
+        }
+
+        return $this->versionColumnExists;
+    }
+
+    /**
+     * Get the version stamp currently stored on the entity, or null when unversioned.
+     */
+    public function getVersionStamp(EntityInterface $entity): ?string
+    {
+        $stamp = $entity->get($this->getConfig('versionField'));
+
+        return $stamp === null ? null : (string)$stamp;
+    }
+
+    /**
+     * Whether the entity's version stamp differs from the current definition.
+     *
+     * Returns false when versioning is disabled or the entity is unversioned (null stamp);
+     * unversioned records are reported separately by the tooling and resolved via backfill.
+     */
+    public function isStale(EntityInterface $entity): bool
+    {
+        if (!$this->getConfig('versioning')) {
+            return false;
+        }
+
+        $stamp = $this->getVersionStamp($entity);
+        if ($stamp === null) {
+            return false;
+        }
+
+        return $stamp !== $this->getWorkflowDefinition()->getVersionHash();
     }
 
     /**

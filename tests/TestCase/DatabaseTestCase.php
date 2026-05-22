@@ -94,6 +94,8 @@ abstract class DatabaseTestCase extends TestCase
                 CREATE TABLE orders (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     state VARCHAR(64),
+                    workflow_version VARCHAR(16),
+                    alt_version VARCHAR(16),
                     total DECIMAL(10,2),
                     payment_captured BOOLEAN DEFAULT 0 NOT NULL
                 )

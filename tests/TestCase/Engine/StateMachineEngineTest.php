@@ -137,6 +137,32 @@ class StateMachineEngineTest extends TestCase
         $this->assertTrue($result->isBlocked());
     }
 
+    public function testCanReturnsFalseForOrphanedState(): void
+    {
+        $entity = new Entity(['state' => 'ghost']);
+
+        $this->assertFalse($this->engine->can($this->definition, $entity, 'pay'));
+    }
+
+    public function testApplyBlockedForOrphanedStateWithoutThrowing(): void
+    {
+        $entity = new Entity(['state' => 'ghost']);
+        $result = $this->engine->apply($this->definition, $entity, 'pay');
+
+        $this->assertFalse($result->isSuccess());
+        $this->assertTrue($result->isBlocked());
+        $this->assertArrayHasKey('state', $result->getBlockedBy());
+        $this->assertStringContainsString('orphaned', $result->getBlockedBy()['state']);
+        $this->assertSame('ghost', $entity->get('state'));
+    }
+
+    public function testGetAvailableTransitionsEmptyForOrphanedState(): void
+    {
+        $entity = new Entity(['state' => 'ghost']);
+
+        $this->assertSame([], $this->engine->getAvailableTransitions($this->definition, $entity));
+    }
+
     public function testGetAvailableTransitions(): void
     {
         $entity = new Entity(['state' => 'pending']);

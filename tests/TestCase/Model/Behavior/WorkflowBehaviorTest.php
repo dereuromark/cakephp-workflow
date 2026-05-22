@@ -143,6 +143,130 @@ class WorkflowBehaviorTest extends TestCase
         $this->assertSame('paid', $entity->get('state'));
     }
 
+    public function testIsFinalReturnsFalseForOrphanedStateWithoutThrowing(): void
+    {
+        $behavior = $this->addBehavior();
+        $entity = new Entity(['state' => 'ghost']);
+
+        $this->assertFalse($behavior->isFinal($entity));
+    }
+
+    public function testHasFlagReturnsFalseForOrphanedStateWithoutThrowing(): void
+    {
+        $behavior = $this->addBehavior();
+        $entity = new Entity(['state' => 'ghost']);
+
+        $this->assertFalse($behavior->hasFlag($entity, 'done'));
+    }
+
+    public function testVersionStampWrittenOnTransitionWhenVersioningEnabled(): void
+    {
+        $behavior = $this->addBehavior(['versioning' => true]);
+        $entity = new Entity(['state' => 'pending']);
+
+        $behavior->applyTransition($entity, 'pay');
+
+        $this->assertSame(
+            $this->definition->getVersionHash(),
+            $entity->get('workflow_version'),
+        );
+    }
+
+    public function testNoVersionStampWhenVersioningDisabled(): void
+    {
+        $behavior = $this->addBehavior();
+        $entity = new Entity(['state' => 'pending']);
+
+        $behavior->applyTransition($entity, 'pay');
+
+        $this->assertNull($entity->get('workflow_version'));
+    }
+
+    public function testNoVersionStampWhenColumnAbsent(): void
+    {
+        $table = new Table(['table' => 'orders', 'alias' => 'Orders']);
+        $table->setSchema([
+            'id' => ['type' => 'integer'],
+            'state' => ['type' => 'string'],
+        ]);
+        $table->addBehavior('Workflow', [
+            'className' => WorkflowBehavior::class,
+            'workflow' => 'order',
+            'registry' => $this->registry,
+            'versioning' => true,
+            'useTransaction' => false,
+            'useLocking' => false,
+        ]);
+        /** @var \Workflow\Model\Behavior\WorkflowBehavior $behavior */
+        $behavior = $table->behaviors()->get('Workflow');
+        $entity = new Entity(['state' => 'pending']);
+
+        $behavior->applyTransition($entity, 'pay');
+
+        $this->assertNull($entity->get('workflow_version'));
+        $table->removeBehavior('Workflow');
+    }
+
+    public function testNewEntityStampedOnBeforeSaveWhenVersioningEnabled(): void
+    {
+        $this->addBehavior(['versioning' => true]);
+        $entity = new Entity(['state' => 'pending']);
+        $entity->setNew(true);
+
+        $this->table->dispatchEvent('Model.beforeSave', [
+            'entity' => $entity,
+            'options' => new ArrayObject(),
+        ]);
+
+        $this->assertSame(
+            $this->definition->getVersionHash(),
+            $entity->get('workflow_version'),
+        );
+    }
+
+    public function testGetVersionStampReturnsStamp(): void
+    {
+        $behavior = $this->addBehavior(['versioning' => true]);
+        $entity = new Entity(['state' => 'paid', 'workflow_version' => 'abc12345']);
+
+        $this->assertSame('abc12345', $behavior->getVersionStamp($entity));
+    }
+
+    public function testIsStaleTrueForOutdatedStamp(): void
+    {
+        $behavior = $this->addBehavior(['versioning' => true]);
+        $entity = new Entity(['state' => 'paid', 'workflow_version' => 'outdated']);
+
+        $this->assertTrue($behavior->isStale($entity));
+    }
+
+    public function testIsStaleFalseForCurrentStamp(): void
+    {
+        $behavior = $this->addBehavior(['versioning' => true]);
+        $entity = new Entity([
+            'state' => 'paid',
+            'workflow_version' => $this->definition->getVersionHash(),
+        ]);
+
+        $this->assertFalse($behavior->isStale($entity));
+    }
+
+    public function testIsStaleFalseForNullStamp(): void
+    {
+        $behavior = $this->addBehavior(['versioning' => true]);
+        $entity = new Entity(['state' => 'paid', 'workflow_version' => null]);
+
+        $this->assertFalse($behavior->isStale($entity));
+    }
+
+    public function testIsStaleFalseWhenVersioningDisabled(): void
+    {
+        $behavior = $this->addBehavior();
+        $entity = new Entity(['state' => 'paid', 'workflow_version' => 'outdated']);
+
+        $this->assertFalse($behavior->isStale($entity));
+    }
+
     public function testTransitionTemporarilyEnablesPersistenceOptions(): void
     {
         $table = new class (['table' => 'orders', 'alias' => 'Orders']) extends Table {

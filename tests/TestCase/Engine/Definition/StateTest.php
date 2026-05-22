@@ -97,6 +97,27 @@ class StateTest extends TestCase
         $this->assertFalse($state->requiresReasonFor('complete'));
     }
 
+    public function testUnknownStateFactory(): void
+    {
+        $state = State::unknown('mystery');
+
+        $this->assertSame('mystery', $state->getName());
+        $this->assertSame('mystery', $state->getDisplayName());
+        $this->assertFalse($state->isInitial());
+        $this->assertFalse($state->isFinal());
+        $this->assertFalse($state->isFailed());
+        $this->assertEmpty($state->getFlags());
+        $this->assertNotNull($state->getColor());
+        $this->assertTrue($state->isUnknown());
+    }
+
+    public function testRegularStateIsNotUnknown(): void
+    {
+        $state = new State('pending');
+
+        $this->assertFalse($state->isUnknown());
+    }
+
     public function testFullyConfiguredState(): void
     {
         $state = new State(

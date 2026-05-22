@@ -192,6 +192,28 @@ if ($behavior->canTransition($order, 'pay')) {
 
 See the [documentation](https://dereuromark.github.io/cakephp-workflow/) for the full API.
 
+## Versioning & Drift Safety
+
+Changing a workflow while records are in flight can leave records in states that
+no longer exist. Reads and display **degrade gracefully** (no crashes) out of the
+box. For production you can opt in to per-record version stamping to detect and
+migrate drift:
+
+```php
+$this->addBehavior('Workflow.Workflow', [
+    'workflow' => 'order',
+    'versioning' => true, // stamp the definition hash onto a nullable `workflow_version` column
+]);
+```
+
+```bash
+bin/cake workflow stamp order                          # backfill existing records (one-time)
+bin/cake workflow validate order --check-data          # report orphaned / stale / unversioned
+bin/cake workflow migrate order --map legacy:pending   # move records forward (re-stamp + remap)
+```
+
+See [Versioning & Drift Safety](https://dereuromark.github.io/cakephp-workflow/guide/versioning) for details.
+
 ## CLI Commands
 
 ```bash
@@ -199,6 +221,8 @@ bin/cake workflow init order Orders    # Scaffold new workflow
 bin/cake workflow list                 # List all workflows
 bin/cake workflow show order           # Show workflow details
 bin/cake workflow validate             # Validate definitions
+bin/cake workflow stamp order          # Backfill version stamps
+bin/cake workflow migrate order        # Migrate records to the current version
 ```
 
 ## Features
@@ -208,6 +232,7 @@ bin/cake workflow validate             # Validate definitions
 - Audit logging with user tracking
 - Pessimistic locking for concurrent transitions
 - Automatic timeouts
+- Opt-in version stamping with drift detection and forward migration
 - Admin UI with Mermaid.js diagrams
 - CLI tools for management and validation
 

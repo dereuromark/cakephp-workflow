@@ -14,7 +14,7 @@ class AddIdempotencyKeyToWorkflowTransitions extends BaseMigration
     {
         $this->table('workflow_transitions')
             ->addColumn('idempotency_key', 'string', [
-                'limit' => 255,
+                'limit' => 128,
                 'null' => true,
                 'default' => null,
                 'after' => 'context',

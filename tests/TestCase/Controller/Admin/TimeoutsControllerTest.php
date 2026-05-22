@@ -72,7 +72,7 @@ class TimeoutsControllerTest extends IntegrationTestCase
 
         $timeouts = $this->viewVariable('timeouts');
         $this->assertCount(1, $timeouts);
-        $this->assertSame('123', $timeouts->items()->first()->entity_id);
+        $this->assertSame(123, $timeouts->items()->first()->entity_id);
     }
 
     /**
@@ -118,7 +118,7 @@ class TimeoutsControllerTest extends IntegrationTestCase
 
         $timeouts = $this->viewVariable('timeouts');
         $this->assertCount(1, $timeouts);
-        $this->assertSame('456', $timeouts->items()->first()->entity_id);
+        $this->assertSame(456, $timeouts->items()->first()->entity_id);
     }
 
     /**
@@ -274,8 +274,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeouts = $this->viewVariable('timeouts')->toArray();
         $this->assertCount(2, $timeouts);
         // Soonest due date first
-        $this->assertSame('456', $timeouts[0]->entity_id);
-        $this->assertSame('123', $timeouts[1]->entity_id);
+        $this->assertSame(456, $timeouts[0]->entity_id);
+        $this->assertSame(123, $timeouts[1]->entity_id);
     }
 
     /**

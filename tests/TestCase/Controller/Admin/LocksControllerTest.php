@@ -68,7 +68,7 @@ class LocksControllerTest extends IntegrationTestCase
 
         $locks = $this->viewVariable('locks');
         $this->assertCount(1, $locks);
-        $this->assertSame('123', $locks->items()->first()->entity_id);
+        $this->assertSame(123, $locks->items()->first()->entity_id);
     }
 
     /**
@@ -110,7 +110,7 @@ class LocksControllerTest extends IntegrationTestCase
 
         $locks = $this->viewVariable('locks');
         $this->assertCount(1, $locks);
-        $this->assertSame('456', $locks->items()->first()->entity_id);
+        $this->assertSame(456, $locks->items()->first()->entity_id);
     }
 
     /**

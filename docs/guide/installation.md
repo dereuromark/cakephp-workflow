@@ -35,6 +35,70 @@ Run the plugin migrations:
 bin/cake migrations migrate --plugin Workflow
 ```
 
+This creates three tables: `workflow_transitions`, `workflow_locks`, and
+`workflow_timeouts`.
+
+### Schema reference
+
+A merged snapshot of the full schema (all migrations combined) is shipped as DBML at
+[`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/master/resources/schema/schema.dbml).
+Paste it into [dbdiagram.io](https://dbdiagram.io) (or any [DBML](https://dbml.dbdiagram.io/docs) tool)
+to view the tables, columns, and indexes as a diagram. It's hand-maintained — keep it in
+sync when a migration changes these tables.
+
+### Entity id type (integer or UUID primary keys)
+
+The workflow tables (`workflow_transitions`, `workflow_locks`, `workflow_timeouts`)
+reference your entities through a generic `entity_id` column. It is **not** a real
+foreign key — each row can point at a different table — so it cannot be constrained.
+
+By default `entity_id` is a `biginteger`, which matches the common case of integer
+primary keys and keeps the indexes compact. Its signedness follows your
+`Migrations.unsigned_primary_keys` setting, so it lines up with how your application's
+primary keys are defined (signed by default; unsigned only takes effect on MySQL).
+
+#### Using UUID / char primary keys
+
+::: tip Fully supported
+UUID (or other string/char) primary keys work out of the box. The behavior always
+passes the id through as a string, so **no application code changes are needed** — only
+the `entity_id` column type.
+:::
+
+Because an integer column cannot hold a UUID, widen `entity_id` to a string **before
+storing any workflow data**. Add one migration in your app:
+
+```php [config/Migrations/XXXXXXXXXXXXXX_WorkflowEntityIdToUuid.php]
+use Migrations\BaseMigration;
+
+class WorkflowEntityIdToUuid extends BaseMigration
+{
+    public function change(): void
+    {
+        foreach (['workflow_transitions', 'workflow_locks', 'workflow_timeouts'] as $table) {
+            $this->table($table)
+                ->changeColumn('entity_id', 'string', ['limit' => 36, 'null' => false])
+                ->update();
+        }
+    }
+}
+```
+
+…then run the plugin migration followed by your own:
+
+```bash
+bin/cake migrations migrate --plugin Workflow
+bin/cake migrations migrate
+```
+
+That's it — transitions, locks, and timeouts now store and look up your UUID ids
+unchanged.
+
+::: warning One id type per install
+A single installation should use one id type consistently. Mixing integer- and
+UUID-keyed tables under the same workflow tables is not supported.
+:::
+
 ## Base Configuration
 
 Configure the plugin in `config/app.php`:

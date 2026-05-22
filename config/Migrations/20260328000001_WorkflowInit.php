@@ -1,12 +1,18 @@
 <?php
 declare(strict_types=1);
 
+use Cake\Core\Configure;
 use Migrations\BaseMigration;
 
 class WorkflowInit extends BaseMigration
 {
     public function change(): void
     {
+        // Match the application's primary-key signedness so entity_id lines up with
+        // the ids it references. Honors the same flag CakePHP uses for identity
+        // columns; defaults to signed. (Unsigned only takes effect on MySQL.)
+        $entityIdSigned = !(bool)Configure::read('Migrations.unsigned_primary_keys');
+
         // Workflow transitions log table
         $this->table('workflow_transitions')
             ->addColumn('workflow_name', 'string', [
@@ -17,9 +23,9 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'string', [
-                'limit' => 36,
+            ->addColumn('entity_id', 'biginteger', [
                 'null' => false,
+                'signed' => $entityIdSigned,
             ])
             ->addColumn('transition_name', 'string', [
                 'limit' => 64,
@@ -65,9 +71,9 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'string', [
-                'limit' => 36,
+            ->addColumn('entity_id', 'biginteger', [
                 'null' => false,
+                'signed' => $entityIdSigned,
             ])
             ->addColumn('locked_by', 'string', [
                 'limit' => 128,
@@ -95,9 +101,9 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'string', [
-                'limit' => 36,
+            ->addColumn('entity_id', 'biginteger', [
                 'null' => false,
+                'signed' => $entityIdSigned,
             ])
             ->addColumn('current_state', 'string', [
                 'limit' => 64,

@@ -112,7 +112,6 @@ class WorkflowApplyCommandTest extends DatabaseTestCase
         $this->assertErrorContains("not 'order'");
     }
 
-
     private function createRegistry(): WorkflowRegistry
     {
         $definition = new Definition(

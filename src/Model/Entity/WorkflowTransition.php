@@ -22,6 +22,7 @@ use Workflow\Service\TransitionLogger;
  * @property string|null $user_id
  * @property string|null $reason
  * @property array<string, mixed>|null $context
+ * @property string|null $idempotency_key
  * @property string|null $workflow_version
  * @property \Cake\I18n\DateTime $created
  */
@@ -38,6 +39,7 @@ class WorkflowTransition extends Entity
         'user_id' => true,
         'reason' => true,
         'context' => true,
+        'idempotency_key' => true,
         'workflow_version' => true,
         'created' => true,
     ];

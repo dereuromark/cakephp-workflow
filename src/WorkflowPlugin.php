@@ -18,6 +18,7 @@ use Nette\Neon\Neon;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Workflow\Command\BakeWorkflowStateCommand;
+use Workflow\Command\WorkflowBatchCommand;
 use Workflow\Command\WorkflowInitCommand;
 use Workflow\Command\WorkflowListCommand;
 use Workflow\Command\WorkflowMigrateCommand;
@@ -79,6 +80,7 @@ class WorkflowPlugin extends BasePlugin
         $commands->add('workflow init', WorkflowInitCommand::class);
         $commands->add('workflow list', WorkflowListCommand::class);
         $commands->add('workflow show', WorkflowShowCommand::class);
+        $commands->add('workflow batch', WorkflowBatchCommand::class);
         $commands->add('workflow timeouts', WorkflowTimeoutsCommand::class);
         $commands->add('workflow validate', WorkflowValidateCommand::class);
         $commands->add('workflow migrate', WorkflowMigrateCommand::class);

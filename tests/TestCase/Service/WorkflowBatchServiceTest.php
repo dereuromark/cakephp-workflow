@@ -4,133 +4,141 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Service;
 
-use Cake\Datasource\EntityInterface;
+use Cake\Core\Configure;
+use Cake\Datasource\ConnectionManager;
 use Cake\Event\EventManager;
-use Cake\ORM\Entity;
 use Cake\ORM\Table;
-use Cake\TestSuite\TestCase;
 use InvalidArgumentException;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
-use Workflow\Engine\StateMachineEngine;
-use Workflow\Engine\TransitionResult;
-use Workflow\Model\WorkflowTableInterface;
+use Workflow\Loader\LoaderInterface;
+use Workflow\Model\Behavior\WorkflowBehavior;
 use Workflow\Service\WorkflowBatchService;
+use Workflow\Service\WorkflowRegistry;
+use Workflow\Test\TestCase\DatabaseTestCase;
 
-class WorkflowBatchServiceTest extends TestCase
+class WorkflowBatchServiceTest extends DatabaseTestCase
 {
     private WorkflowBatchService $batchService;
 
-    private Definition $definition;
-
-    private StateMachineEngine $engine;
+    private Table $orders;
 
     public function setUp(): void
     {
         parent::setUp();
+        $this->truncateTables();
+
         $this->batchService = new WorkflowBatchService();
-        $this->definition = $this->createOrderDefinition();
-        $this->engine = new StateMachineEngine(new EventManager());
+
+        $registry = $this->createRegistry();
+        Configure::write('Workflow.registry', $registry);
+
+        $this->orders = new Table([
+            'table' => 'orders',
+            'alias' => 'Orders',
+            'connection' => ConnectionManager::get('test'),
+        ]);
+        $this->orders->setPrimaryKey('id');
+        $this->orders->addBehavior('Workflow', [
+            'className' => WorkflowBehavior::class,
+            'workflow' => 'order',
+            'registry' => $registry,
+            'useLocking' => false,
+            'validateOnSave' => false,
+        ]);
     }
 
-    public function testApplyToEntities(): void
+    public function tearDown(): void
     {
-        $table = $this->createMockTable();
+        Configure::delete('Workflow.registry');
 
-        $entities = [
-            new Entity(['id' => '1', 'state' => 'pending']),
-            new Entity(['id' => '2', 'state' => 'pending']),
-            new Entity(['id' => '3', 'state' => 'pending']),
-        ];
+        parent::tearDown();
+    }
 
-        $result = $this->batchService->applyToEntities($table, $entities, 'pay');
+    public function testApplyToStatePersistsAllMatching(): void
+    {
+        $ids = $this->seed(['pending', 'pending', 'pending']);
+
+        $result = $this->batchService->applyToState($this->orders, 'pending', 'pay');
 
         $this->assertSame(3, $result->getTotal());
         $this->assertSame(3, $result->getSuccessCount());
-        $this->assertTrue($result->isFullSuccess());
-
-        // Verify entities were transitioned
-        foreach ($entities as $entity) {
-            $this->assertSame('paid', $entity->get('state'));
+        // Persisted, not just in memory.
+        foreach ($ids as $id) {
+            $this->assertSame('paid', $this->orders->get($id)->get('state'));
         }
+    }
+
+    public function testApplyToStateRespectsLimit(): void
+    {
+        $this->seed(['pending', 'pending', 'pending']);
+
+        $result = $this->batchService->applyToState($this->orders, 'pending', 'pay', [], 2);
+
+        $this->assertSame(2, $result->getTotal());
+        $this->assertSame(2, $this->orders->find()->where(['state' => 'paid'])->count());
+        $this->assertSame(1, $this->orders->find()->where(['state' => 'pending'])->count());
     }
 
     public function testApplyToEntitiesWithFailures(): void
     {
-        $table = $this->createMockTable();
-
         $entities = [
-            new Entity(['id' => '1', 'state' => 'pending']),
-            new Entity(['id' => '2', 'state' => 'paid']), // Already paid, can't pay again
-            new Entity(['id' => '3', 'state' => 'pending']),
+            $this->orders->get($this->seedOne('pending')),
+            $this->orders->get($this->seedOne('paid')), // can't pay again -> blocked
+            $this->orders->get($this->seedOne('pending')),
         ];
 
-        $result = $this->batchService->applyToEntities($table, $entities, 'pay');
+        $result = $this->batchService->applyToEntities($this->orders, $entities, 'pay');
 
         $this->assertSame(3, $result->getTotal());
         $this->assertSame(2, $result->getSuccessCount());
         $this->assertSame(1, $result->getFailureCount());
-        $this->assertFalse($result->isFullSuccess());
         $this->assertTrue($result->hasSuccesses());
         $this->assertTrue($result->hasFailures());
     }
 
     public function testApplyToEntitiesStopOnFailure(): void
     {
-        $table = $this->createMockTable();
-
         $entities = [
-            new Entity(['id' => '1', 'state' => 'pending']),
-            new Entity(['id' => '2', 'state' => 'paid']), // Will fail
-            new Entity(['id' => '3', 'state' => 'pending']), // Won't be processed
+            $this->orders->get($this->seedOne('pending')),
+            $this->orders->get($this->seedOne('paid')), // fails
+            $this->orders->get($this->seedOne('pending')), // not processed
         ];
 
-        $result = $this->batchService->applyToEntities(
-            $table,
-            $entities,
-            'pay',
-            [],
-            stopOnFailure: true,
-        );
+        $result = $this->batchService->applyToEntities($this->orders, $entities, 'pay', [], stopOnFailure: true);
 
-        $this->assertSame(2, $result->getTotal()); // Only 2 processed
+        $this->assertSame(2, $result->getTotal());
         $this->assertSame(1, $result->getSuccessCount());
         $this->assertSame(1, $result->getFailureCount());
     }
 
-    public function testApplyToEntitiesWithContext(): void
-    {
-        $table = $this->createMockTable();
-
-        $entities = [
-            new Entity(['id' => '1', 'state' => 'pending']),
-        ];
-
-        $context = ['user_id' => 'admin-1', 'reason' => 'Bulk processing'];
-        $result = $this->batchService->applyToEntities($table, $entities, 'pay', $context);
-
-        $this->assertTrue($result->isFullSuccess());
-    }
-
     public function testApplyToEntitiesSkipsNonEntities(): void
     {
-        $table = $this->createMockTable();
-
         $entities = [
-            new Entity(['id' => '1', 'state' => 'pending']),
+            $this->orders->get($this->seedOne('pending')),
             'not an entity',
             null,
-            new Entity(['id' => '2', 'state' => 'pending']),
+            $this->orders->get($this->seedOne('pending')),
         ];
 
-        $result = $this->batchService->applyToEntities($table, $entities, 'pay');
+        $result = $this->batchService->applyToEntities($this->orders, $entities, 'pay');
 
         $this->assertSame(2, $result->getTotal());
         $this->assertSame(2, $result->getSuccessCount());
     }
 
-    public function testApplyToEntitiesWithoutBehaviorThrowsException(): void
+    public function testApplyToFinderRunsTheFinder(): void
+    {
+        $this->seed(['pending', 'pending']);
+
+        $result = $this->batchService->applyToFinder($this->orders, 'all', 'pay');
+
+        $this->assertSame(2, $result->getSuccessCount());
+        $this->assertSame(2, $this->orders->find()->where(['state' => 'paid'])->count());
+    }
+
+    public function testWithoutBehaviorThrows(): void
     {
         $table = new Table();
         $table->setAlias('TestTable');
@@ -138,92 +146,70 @@ class WorkflowBatchServiceTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Table "TestTable" must have WorkflowBehavior attached');
 
-        $this->batchService->applyToEntities($table, [], 'transition');
+        $this->batchService->applyToEntities($table, [], 'pay');
     }
 
-    private function createOrderDefinition(): Definition
+    /**
+     * @param array<string> $states
+     *
+     * @return array<int>
+     */
+    private function seed(array $states): array
     {
-        return new Definition(
+        $ids = [];
+        foreach ($states as $state) {
+            $ids[] = $this->seedOne($state);
+        }
+
+        return $ids;
+    }
+
+    private function seedOne(string $state): int
+    {
+        $order = $this->orders->newEntity(['state' => $state]);
+        $this->orders->saveOrFail($order);
+
+        return (int)$order->get('id');
+    }
+
+    private function createRegistry(): WorkflowRegistry
+    {
+        $definition = new Definition(
             name: 'order',
             table: 'Orders',
             field: 'state',
             states: [
                 new State('pending', initial: true),
                 new State('paid'),
-                new State('shipped'),
-                new State('completed', final: true),
+                new State('shipped', final: true),
             ],
             transitions: [
                 new Transition('pay', ['pending'], 'paid'),
                 new Transition('ship', ['paid'], 'shipped'),
-                new Transition('complete', ['shipped'], 'completed'),
             ],
         );
-    }
 
-    /**
-     * Create a mock table that delegates to real workflow engine logic.
-     *
-     * Uses an anonymous class extending Table and implementing WorkflowTableInterface
-     * to simulate the behavior methods added by WorkflowBehavior.
-     *
-     * @return \Cake\ORM\Table&\Workflow\Model\WorkflowTableInterface Table with workflow behavior methods
-     */
-    private function createMockTable(): Table
-    {
-        $definition = $this->definition;
-        $engine = $this->engine;
-
-        return new class ($definition, $engine) extends Table implements WorkflowTableInterface {
-            private Definition $workflowDefinition;
-
-            private StateMachineEngine $workflowEngine;
-
-            public function __construct(Definition $definition, StateMachineEngine $engine)
+        $loader = new class ($definition) implements LoaderInterface {
+            public function __construct(private Definition $definition)
             {
-                parent::__construct();
-                $this->workflowDefinition = $definition;
-                $this->workflowEngine = $engine;
             }
 
-            public function hasBehavior(string $name): bool
+            public function supports(string $workflowName): bool
             {
-                return $name === 'Workflow';
+                return $workflowName === $this->definition->getName();
             }
 
-            public function getWorkflowDefinition(): Definition
+            public function load(string $workflowName): Definition
             {
-                return $this->workflowDefinition;
+                return $this->definition;
             }
 
-            public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
+            public function getWorkflowNames(): array
             {
-                return $this->workflowEngine->apply($this->workflowDefinition, $entity, $transition, $context);
-            }
-
-            public function transition(
-                EntityInterface $entity,
-                string $transition,
-                array $context = [],
-                array $options = [],
-            ): TransitionResult {
-                return $this->applyTransition($entity, $transition, $context);
-            }
-
-            public function canTransition(EntityInterface $entity, string $transition, array $context = []): bool
-            {
-                return $this->workflowEngine->can($this->workflowDefinition, $entity, $transition, $context);
-            }
-
-            public function getAvailableTransitions(EntityInterface $entity): array
-            {
-                return $this->workflowEngine->getAvailableTransitions($this->workflowDefinition, $entity);
-            }
-
-            public function getCurrentState(EntityInterface $entity): string
-            {
-                return $this->workflowEngine->getCurrentState($this->workflowDefinition, $entity);
+                return [$this->definition->getName()];
             }
         };
+
+        return new WorkflowRegistry($loader, EventManager::instance());
     }
 }

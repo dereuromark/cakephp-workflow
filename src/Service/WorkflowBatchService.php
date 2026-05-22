@@ -8,6 +8,7 @@ use Cake\Datasource\EntityInterface;
 use Cake\ORM\Query\SelectQuery;
 use Cake\ORM\Table;
 use InvalidArgumentException;
+use Workflow\Model\Behavior\WorkflowBehavior;
 
 /**
  * Service for applying workflow transitions to multiple entities.
@@ -48,13 +49,15 @@ class WorkflowBatchService
         array $context = [],
         bool $stopOnFailure = false,
     ): BatchResult {
-        $this->assertHasWorkflowBehavior($table);
+        $behavior = $this->behavior($table);
 
         $result = new BatchResult();
 
         foreach ($query->all() as $entity) {
             /** @var \Cake\Datasource\EntityInterface $entity */
-            $transitionResult = $table->applyTransition($entity, $transition, $context);
+            // transition() persists each record (save + log, plus lock when enabled),
+            // so a batch run actually advances them - not just their in-memory state.
+            $transitionResult = $behavior->transition($entity, $transition, $context);
             $result->add($entity, $transitionResult);
 
             if ($stopOnFailure && !$transitionResult->isSuccess()) {
@@ -83,9 +86,7 @@ class WorkflowBatchService
         ?int $limit = null,
         bool $stopOnFailure = false,
     ): BatchResult {
-        $this->assertHasWorkflowBehavior($table);
-
-        $definition = $table->getWorkflowDefinition();
+        $definition = $this->behavior($table)->getWorkflowDefinition();
         $field = $definition->getField();
 
         $query = $table->find()->where([$table->aliasField($field) => $fromState]);
@@ -113,7 +114,7 @@ class WorkflowBatchService
         array $context = [],
         bool $stopOnFailure = false,
     ): BatchResult {
-        $this->assertHasWorkflowBehavior($table);
+        $behavior = $this->behavior($table);
 
         $result = new BatchResult();
 
@@ -122,7 +123,7 @@ class WorkflowBatchService
                 continue;
             }
 
-            $transitionResult = $table->applyTransition($entity, $transition, $context);
+            $transitionResult = $behavior->transition($entity, $transition, $context);
             $result->add($entity, $transitionResult);
 
             if ($stopOnFailure && !$transitionResult->isSuccess()) {
@@ -153,7 +154,7 @@ class WorkflowBatchService
     ): BatchResult {
         $this->assertHasWorkflowBehavior($table);
 
-        $query = $table->find($finder, $finderOptions);
+        $query = $table->find($finder, ...$finderOptions);
 
         return $this->applyToQuery($table, $query, $transition, $context, $stopOnFailure);
     }
@@ -172,5 +173,18 @@ class WorkflowBatchService
                 sprintf('Table "%s" must have WorkflowBehavior attached', $table->getAlias()),
             );
         }
+    }
+
+    /**
+     * Resolve the Workflow behavior, calling its methods directly rather than via the
+     * table instance (table-level behavior method calls are deprecated in CakePHP 5.3).
+     */
+    private function behavior(Table $table): WorkflowBehavior
+    {
+        $this->assertHasWorkflowBehavior($table);
+        /** @var \Workflow\Model\Behavior\WorkflowBehavior $behavior */
+        $behavior = $table->getBehavior('Workflow');
+
+        return $behavior;
     }
 }

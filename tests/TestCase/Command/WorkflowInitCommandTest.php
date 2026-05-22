@@ -55,6 +55,30 @@ class WorkflowInitCommandTest extends TestCase
         );
     }
 
+    public function testExecuteWithMigrationScaffoldsStateColumnMigration(): void
+    {
+        $migrationsDir = $this->tmpDir . DIRECTORY_SEPARATOR . 'Migrations';
+        mkdir($migrationsDir, 0775, true);
+
+        $this->exec(sprintf(
+            'workflow init order Orders --namespace %s --path %s --migration --migrations-path %s',
+            escapeshellarg('TestApp\\Workflow'),
+            escapeshellarg($this->tmpDir),
+            escapeshellarg($migrationsDir),
+        ));
+
+        $this->assertExitSuccess();
+
+        $migrations = glob($migrationsDir . DIRECTORY_SEPARATOR . '*_AddStateColumnToOrders.php') ?: [];
+        $this->assertCount(1, $migrations);
+
+        $contents = (string)file_get_contents($migrations[0]);
+        $this->assertStringContainsString('class AddStateColumnToOrders extends BaseMigration', $contents);
+        $this->assertStringContainsString("\$this->table('orders')", $contents);
+        $this->assertStringContainsString("->addColumn('state', 'string'", $contents);
+        $this->assertStringContainsString("->addIndex(['state'])", $contents);
+    }
+
     private function deleteDirectory(string $path): void
     {
         if (!is_dir($path)) {

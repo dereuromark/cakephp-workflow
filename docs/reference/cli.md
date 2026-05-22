@@ -8,7 +8,13 @@ Scaffold an attribute-based workflow skeleton.
 
 ```bash
 bin/cake workflow init order Orders
+bin/cake workflow init order Orders --migration   # also scaffold the state-column migration
 ```
+
+With `--migration` the command additionally writes a migration that adds the state
+column (default `state`, see `--field`) to the table, into `config/Migrations`
+(override with `--migrations-path`). The output then walks you through wiring the
+behavior + traits and rendering the `panel()` in a view.
 
 ### `workflow list`
 

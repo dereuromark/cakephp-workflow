@@ -75,7 +75,37 @@ $this->addBehavior('Workflow.Workflow', [
 | `autoLog` | bool | `false` | Log transitions to `workflow_transitions` table |
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
 | `entityTable` | string | `null` | Entity table name (defaults to table name) |
-| `useLocking` | bool | `false` | Use pessimistic locking for transitions |
+| `useLocking` | bool | `false` | Use pessimistic locking (lock table) for transitions |
+| `useOptimisticLock` | bool | `false` | Lock-free concurrency via compare-and-set on the state field (takes precedence over `useLocking`) |
+
+## Concurrency: Pessimistic vs Optimistic
+
+Two ways to keep concurrent transitions from racing on the same record:
+
+- **Pessimistic (`useLocking`)** — acquires a row in the `workflow_locks` table for the
+  duration of the transition. A competing caller is told the record is `locked`.
+- **Optimistic (`useOptimisticLock`)** — no lock table. The state change is persisted
+  with a compare-and-set: `UPDATE ... SET state = :to WHERE id = :id AND state = :from`.
+  If another writer already advanced the row, the `UPDATE` matches nothing and the caller
+  gets a `locked` (conflict) result instead of double-applying.
+
+```php
+$this->addBehavior('Workflow.Workflow', [
+    'workflow' => 'order',
+    'useOptimisticLock' => true,
+]);
+```
+
+```php
+$result = $this->Orders->getBehavior('Workflow')->transition($order, 'pay');
+if ($result->isLocked()) {
+    // Lost the race - reload and retry, or report a conflict.
+}
+```
+
+Optimistic locking needs no extra table or `version` column (it compares on the state
+field) and suits high-contention or multi-server setups; it takes precedence over
+`useLocking` when both are set. Wrap retries around the conflict result as needed.
 
 ## Audit Logging
 

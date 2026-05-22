@@ -76,6 +76,16 @@ class WorkflowApplyCommand extends Command
 
         /** @var \Workflow\Model\Behavior\WorkflowBehavior $behavior */
         $behavior = $table->getBehavior('Workflow');
+        if ($behavior->getConfig('workflow') !== $workflow) {
+            $io->error(sprintf(
+                "Table '%s' has a Workflow behavior for '%s', not '%s'.",
+                $definition->getTable(),
+                (string)$behavior->getConfig('workflow'),
+                $workflow,
+            ));
+
+            return self::CODE_ERROR;
+        }
         $from = $behavior->getCurrentState($entity);
 
         $context = ['triggered_by' => 'cli'];
@@ -91,11 +101,11 @@ class WorkflowApplyCommand extends Command
         if ($args->getOption('dry-run')) {
             $allowed = $behavior->canTransition($entity, $transition, $context);
             $io->out(sprintf(
-                'Dry run: %s #%s in state "%s" -> "%s" is %s.',
+                'Dry run: transition "%s" from state "%s" of %s #%s is %s.',
+                $transition,
+                $from,
                 $workflow,
                 $id,
-                $from,
-                $transition,
                 $allowed ? '<success>allowed</success>' : '<warning>not allowed</warning>',
             ));
 

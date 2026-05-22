@@ -87,6 +87,31 @@ class WorkflowApplyHistoryCommandTest extends DatabaseTestCase
         $this->assertErrorContains('not found');
     }
 
+    public function testApplyRejectsTableWithDifferentWorkflowBehavior(): void
+    {
+        $order = $this->orders->newEntity(['state' => 'pending']);
+        $this->orders->saveOrFail($order);
+
+        // Same table, but its behavior is configured for a different workflow.
+        $mismatch = new Table([
+            'table' => 'orders',
+            'alias' => 'Orders',
+            'connection' => ConnectionManager::get('test'),
+        ]);
+        $mismatch->addBehavior('Workflow', [
+            'className' => WorkflowBehavior::class,
+            'workflow' => 'other',
+            'useLocking' => false,
+            'validateOnSave' => false,
+        ]);
+        TableRegistry::getTableLocator()->set('Orders', $mismatch);
+
+        $this->exec(sprintf('workflow apply order %s pay', $order->get('id')));
+
+        $this->assertExitError();
+        $this->assertErrorContains("not 'order'");
+    }
+
     public function testHistoryListsTransitions(): void
     {
         $order = $this->orders->newEntity(['state' => 'pending']);

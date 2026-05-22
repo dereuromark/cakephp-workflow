@@ -60,7 +60,7 @@ bin/cake workflow apply order 42 pay --reason "manual capture" --user 7
 bin/cake workflow apply order 42 pay --dry-run
 ```
 
-It loads the record, runs the transition through the behavior (save + log + lock), and prints the outcome. `--dry-run` only checks whether the transition is allowed. Exit code is non-zero when the transition is blocked, locked, errored, or the record is missing.
+It loads the record, runs the transition through the behavior (save + log, plus lock when enabled), and prints the outcome. `--dry-run` only checks whether the transition is allowed. Exit code is non-zero when the transition is blocked, locked, errored, or the record is missing.
 
 ### `workflow history`
 

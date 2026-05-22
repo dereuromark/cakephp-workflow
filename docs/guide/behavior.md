@@ -76,7 +76,7 @@ $this->addBehavior('Workflow.Workflow', [
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
 | `entityTable` | string | `null` | Entity table name (defaults to table name) |
 | `stateTimestampField` | string\|null | `state_changed_at` | Column stamped with the current time on each state change (auto-applied only if the column exists; `null` disables) |
-| `useLocking` | bool | `false` | Use pessimistic locking for transitions |
+| `useLocking` | bool\|null | `null` | Pessimistic locking for transitions (`null` = auto-detect from the lock table) |
 
 ## Time in State
 

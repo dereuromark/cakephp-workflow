@@ -74,6 +74,19 @@ class WorkflowStateTimestampTest extends DatabaseTestCase
         $this->assertNull($order->get('state_changed_at'));
     }
 
+    public function testDoesNotStampOnSelfLoop(): void
+    {
+        $table = $this->ordersTable();
+        $order = $table->newEntity(['state' => 'pending']);
+        $table->saveOrFail($order);
+
+        // Self-transition (pending -> pending) is not a real state change.
+        $table->getBehavior('Workflow')->transition($order, 'touch');
+
+        $this->assertSame('pending', $order->get('state'));
+        $this->assertNull($order->get('state_changed_at'));
+    }
+
     public function testNoErrorWhenColumnAbsent(): void
     {
         $table = $this->ordersTable(['stateTimestampField' => 'missing_column']);
@@ -98,6 +111,7 @@ class WorkflowStateTimestampTest extends DatabaseTestCase
             ],
             transitions: [
                 new Transition('pay', ['pending'], 'paid', happy: true),
+                new Transition('touch', ['pending'], 'pending'),
             ],
         );
 

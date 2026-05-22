@@ -401,7 +401,7 @@ class WorkflowBehavior extends Behavior
             return;
         }
 
-        $entity->set($field, new DateTime());
+        $entity->set($field, DateTime::now());
     }
 
     /**

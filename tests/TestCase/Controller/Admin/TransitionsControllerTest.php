@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Controller\Admin;
 
+use Cake\Core\Configure;
 use Cake\I18n\DateTime;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use Workflow\Test\TestCase\Controller\IntegrationTestCase;
@@ -232,5 +233,143 @@ class TransitionsControllerTest extends IntegrationTestCase
         // Newest first
         $this->assertSame('456', $transitions[0]->entity_id);
         $this->assertSame('123', $transitions[1]->entity_id);
+    }
+
+    public function testIndexFiltersByStatusAndActor(): void
+    {
+        $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transitionsTable->saveManyOrFail([
+            $transitionsTable->newEntity([
+                'workflow_name' => 'order',
+                'entity_table' => 'Orders',
+                'entity_id' => '123',
+                'transition_name' => 'pay',
+                'from_state' => 'pending',
+                'to_state' => 'paid',
+                'status' => 'success',
+                'user_id' => 'admin-1',
+                'created' => DateTime::now(),
+            ]),
+            $transitionsTable->newEntity([
+                'workflow_name' => 'order',
+                'entity_table' => 'Orders',
+                'entity_id' => '456',
+                'transition_name' => 'pay',
+                'from_state' => 'pending',
+                'to_state' => 'paid',
+                'status' => 'blocked',
+                'user_id' => 'admin-2',
+                'created' => DateTime::now(),
+            ]),
+        ]);
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Transitions',
+            'action' => 'index',
+            '?' => [
+                'status' => 'blocked',
+                'user_id' => 'admin-2',
+            ],
+        ]);
+
+        $this->assertResponseOk();
+
+        $transitions = $this->viewVariable('transitions');
+        $this->assertCount(1, $transitions);
+        $this->assertSame('blocked', $transitions->items()->first()->status);
+        $this->assertSame('admin-2', $transitions->items()->first()->user_id);
+    }
+
+    public function testIndexFiltersByAdminActionAndDateRange(): void
+    {
+        $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
+        $todayTransition = $transitionsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => '123',
+            'transition_name' => 'pay',
+            'from_state' => 'pending',
+            'to_state' => 'paid',
+            'status' => 'success',
+            'context' => ['admin_action' => true],
+            'created' => DateTime::now(),
+        ]);
+        $transitionsTable->saveManyOrFail([
+            $todayTransition,
+            $transitionsTable->newEntity([
+                'workflow_name' => 'order',
+                'entity_table' => 'Orders',
+                'entity_id' => '456',
+                'transition_name' => 'ship',
+                'from_state' => 'paid',
+                'to_state' => 'shipped',
+                'status' => 'success',
+                'context' => ['admin_action' => false],
+                'created' => DateTime::now()->subDays(5),
+            ]),
+        ]);
+        $savedDate = $transitionsTable->getConnection()
+            ->execute('SELECT substr(created, 1, 10) AS created_date FROM workflow_transitions WHERE entity_id = :id', ['id' => '123'])
+            ->fetch('assoc')['created_date'];
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Transitions',
+            'action' => 'index',
+            '?' => [
+                'admin_action' => 'yes',
+                'created_from' => $savedDate,
+                'created_to' => $savedDate,
+            ],
+        ]);
+
+        $this->assertResponseOk();
+
+        $transitions = $this->viewVariable('transitions');
+        $this->assertCount(1, $transitions);
+        $this->assertTrue($transitions->items()->first()->isAdminAction());
+    }
+
+    public function testViewDecodesLegacyStringContextAndUsesActorResolver(): void
+    {
+        Configure::write('Workflow.adminActorResolver', function (string $userId): array {
+            return [
+                'label' => strtoupper($userId),
+                'url' => '/users/view/' . $userId,
+            ];
+        });
+
+        $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transition = $transitionsTable->saveOrFail($transitionsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => '123',
+            'transition_name' => 'pay',
+            'from_state' => 'pending',
+            'to_state' => 'paid',
+            'status' => 'success',
+            'user_id' => 'admin-1',
+            'context' => json_encode([
+                'admin_action' => true,
+                'client_ip' => '127.0.0.1',
+            ]),
+            'created' => DateTime::now(),
+        ]));
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Transitions',
+            'action' => 'view',
+            $transition->id,
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('ADMIN-1');
+        $this->assertResponseContains('127.0.0.1');
+        $this->assertResponseContains('Admin action');
     }
 }

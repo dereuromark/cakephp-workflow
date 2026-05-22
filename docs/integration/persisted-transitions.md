@@ -38,6 +38,13 @@ This is the behavior-level orchestration entry point. It temporarily enables
 the persistence features for that call without changing the behavior's
 long-lived configuration.
 
+When logging is enabled, the stored transition row persists:
+
+- the transition status (`success`, `blocked`, `locked`, `error`)
+- the optional `user_id`
+- the optional `reason`
+- structured `context` JSON, including runtime metadata for guards/commands/locks
+
 ## Per-call orchestration options
 
 ```php

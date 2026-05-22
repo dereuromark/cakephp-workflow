@@ -34,6 +34,7 @@ abstract class IntegrationTestCase extends DatabaseTestCase
     public function tearDown(): void
     {
         parent::tearDown();
+        Configure::delete('Workflow.adminActorResolver');
         Configure::delete('Workflow.registry');
     }
 
@@ -113,5 +114,33 @@ abstract class IntegrationTestCase extends DatabaseTestCase
         $loader->method('getWorkflowNames')->willReturn(array_keys($definitions));
 
         return $loader;
+    }
+
+    /**
+     * Create a test order row and return its generated id.
+     */
+    protected function createOrder(string $state = 'pending', float $total = 10.0): int
+    {
+        $ordersTable = $this->fetchTable('Orders');
+        $order = $ordersTable->saveOrFail($ordersTable->newEntity([
+            'state' => $state,
+            'total' => $total,
+            'payment_captured' => false,
+        ]));
+
+        return (int)$order->get('id');
+    }
+
+    /**
+     * Create a test payment row and return its generated id.
+     */
+    protected function createPayment(string $status = 'pending'): int
+    {
+        $paymentsTable = $this->fetchTable('Payments');
+        $payment = $paymentsTable->saveOrFail($paymentsTable->newEntity([
+            'status' => $status,
+        ]));
+
+        return (int)$payment->get('id');
     }
 }

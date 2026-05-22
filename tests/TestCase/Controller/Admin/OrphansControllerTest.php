@@ -120,4 +120,71 @@ class OrphansControllerTest extends IntegrationTestCase
         $this->assertContains('order', $workflowNames);
         $this->assertContains('payment', $workflowNames);
     }
+
+    public function testFixGetRendersForm(): void
+    {
+        $orderId = $this->createOrder('unknown');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Orphans',
+            'action' => 'fix',
+            'order',
+            (string)$orderId,
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('Fix Orphaned Entity');
+        $this->assertResponseContains('unknown');
+    }
+
+    public function testFixPostLogsLegacySessionActor(): void
+    {
+        $this->enableRetainFlashMessages();
+        $this->session([
+            'Auth' => [
+                'User' => [
+                    'id' => 'legacy-admin',
+                ],
+            ],
+        ]);
+
+        $orderId = $this->createOrder('unknown');
+
+        $this->post([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Orphans',
+            'action' => 'fix',
+            'order',
+            (string)$orderId,
+        ], [
+            'new_state' => 'pending',
+            'reason' => 'Repair orphan',
+        ]);
+
+        $this->assertRedirect([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Orphans',
+            'action' => 'index',
+            '?' => ['workflow' => 'order'],
+        ]);
+        $this->assertFlashMessage(sprintf(
+            'Entity #%d state changed from "unknown" to "pending".',
+            $orderId,
+        ));
+
+        $order = $this->fetchTable('Orders')->get($orderId);
+        $this->assertSame('pending', $order->get('state'));
+
+        $transition = $this->fetchTable('Workflow.WorkflowTransitions')->find()->firstOrFail();
+        $this->assertSame('legacy-admin', $transition->user_id);
+        $this->assertSame('success', $transition->status);
+        $this->assertIsArray($transition->context);
+        $this->assertSame('orphan_fix', $transition->context['type']);
+        $this->assertTrue($transition->context['admin_action']);
+        $this->assertSame('legacy-admin', $transition->context['user_id']);
+    }
 }

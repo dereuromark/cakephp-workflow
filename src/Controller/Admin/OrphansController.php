@@ -7,6 +7,7 @@ namespace Workflow\Controller\Admin;
 use Cake\Http\Response;
 use RuntimeException;
 use Throwable;
+use Workflow\Service\TransitionLogger;
 
 class OrphansController extends WorkflowAppController
 {
@@ -279,15 +280,16 @@ class OrphansController extends WorkflowAppController
                 'transition_name' => '_admin_fix',
                 'from_state' => $oldState ?? '_orphaned',
                 'to_state' => $newState,
+                'status' => TransitionLogger::STATUS_SUCCESS,
                 'user_id' => $userId,
                 'reason' => $reason,
-                'context' => json_encode([
+                'context' => [
                     'type' => 'orphan_fix',
                     'reason' => $reason,
                     'admin_action' => true,
                     'user_id' => $userId,
                     'client_ip' => $this->request->clientIp(),
-                ]),
+                ],
             ]);
             $transitionsTable->save($transition);
         } catch (Throwable) {

@@ -386,4 +386,160 @@ class TimeoutsControllerTest extends IntegrationTestCase
             9999,
         ]);
     }
+
+    public function testBulkCancelMarksSelectedTimeoutsAsProcessed(): void
+    {
+        $this->enableRetainFlashMessages();
+
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        $timeoutA = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => '123',
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now()->addHours(1),
+            'processed' => false,
+        ]));
+        $timeoutB = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => '456',
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now()->addHours(2),
+            'processed' => false,
+        ]));
+
+        $this->post([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'bulkCancel',
+        ], [
+            'timeout_ids' => [$timeoutA->id, $timeoutB->id],
+        ]);
+
+        $this->assertRedirect([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'index',
+        ]);
+        $this->assertFlashMessage('Cancelled 2 timeout(s).');
+        $this->assertTrue($timeoutsTable->get($timeoutA->id)->processed);
+        $this->assertTrue($timeoutsTable->get($timeoutB->id)->processed);
+    }
+
+    public function testBulkExecuteRunsSelectedTimeoutsAndLogsActor(): void
+    {
+        $this->enableRetainFlashMessages();
+        $this->session([
+            'Auth' => [
+                'User' => [
+                    'id' => 'legacy-admin',
+                ],
+            ],
+        ]);
+
+        $orderA = $this->createOrder('pending');
+        $orderB = $this->createOrder('pending');
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        $timeoutA = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => (string)$orderA,
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now()->subMinutes(1),
+            'processed' => false,
+        ]));
+        $timeoutB = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => (string)$orderB,
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now()->subMinutes(2),
+            'processed' => false,
+        ]));
+
+        $this->post([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'bulkExecute',
+        ], [
+            'timeout_ids' => [$timeoutA->id, $timeoutB->id],
+        ]);
+
+        $this->assertRedirect([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'index',
+        ]);
+        $this->assertFlashMessage('Processed 2 timeout(s): 2 executed.');
+        $this->assertSame('paid', $this->fetchTable('Orders')->get($orderA)->get('state'));
+        $this->assertSame('paid', $this->fetchTable('Orders')->get($orderB)->get('state'));
+        $this->assertTrue($timeoutsTable->get($timeoutA->id)->processed);
+        $this->assertTrue($timeoutsTable->get($timeoutB->id)->processed);
+
+        $transitions = $this->fetchTable('Workflow.WorkflowTransitions')
+            ->find()
+            ->orderBy(['id' => 'ASC'])
+            ->all()
+            ->toArray();
+        $this->assertCount(2, $transitions);
+        foreach ($transitions as $transition) {
+            $this->assertSame('legacy-admin', $transition->user_id);
+            $this->assertTrue($transition->isAdminAction());
+        }
+    }
+
+    public function testExecuteDueRunsOnlyDueTimeouts(): void
+    {
+        $this->enableRetainFlashMessages();
+
+        $dueOrder = $this->createOrder('pending');
+        $futureOrder = $this->createOrder('pending');
+        $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
+        $dueTimeout = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => (string)$dueOrder,
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now()->subMinutes(1),
+            'processed' => false,
+        ]));
+        $futureTimeout = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
+            'workflow_name' => 'order',
+            'entity_table' => 'Orders',
+            'entity_id' => (string)$futureOrder,
+            'current_state' => 'pending',
+            'transition_name' => 'pay',
+            'due_at' => DateTime::now()->addHours(1),
+            'processed' => false,
+        ]));
+
+        $this->post([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'executeDue',
+        ]);
+
+        $this->assertRedirect([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'index',
+        ]);
+        $this->assertFlashMessage('Processed 1 timeout(s): 1 executed.');
+        $this->assertTrue($timeoutsTable->get($dueTimeout->id)->processed);
+        $this->assertFalse($timeoutsTable->get($futureTimeout->id)->processed);
+        $this->assertSame('paid', $this->fetchTable('Orders')->get($dueOrder)->get('state'));
+        $this->assertSame('pending', $this->fetchTable('Orders')->get($futureOrder)->get('state'));
+    }
 }

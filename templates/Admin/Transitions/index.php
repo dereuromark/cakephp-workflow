@@ -4,7 +4,14 @@
  * @var iterable<\Workflow\Model\Entity\WorkflowTransition> $transitions
  * @var string|null $workflow
  * @var string|null $entityId
+ * @var string|null $status
+ * @var string|null $userId
+ * @var string|null $adminAction
+ * @var string|null $createdFrom
+ * @var string|null $createdTo
  * @var array<string> $workflowNames
+ * @var array<string, string> $statusOptions
+ * @var array<string, string> $adminActionOptions
  */
 $this->assign('title', 'Transitions');
 ?>
@@ -27,7 +34,7 @@ $this->assign('title', 'Transitions');
 <div class="card mb-4">
     <div class="card-body">
         <?= $this->Form->create(null, ['type' => 'get', 'class' => 'row g-3']) ?>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <?= $this->Form->control('workflow', [
                     'type' => 'select',
                     'options' => array_combine($workflowNames, $workflowNames),
@@ -37,7 +44,7 @@ $this->assign('title', 'Transitions');
                     'class' => 'form-select',
                 ]) ?>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <?= $this->Form->control('entity_id', [
                     'type' => 'text',
                     'placeholder' => 'Entity ID',
@@ -46,7 +53,50 @@ $this->assign('title', 'Transitions');
                     'class' => 'form-control',
                 ]) ?>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <?= $this->Form->control('status', [
+                    'type' => 'select',
+                    'options' => $statusOptions,
+                    'value' => $status,
+                    'label' => false,
+                    'class' => 'form-select',
+                ]) ?>
+            </div>
+            <div class="col-md-3">
+                <?= $this->Form->control('user_id', [
+                    'type' => 'text',
+                    'placeholder' => 'Actor ID',
+                    'value' => $userId,
+                    'label' => false,
+                    'class' => 'form-control',
+                ]) ?>
+            </div>
+            <div class="col-md-3">
+                <?= $this->Form->control('admin_action', [
+                    'type' => 'select',
+                    'options' => $adminActionOptions,
+                    'value' => $adminAction,
+                    'label' => false,
+                    'class' => 'form-select',
+                ]) ?>
+            </div>
+            <div class="col-md-3">
+                <?= $this->Form->control('created_from', [
+                    'type' => 'date',
+                    'value' => $createdFrom,
+                    'label' => false,
+                    'class' => 'form-control',
+                ]) ?>
+            </div>
+            <div class="col-md-3">
+                <?= $this->Form->control('created_to', [
+                    'type' => 'date',
+                    'value' => $createdTo,
+                    'label' => false,
+                    'class' => 'form-control',
+                ]) ?>
+            </div>
+            <div class="col-md-3">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-search"></i> Filter
                 </button>
@@ -79,6 +129,8 @@ $this->assign('title', 'Transitions');
                     $guards = $t->getGuardsEvaluated();
                     $commands = $t->getCommandsExecuted();
                     $usedLock = $t->usedLock();
+                    $actorLabel = $t->getActorLabel();
+                    $actorUrl = $t->getActorUrl();
                     ?>
                     <tr>
                         <td><?= h($t->id) ?></td>
@@ -89,10 +141,20 @@ $this->assign('title', 'Transitions');
                             ) ?>
                         </td>
                         <td>#<?= h($t->entity_id) ?></td>
-                        <td><code><?= h($t->transition_name) ?></code></td>
+                        <td>
+                            <div><code><?= h($t->transition_name) ?></code></div>
+                            <?php if ($t->reason) { ?>
+                                <div class="small text-muted"><?= h($t->reason) ?></div>
+                            <?php } ?>
+                        </td>
                         <td><span class="badge bg-secondary"><?= h($t->from_state) ?></span></td>
                         <td><i class="bi bi-arrow-right text-muted"></i></td>
-                        <td><span class="badge bg-primary"><?= h($t->to_state) ?></span></td>
+                        <td>
+                            <span class="badge bg-primary"><?= h($t->to_state) ?></span>
+                            <?php if ($t->isAdminAction()) { ?>
+                                <div class="small text-warning-emphasis">Admin action</div>
+                            <?php } ?>
+                        </td>
                         <td class="text-muted small">
                             <?php if ($guards) { ?>
                                 <span title="Guards: <?= h(implode(', ', $guards)) ?>"><i class="bi bi-shield-check"></i> <?= count($guards) ?></span>
@@ -107,9 +169,25 @@ $this->assign('title', 'Transitions');
                                 -
                             <?php } ?>
                         </td>
-                        <td><?= h($t->user_id ?? '-') ?></td>
+                        <td>
+                            <?php if ($actorLabel && $actorUrl !== null) { ?>
+                                <?= $this->Html->link(h($actorLabel), $actorUrl) ?>
+                            <?php } else { ?>
+                                <?= h($actorLabel ?? '-') ?>
+                            <?php } ?>
+                            <?php if ($t->getClientIp()) { ?>
+                                <div class="small text-muted"><?= h($t->getClientIp()) ?></div>
+                            <?php } ?>
+                        </td>
                         <td>
                             <span title="<?= h($t->created) ?>"><?= $t->created->diffForHumans() ?></span>
+                            <div class="mt-1">
+                                <?= $this->Html->link(
+                                    'Details',
+                                    ['action' => 'view', $t->id],
+                                    ['class' => 'btn btn-sm btn-outline-secondary'],
+                                ) ?>
+                            </div>
                         </td>
                     </tr>
                 <?php } ?>

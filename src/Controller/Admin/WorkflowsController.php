@@ -12,6 +12,7 @@ use Symfony\Component\Yaml\Yaml;
 use Throwable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\WorkflowAnalyzer;
+use Workflow\Service\TransitionLogger;
 
 class WorkflowsController extends WorkflowAppController
 {
@@ -810,17 +811,18 @@ class WorkflowsController extends WorkflowAppController
                 'transition_name' => $transitionName,
                 'from_state' => $fromState,
                 'to_state' => $toState,
+                'status' => TransitionLogger::STATUS_SUCCESS,
                 'workflow_version' => $version,
                 'user_id' => $userId,
                 'reason' => $reason,
-                'context' => json_encode([
+                'context' => [
                     'type' => 'forced_transition',
                     'reason' => $reason,
                     'admin_action' => true,
                     'guards_bypassed' => true,
                     'user_id' => $userId,
                     'client_ip' => $this->request->clientIp(),
-                ]),
+                ],
             ]);
             $transitionsTable->save($transition);
         } catch (Throwable) {

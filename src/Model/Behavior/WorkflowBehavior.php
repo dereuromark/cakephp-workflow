@@ -48,6 +48,10 @@ class WorkflowBehavior extends Behavior
         // Column stamped with the current time on every state change. Auto-applied
         // only when the table actually has this column; set to null/false to disable.
         'stateTimestampField' => 'state_changed_at',
+        // Lock-free concurrency safety: persist the state change with a compare-and-set
+        // (UPDATE ... WHERE state = :from). A losing writer gets a conflict result.
+        // An alternative to the pessimistic lock table; takes precedence over useLocking.
+        'useOptimisticLock' => false,
         'useLocking' => null, // null=auto-detect, true=force on, false=force off
         'useTimeouts' => null, // null=auto-detect, true=force on, false=force off
         'useTransaction' => true, // Wrap transition+save+log in database transaction
@@ -194,10 +198,11 @@ class WorkflowBehavior extends Behavior
      */
     public function applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult
     {
-        // Acquire lock if enabled (null=auto-detect, true=force, false=skip)
+        // Acquire lock if enabled (null=auto-detect, true=force, false=skip).
+        // Optimistic locking is a lock-free alternative and takes precedence.
         $lock = null;
         $usedLock = false;
-        if ($this->shouldUseLocking()) {
+        if (!$this->getConfig('useOptimisticLock') && $this->shouldUseLocking()) {
             $lock = $this->acquireLock($entity, $context['_locked_by'] ?? null);
             if ($lock === null) {
                 return TransitionResult::locked($this->getCurrentState($entity));
@@ -289,13 +294,16 @@ class WorkflowBehavior extends Behavior
     ): TransitionResult {
         $connection = $this->_table->getConnection();
 
-        /** @var \Workflow\Engine\TransitionResult $result */
-        $result = $connection->transactional(function () use ($entity, $transition, $context, $usedLock): TransitionResult {
+        $captured = null;
+        $connection->transactional(function () use ($entity, $transition, $context, $usedLock, &$captured): bool {
             $result = $this->executeTransition($entity, $transition, $context, $usedLock);
+            $captured = $result;
 
-            // If not successful, transaction will be committed but no changes were made
             if (!$result->isSuccess()) {
-                return $result;
+                // In optimistic mode a state claim (and any command writes) may already
+                // be in this transaction; roll back so a lost/failed attempt leaves no
+                // change. Otherwise commit (no changes were made for the failed result).
+                return !$this->getConfig('useOptimisticLock');
             }
 
             // Auto-save if enabled - within transaction
@@ -312,8 +320,11 @@ class WorkflowBehavior extends Behavior
                 $this->syncTimeouts($entity);
             }
 
-            return $result;
+            return true;
         });
+
+        /** @var \Workflow\Engine\TransitionResult $result */
+        $result = $captured;
 
         // Log non-successful transitions outside the transaction for audit trail
         if (!$result->isSuccess() && $this->getConfig('autoLog') && $this->getConfig('logAllOutcomes')) {
@@ -337,6 +348,22 @@ class WorkflowBehavior extends Behavior
         array $context,
         bool $usedLock,
     ): TransitionResult {
+        // Optimistic concurrency: claim the row BEFORE running commands, so a lost race
+        // never executes side effects. Guards are evaluated first (no commands, no state
+        // change); the claim then asserts the persisted state has not moved underneath us.
+        // A claim made here is rolled back by executeTransitionInTransaction if anything
+        // after it fails, so optimistic mode should keep useTransaction enabled.
+        if ($this->getConfig('useOptimisticLock')) {
+            $field = $this->getWorkflowDefinition()->getField();
+            $from = (string)$entity->get($field);
+            if ($this->canTransition($entity, $transition, $context)) {
+                $to = $this->getWorkflowDefinition()->getTransition($transition)->getTo();
+                if (!$this->claimOptimisticTransition($entity, $from, $to)) {
+                    return TransitionResult::locked($from);
+                }
+            }
+        }
+
         $result = $this->getWorkflowEngine()->apply(
             $this->getWorkflowDefinition(),
             $entity,
@@ -381,6 +408,39 @@ class WorkflowBehavior extends Behavior
         }
 
         return $result;
+    }
+
+    /**
+     * Atomically claim the state change via compare-and-set:
+     * `UPDATE ... SET state = :to WHERE pk = :id AND state = :from`.
+     *
+     * Returns false when no row matched (another writer already advanced it).
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param string $from Expected current state
+     * @param string $to Target state
+     *
+     * @throws \Workflow\Exception\WorkflowException When the table has no single-column primary key.
+     */
+    private function claimOptimisticTransition(EntityInterface $entity, string $from, string $to): bool
+    {
+        $primaryKey = (array)$this->_table->getPrimaryKey();
+        if (count($primaryKey) !== 1) {
+            throw new WorkflowException('Optimistic locking requires a single-column primary key.');
+        }
+
+        $field = $this->getWorkflowDefinition()->getField();
+        $primaryKeyField = (string)$primaryKey[0];
+
+        $affected = $this->_table->updateAll(
+            [$field => $to],
+            [
+                $primaryKeyField => $entity->get($primaryKeyField),
+                $field => $from,
+            ],
+        );
+
+        return $affected >= 1;
     }
 
     /**

@@ -76,7 +76,8 @@ $this->addBehavior('Workflow.Workflow', [
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
 | `entityTable` | string | `null` | Entity table name (defaults to table name) |
 | `stateTimestampField` | string\|null | `state_changed_at` | Column stamped with the current time on each state change (auto-applied only if the column exists; `null` disables) |
-| `useLocking` | bool\|null | `null` | Pessimistic locking for transitions (`null` = auto-detect from the lock table) |
+| `useLocking` | bool\|null | `null` | Pessimistic locking via the lock table (`null` = auto-detect from the lock table) |
+| `useOptimisticLock` | bool | `false` | Lock-free concurrency via compare-and-set on the state field (takes precedence over `useLocking`) |
 
 ## Time in State
 
@@ -102,6 +103,45 @@ $this->table('orders')->addColumn('state_changed_at', 'datetime', [
 
 Use a different column name via `'stateTimestampField' => 'entered_state_at'`, or set it
 to `null` to disable. The stamp is only written when the state actually changes.
+
+## Concurrency: Pessimistic vs Optimistic
+
+Two ways to keep concurrent transitions from racing on the same record:
+
+- **Pessimistic (`useLocking`)** — acquires a row in the `workflow_locks` table for the
+  duration of the transition. A competing caller is told the record is `locked`.
+- **Optimistic (`useOptimisticLock`)** — no lock table. The state change is persisted
+  with a compare-and-set: `UPDATE ... SET state = :to WHERE id = :id AND state = :from`.
+  If another writer already advanced the row, the `UPDATE` matches nothing and the caller
+  gets a `locked` (conflict) result instead of double-applying.
+
+```php
+$this->addBehavior('Workflow.Workflow', [
+    'workflow' => 'order',
+    'useOptimisticLock' => true,
+]);
+```
+
+```php
+$result = $this->Orders->getBehavior('Workflow')->transition($order, 'pay');
+if ($result->isLocked()) {
+    // Lost the race - reload and retry, or report a conflict.
+}
+```
+
+Optimistic locking needs no extra table or `version` column (it compares on the state
+field) and suits high-contention or multi-server setups; it takes precedence over
+`useLocking` when both are set. Wrap retries around the conflict result as needed.
+
+The claim is made **before** the transition's commands run, so a lost race executes no
+side effects, and the claim is rolled back if the transition then fails — keep
+`useTransaction` enabled (the default) so that rollback applies.
+
+Constraints:
+
+- Requires a **single-column primary key** (throws otherwise).
+- Detects conflicts only when the transition **changes the state value** — a self-loop
+  (same `from` and `to`) writes nothing to compare against.
 
 ## Audit Logging
 

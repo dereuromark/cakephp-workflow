@@ -9,9 +9,12 @@ class WorkflowInit extends BaseMigration
     public function change(): void
     {
         // Match the application's primary-key signedness so entity_id lines up with
-        // the ids it references. Honors the same flag CakePHP uses for identity
-        // columns; defaults to signed. (Unsigned only takes effect on MySQL.)
-        $entityIdSigned = !(bool)Configure::read('Migrations.unsigned_primary_keys');
+        // the ids it references. Mirrors CakePHP Migrations' own default for this flag,
+        // which is false (signed primary keys) when unset — so an unset flag yields a
+        // signed entity_id, matching the default-signed ids it references. Pass the
+        // default explicitly to make that intent unmistakable. (Unsigned only takes
+        // effect on MySQL.)
+        $entityIdSigned = !(bool)Configure::read('Migrations.unsigned_primary_keys', false);
 
         // Workflow transitions log table
         $this->table('workflow_transitions')

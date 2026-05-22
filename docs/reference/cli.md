@@ -34,6 +34,19 @@ bin/cake workflow show order
 bin/cake workflow show order --mermaid
 ```
 
+### `workflow batch`
+
+Apply a transition to **all** records currently in a given state — for mass-advancing records and scheduled batch jobs.
+
+```bash
+bin/cake workflow batch order pay --state pending
+bin/cake workflow batch order pay --state pending --limit 500 --reason "nightly run"
+bin/cake workflow batch order pay --state pending --dry-run         # just count
+bin/cake workflow batch order pay --state pending --stop-on-failure
+```
+
+Each record is transitioned through the behavior (save + log, plus lock when enabled). The command prints how many succeeded/failed and exits non-zero if any failed.
+
 The `--mermaid` option prints a [Mermaid](https://mermaid.js.org/) `flowchart` definition you can paste into Markdown, an issue, or this documentation. It renders like this:
 
 ```mermaid

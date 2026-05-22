@@ -97,6 +97,17 @@ class WorkflowBatchCommandTest extends DatabaseTestCase
         $this->assertSame(1, $this->orders->find()->where(['state' => 'pending'])->count());
     }
 
+    public function testBatchRejectsInvalidLimit(): void
+    {
+        $this->seedPending(2);
+
+        $this->exec('workflow batch order pay --state pending --limit foo');
+
+        $this->assertExitError();
+        $this->assertErrorContains('positive integer');
+        $this->assertSame(2, $this->orders->find()->where(['state' => 'pending'])->count());
+    }
+
     private function createRegistry(): WorkflowRegistry
     {
         $definition = new Definition(

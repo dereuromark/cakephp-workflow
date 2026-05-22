@@ -9,6 +9,7 @@ use Cake\Datasource\ConnectionManager;
 use Cake\Event\EventManager;
 use Cake\ORM\Table;
 use InvalidArgumentException;
+use TestApp\Model\Table\BatchOrdersTable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
@@ -136,6 +137,22 @@ class WorkflowBatchServiceTest extends DatabaseTestCase
 
         $this->assertSame(2, $result->getSuccessCount());
         $this->assertSame(2, $this->orders->find()->where(['state' => 'paid'])->count());
+    }
+
+    public function testApplyToFinderPassesNamedOptions(): void
+    {
+        $table = new BatchOrdersTable(['connection' => ConnectionManager::get('test')]);
+        $table->saveOrFail($table->newEntity(['state' => 'pending']));
+        $table->saveOrFail($table->newEntity(['state' => 'pending']));
+        $table->saveOrFail($table->newEntity(['state' => 'paid']));
+
+        // The 'state' option must reach the custom finder (required arg), so only
+        // the two pending rows are selected and transitioned.
+        $result = $this->batchService->applyToFinder($table, 'withState', 'pay', ['state' => 'pending']);
+
+        $this->assertSame(2, $result->getTotal());
+        $this->assertSame(2, $result->getSuccessCount());
+        $this->assertSame(3, $table->find()->where(['state' => 'paid'])->count());
     }
 
     public function testWithoutBehaviorThrows(): void

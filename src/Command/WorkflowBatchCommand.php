@@ -80,7 +80,16 @@ class WorkflowBatchCommand extends Command
             return self::CODE_ERROR;
         }
 
-        $limit = $args->getOption('limit') !== null ? (int)$args->getOption('limit') : null;
+        $limit = null;
+        $limitOption = $args->getOption('limit');
+        if ($limitOption !== null) {
+            if (!ctype_digit((string)$limitOption) || (int)$limitOption < 1) {
+                $io->error('The --limit option must be a positive integer.');
+
+                return self::CODE_ERROR;
+            }
+            $limit = (int)$limitOption;
+        }
 
         if ($args->getOption('dry-run')) {
             $query = $table->find()->where([$table->aliasField($definition->getField()) => $fromState]);

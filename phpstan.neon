@@ -10,3 +10,9 @@ parameters:
 		-
 			message: '#Trait .* is used zero times#'
 			path: src/Test/WorkflowTestTrait.php
+		-
+			message: '#Trait .* is used zero times#'
+			path: src/Model/Entity/WorkflowTrait.php
+		-
+			message: '#Trait .* is used zero times#'
+			path: src/Model/Table/WorkflowTableTrait.php

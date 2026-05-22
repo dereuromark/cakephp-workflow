@@ -8,6 +8,7 @@ use Cake\Command\Command;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
+use Cake\Utility\Inflector;
 use RuntimeException;
 
 class WorkflowInitCommand extends Command
@@ -52,6 +53,13 @@ class WorkflowInitCommand extends Command
             ->addOption('force', [
                 'boolean' => true,
                 'help' => 'Overwrite existing files if they already exist',
+            ])
+            ->addOption('migration', [
+                'boolean' => true,
+                'help' => 'Also scaffold a migration that adds the state column to the table',
+            ])
+            ->addOption('migrations-path', [
+                'help' => 'Directory for the generated migration (default: config/Migrations)',
             ]);
 
         return $parser;
@@ -109,12 +117,85 @@ class WorkflowInitCommand extends Command
             $io->out(sprintf('Created %s', $path));
         }
 
+        if ($args->getOption('migration')) {
+            $migrationsPath = rtrim(
+                (string)($args->getOption('migrations-path') ?: $this->defaultMigrationsPath()),
+                DIRECTORY_SEPARATOR,
+            );
+            $migrationClass = 'Add' . Inflector::camelize($field) . 'ColumnTo' . $table;
+            $migrationFile = $migrationsPath . DIRECTORY_SEPARATOR . date('YmdHis') . '_' . $migrationClass . '.php';
+            $this->writeScaffoldFile(
+                $migrationFile,
+                $this->renderMigration($migrationClass, $table, $field, $workflowName),
+                $force,
+            );
+            $io->out(sprintf('Created %s', $migrationFile));
+        }
+
         $io->hr();
         $io->out(sprintf('Workflow namespace: %s', $namespace));
         $io->out(sprintf('Workflow name: %s', $workflowName));
-        $io->out(sprintf('Suggested behavior config: $this->addBehavior(\'Workflow.Workflow\', [\'workflow\' => \'%s\']);', $workflowName));
+        $io->out('Next steps:');
+        $io->out(sprintf(
+            '  1. Add the behavior to %sTable: $this->addBehavior(\'Workflow.Workflow\', [\'workflow\' => \'%s\']);',
+            $table,
+            $workflowName,
+        ));
+        $step = 2;
+        if (!$args->getOption('migration')) {
+            $io->out(sprintf(
+                '  %d. Add a "%s" column to the table (re-run with --migration to scaffold it).',
+                $step++,
+                $field,
+            ));
+        }
+        $io->out(sprintf(
+            '  %d. Run the migrations, then see the docs for the convenience traits and the panel() view helper.',
+            $step,
+        ));
 
         return self::CODE_SUCCESS;
+    }
+
+    /**
+     * Default location for generated migrations (the app's config/Migrations).
+     */
+    private function defaultMigrationsPath(): string
+    {
+        return (defined('CONFIG') ? CONFIG : ROOT . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR)
+            . 'Migrations';
+    }
+
+    /**
+     * Render a Migrations file that adds the workflow state column to the table.
+     */
+    private function renderMigration(string $migrationClass, string $table, string $field, string $workflowName): string
+    {
+        $tableName = Inflector::underscore($table);
+
+        return <<<PHP
+<?php
+
+declare(strict_types=1);
+
+use Migrations\BaseMigration;
+
+class {$migrationClass} extends BaseMigration
+{
+    public function change(): void
+    {
+        \$this->table('{$tableName}')
+            ->addColumn('{$field}', 'string', [
+                'limit' => 64,
+                'null' => true,
+                'default' => null,
+                'comment' => 'Workflow state ({$workflowName})',
+            ])
+            ->addIndex(['{$field}'])
+            ->update();
+    }
+}
+PHP;
     }
 
     private function renderBaseState(

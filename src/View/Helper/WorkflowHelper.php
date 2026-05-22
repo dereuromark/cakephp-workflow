@@ -11,12 +11,89 @@ use Workflow\Renderer\MermaidRenderer;
 
 /**
  * @property \Cake\View\Helper\HtmlHelper $Html
+ * @property \Cake\View\Helper\FormHelper $Form
  */
 class WorkflowHelper extends Helper
 {
-    protected array $helpers = ['Html'];
+    protected array $helpers = ['Html', 'Form'];
 
     private ?MermaidRenderer $mermaidRenderer = null;
+
+    /**
+     * Render a complete, drop-in workflow panel for one entity: the current-state
+     * badge plus a POST button (CSRF-protected) for each available transition.
+     *
+     * ```php
+     * echo $this->Workflow->panel($definition, $order, $this->Orders->availableTransitions($order), [
+     *     'url' => ['action' => 'transition', $order->id],
+     * ]);
+     * ```
+     *
+     * The buttons POST `transition` (and the entity id) to the given `url`, ready
+     * to be handled by `WorkflowComponent::handleTransition()`.
+     *
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param array<string> $transitions Available transition names
+     * @param array<string, mixed> $options 'url', 'class', 'buttonClass', 'badge'
+     */
+    public function panel(
+        Definition $definition,
+        EntityInterface $entity,
+        array $transitions,
+        array $options = [],
+    ): string {
+        $state = (string)$entity->get($definition->getField());
+        $badge = $this->stateBadge($definition, $state, $options['badge'] ?? []);
+        $buttons = $this->postTransitionButtons($entity, $transitions, $options);
+        $class = $options['class'] ?? 'workflow-panel';
+
+        return sprintf(
+            '<div class="%s">%s%s</div>',
+            h($class),
+            $badge,
+            $buttons !== '' ? ' ' . $buttons : '',
+        );
+    }
+
+    /**
+     * Render available transitions as CSRF-protected POST buttons.
+     *
+     * Each button submits the `transition` name to the configured `url`, so it is
+     * safe for state changes (unlike the GET links produced by transitionButtons()).
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     * @param array<string> $transitions
+     * @param array<string, mixed> $options 'url', 'buttonClass'
+     */
+    public function postTransitionButtons(
+        EntityInterface $entity,
+        array $transitions,
+        array $options = [],
+    ): string {
+        if (!$transitions) {
+            return '';
+        }
+
+        $urlBase = $options['url'] ?? [];
+        $buttonClass = $options['buttonClass'] ?? 'btn btn-sm btn-outline-primary';
+
+        $buttons = [];
+        foreach ($transitions as $transition) {
+            $url = $urlBase + ['action' => 'transition', $entity->get('id'), $transition];
+            $buttons[] = $this->Form->postButton(
+                ucfirst(str_replace('_', ' ', $transition)),
+                $url,
+                [
+                    'class' => $buttonClass,
+                    'data-transition' => $transition,
+                    'data' => ['transition' => $transition],
+                ],
+            );
+        }
+
+        return implode(' ', $buttons);
+    }
 
     /**
      * Render a Mermaid diagram for a workflow.

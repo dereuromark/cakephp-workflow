@@ -16,6 +16,7 @@ return [
             'user_id' => ['type' => 'string', 'length' => 36, 'null' => true],
             'reason' => ['type' => 'text', 'null' => true],
             'context' => ['type' => 'text', 'null' => true],
+            'idempotency_key' => ['type' => 'string', 'length' => 128, 'null' => true],
             'workflow_version' => ['type' => 'string', 'length' => 16, 'null' => true],
             'created' => ['type' => 'datetime', 'null' => false],
         ],

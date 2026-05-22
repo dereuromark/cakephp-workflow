@@ -196,6 +196,25 @@ if ($behavior->canTransition($order, 'pay')) {
 
 See the [documentation](https://dereuromark.github.io/cakephp-workflow/) for the full API.
 
+## Drift Safety
+
+Changing a workflow while records exist can leave records in a state that no
+longer exists. This is handled out of the box, with no configuration:
+
+- **Graceful degradation:** orphaned records never crash reads, display, or the
+  admin UI — they render as a neutral "unknown" state, and transitioning one
+  returns a clear blocked result.
+- **Detection:** the admin Orphans view (`/admin/workflow/orphans`) and
+  `workflow validate --check-data` list records whose state is no longer defined.
+- **Remediation:** move them forward interactively, or headlessly:
+
+```bash
+bin/cake workflow validate order --check-data          # report orphaned records
+bin/cake workflow migrate order --map legacy:pending   # move orphaned records forward
+```
+
+See [Drift Safety](https://dereuromark.github.io/cakephp-workflow/guide/versioning) for details.
+
 ## CLI Commands
 
 ```bash
@@ -203,6 +222,7 @@ bin/cake workflow init order Orders    # Scaffold new workflow
 bin/cake workflow list                 # List all workflows
 bin/cake workflow show order           # Show workflow details
 bin/cake workflow validate             # Validate definitions
+bin/cake workflow migrate order        # Move orphaned records to valid states
 ```
 
 ## Features
@@ -212,6 +232,7 @@ bin/cake workflow validate             # Validate definitions
 - Audit logging with user tracking
 - Pessimistic locking for concurrent transitions
 - Automatic timeouts
+- Drift safety: orphaned records never crash, with detection and forward migration
 - Admin UI with Mermaid.js diagrams
 - CLI tools for management and validation
 

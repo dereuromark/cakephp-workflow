@@ -52,10 +52,23 @@ flowchart TD
 
 ### `workflow validate`
 
-Validate one or more workflows and surface analyzer findings.
+Validate one or more workflows and surface analyzer findings. With `--check-data`
+it also reports records sitting in states that no longer exist (orphaned records).
 
 ```bash
 bin/cake workflow validate
+bin/cake workflow validate order --check-data
+```
+
+### `workflow migrate`
+
+Move orphaned records (whose state was removed/renamed) forward to a valid state.
+Refuses to run if any orphaned state lacks a mapping; runs atomically and logs
+each move. See [Drift Safety](../guide/versioning.md).
+
+```bash
+bin/cake workflow migrate order --map old_state:new_state,legacy:pending
+bin/cake workflow migrate order --map legacy:pending --dry-run
 ```
 
 ### `workflow timeouts`

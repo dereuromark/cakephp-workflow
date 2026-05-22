@@ -395,25 +395,21 @@ class WorkflowBehavior extends Behavior
         $entityId = (string)$entity->get('id');
 
         $existing = $table->find()
-            ->where(
-                [
-                    'workflow_name' => $this->getConfig('workflow'),
-                    // Scope to the same entity table too: the same workflow name and
-                    // id could otherwise collide across tables.
-                    'entity_table' => $this->getConfig('entityTable'),
-                    'entity_id' => $entityId,
-                    'transition_name' => $transition,
-                    // Only a previously SUCCESSFUL application counts as a duplicate;
-                    // a prior blocked/locked/error attempt with the same key must not
-                    // prevent a later legitimate retry.
-                    'status' => TransitionLogger::STATUS_SUCCESS,
-                    'context LIKE' => '%"_idempotency_key":"' . $idempotencyKey . '"%',
-                ],
-                // Override the column's json type for this comparison: otherwise the
-                // LIKE pattern is JSON-encoded when bound and never matches the stored
-                // context text.
-                ['context' => 'string'],
-            )
+            ->where([
+                'workflow_name' => $this->getConfig('workflow'),
+                // Scope to the same entity table too: the same workflow name and
+                // id could otherwise collide across tables.
+                'entity_table' => $this->getConfig('entityTable'),
+                'entity_id' => $entityId,
+                'transition_name' => $transition,
+                // Only a previously SUCCESSFUL application counts as a duplicate;
+                // a prior blocked/locked/error attempt with the same key must not
+                // prevent a later legitimate retry.
+                'status' => TransitionLogger::STATUS_SUCCESS,
+                // Exact match on the dedicated column; the key is bound as a value,
+                // so it is immune to LIKE wildcards and JSON escaping.
+                'idempotency_key' => $idempotencyKey,
+            ])
             ->first();
 
         return $existing !== null;
@@ -710,7 +706,7 @@ class WorkflowBehavior extends Behavior
     public function isFinal(EntityInterface $entity): bool
     {
         $currentState = $this->getCurrentState($entity);
-        $stateObj = $this->getWorkflowDefinition()->getState($currentState);
+        $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->isFinal();
     }
@@ -721,7 +717,7 @@ class WorkflowBehavior extends Behavior
     public function hasFlag(EntityInterface $entity, string $flag): bool
     {
         $currentState = $this->getCurrentState($entity);
-        $stateObj = $this->getWorkflowDefinition()->getState($currentState);
+        $stateObj = $this->getWorkflowDefinition()->resolveState($currentState);
 
         return $stateObj->hasFlag($flag);
     }

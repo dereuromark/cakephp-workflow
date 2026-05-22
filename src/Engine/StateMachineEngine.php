@@ -90,8 +90,13 @@ class StateMachineEngine implements EngineInterface
     ): bool {
         $currentState = $this->getCurrentState($definition, $entity);
 
+        // An orphaned state (not defined in the workflow) has no valid transitions
+        $stateObj = $definition->resolveState($currentState);
+        if ($stateObj->isUnknown()) {
+            return false;
+        }
+
         // Check if current state is final
-        $stateObj = $definition->getState($currentState);
         if ($stateObj->isFinal()) {
             return false;
         }
@@ -122,8 +127,20 @@ class StateMachineEngine implements EngineInterface
         $currentState = $this->getCurrentState($definition, $entity);
         $field = $definition->getField();
 
+        // An orphaned state (not defined in the workflow) cannot be transitioned
+        // out of via the engine; surface a clear, non-fatal block instead of throwing.
+        $stateObj = $definition->resolveState($currentState);
+        if ($stateObj->isUnknown()) {
+            return TransitionResult::blocked(
+                $currentState,
+                [
+                    'state' => "Current state '{$currentState}' is not defined in workflow "
+                        . "'{$definition->getName()}' (orphaned). Migrate the record to a valid state.",
+                ],
+            );
+        }
+
         // Check if current state is final
-        $stateObj = $definition->getState($currentState);
         if ($stateObj->isFinal()) {
             return TransitionResult::blocked(
                 $currentState,
@@ -556,9 +573,9 @@ class StateMachineEngine implements EngineInterface
     ): array {
         $currentState = $this->getCurrentState($definition, $entity);
 
-        // Check if current state is final
-        $stateObj = $definition->getState($currentState);
-        if ($stateObj->isFinal()) {
+        // An orphaned or final state offers no transitions
+        $stateObj = $definition->resolveState($currentState);
+        if ($stateObj->isUnknown() || $stateObj->isFinal()) {
             return [];
         }
 

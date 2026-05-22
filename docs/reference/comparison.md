@@ -113,14 +113,17 @@ Options:
 - `$stopOnFailure` - Stop processing after first failure
 - `$context` - Context passed to each transition
 
-### Versioning Status
+### Versioning & Drift Status
 
-Basic versioning is supported:
+Supported (out of the box, no configuration):
 - Version number on definitions (stored and logged)
 - Version displayed in admin UI and tracked in transition history
+- Graceful degradation: orphaned states (left behind by a definition change) no
+  longer crash reads/display — see [Drift safety](../guide/versioning.md)
+- Orphan detection: admin Orphans view and `workflow validate --check-data`
+- Forward migration: admin Orphans view and `workflow migrate --map`
 
 Not yet implemented:
-- Version migration tooling (migrate entities between workflow versions)
-- Running multiple versions concurrently
-- Version comparison/diff tools
-- State mapping between versions when state names change
+- Running multiple versions concurrently (old records keep executing the old
+  definition while new records use the new one)
+- Per-record version stamping / version comparison/diff tools

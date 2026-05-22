@@ -18,6 +18,7 @@ final class State
      * @param array<string> $onExit Callback names to invoke when exiting this state
      * @param array<string> $requireReasonFor Transition names that require a reason when leaving this state
      * @param array<\Workflow\Engine\Definition\StateTimeout> $timeouts Time-based transitions to schedule while in this state
+     * @param bool $unknown True for synthetic placeholder states representing a value not defined in the workflow
      */
     public function __construct(
         private string $name,
@@ -31,7 +32,20 @@ final class State
         private array $onExit = [],
         private array $requireReasonFor = [],
         private array $timeouts = [],
+        private bool $unknown = false,
     ) {
+    }
+
+    /**
+     * Create a synthetic placeholder for a state value that is not defined in the
+     * workflow (e.g. an orphaned record left behind after a definition change).
+     *
+     * Such a state is non-initial, non-final and carries no transitions, so reads
+     * and display degrade gracefully instead of throwing.
+     */
+    public static function unknown(string $name): self
+    {
+        return new self(name: $name, color: '#6c757d', unknown: true);
     }
 
     public function getName(): string
@@ -57,6 +71,14 @@ final class State
     public function isInitial(): bool
     {
         return $this->initial;
+    }
+
+    /**
+     * Whether this is a synthetic placeholder for a value not defined in the workflow.
+     */
+    public function isUnknown(): bool
+    {
+        return $this->unknown;
     }
 
     public function isFinal(): bool

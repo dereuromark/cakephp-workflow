@@ -82,6 +82,32 @@ class DefinitionTest extends TestCase
         $this->definition->getState('nonexistent');
     }
 
+    public function testFindStateReturnsNullForMissing(): void
+    {
+        $this->assertNull($this->definition->findState('nonexistent'));
+    }
+
+    public function testFindStateReturnsState(): void
+    {
+        $state = $this->definition->findState('paid');
+        $this->assertNotNull($state);
+        $this->assertSame('paid', $state->getName());
+    }
+
+    public function testResolveStateReturnsRealState(): void
+    {
+        $state = $this->definition->resolveState('paid');
+        $this->assertSame('paid', $state->getName());
+        $this->assertFalse($state->isUnknown());
+    }
+
+    public function testResolveStateReturnsUnknownForMissing(): void
+    {
+        $state = $this->definition->resolveState('ghost');
+        $this->assertSame('ghost', $state->getName());
+        $this->assertTrue($state->isUnknown());
+    }
+
     public function testGetInitialState(): void
     {
         $state = $this->definition->getInitialState();

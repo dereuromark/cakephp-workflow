@@ -143,6 +143,22 @@ class WorkflowBehaviorTest extends TestCase
         $this->assertSame('paid', $entity->get('state'));
     }
 
+    public function testIsFinalReturnsFalseForOrphanedStateWithoutThrowing(): void
+    {
+        $behavior = $this->addBehavior();
+        $entity = new Entity(['state' => 'ghost']);
+
+        $this->assertFalse($behavior->isFinal($entity));
+    }
+
+    public function testHasFlagReturnsFalseForOrphanedStateWithoutThrowing(): void
+    {
+        $behavior = $this->addBehavior();
+        $entity = new Entity(['state' => 'ghost']);
+
+        $this->assertFalse($behavior->hasFlag($entity, 'done'));
+    }
+
     public function testTransitionTemporarilyEnablesPersistenceOptions(): void
     {
         $table = new class (['table' => 'orders', 'alias' => 'Orders']) extends Table {

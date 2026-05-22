@@ -111,6 +111,35 @@ final class Definition
     }
 
     /**
+     * Find a state by name without throwing.
+     *
+     * @param string $name
+     *
+     * @return \Workflow\Engine\Definition\State|null Null when the state is not defined
+     */
+    public function findState(string $name): ?State
+    {
+        return $this->stateMap[$name] ?? null;
+    }
+
+    /**
+     * Resolve a state by name, returning a synthetic "unknown" state when it is not
+     * defined instead of throwing.
+     *
+     * Use this for reading/displaying an entity's current state, which may have been
+     * orphaned by a definition change. Use {@see self::getState()} where the state is
+     * required to exist (e.g. a transition's target).
+     *
+     * @param string $name
+     *
+     * @return \Workflow\Engine\Definition\State
+     */
+    public function resolveState(string $name): State
+    {
+        return $this->stateMap[$name] ?? State::unknown($name);
+    }
+
+    /**
      * Get the initial state of the workflow.
      *
      * @throws \Workflow\Exception\WorkflowException When no initial state is defined

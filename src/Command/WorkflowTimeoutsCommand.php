@@ -9,6 +9,7 @@ use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
+use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 use RuntimeException;
@@ -89,9 +90,19 @@ class WorkflowTimeoutsCommand extends Command
                 $definition = $registry->getWorkflow($timeout->workflow_name);
                 $field = $definition->getField();
 
-                // Load the entity
+                // Load the entity. If it no longer exists (deleted after the timeout
+                // was scheduled), mark the timeout processed and skip it - otherwise
+                // it would error on every run and never clear.
                 $entityTable = $this->fetchTable($timeout->entity_table);
-                $entity = $entityTable->get($timeout->entity_id);
+                try {
+                    $entity = $entityTable->get($timeout->entity_id);
+                } catch (RecordNotFoundException $e) {
+                    $io->warning('  Entity no longer exists, marking timeout processed.');
+                    $timeout->processed = true;
+                    $timeoutsTable->saveOrFail($timeout);
+
+                    continue;
+                }
 
                 // Verify entity is still in expected state
                 if ($entity->get($field) !== $timeout->current_state) {
@@ -101,7 +112,7 @@ class WorkflowTimeoutsCommand extends Command
                         $entity->get($field),
                     ));
                     $timeout->processed = true;
-                    $timeoutsTable->save($timeout);
+                    $timeoutsTable->saveOrFail($timeout);
 
                     continue;
                 }

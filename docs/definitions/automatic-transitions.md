@@ -28,6 +28,32 @@ flowchart TD
     linkStyle 0,1 stroke:#ff9800,stroke-width:1px
 ```
 
+## Defining With Attributes
+
+Mark a transition `automatic: true` and gate it with a `#[Condition]` method on the
+state (mirroring `#[Guard]`). The method returns `bool`; the transition is taken only
+when it returns `true`:
+
+```php
+use Workflow\Attribute\Condition;
+use Workflow\Attribute\Transition;
+
+#[Transition(to: ApprovedState::class, name: 'auto_approve', automatic: true)]
+class ReviewState extends OrderState
+{
+    #[Condition('auto_approve')]
+    public function isTrusted(): bool
+    {
+        return (bool)$this->getEntity()?->get('trusted');
+    }
+}
+```
+
+When the entity enters `review`, the engine evaluates `auto_approve` and advances to
+`approved` if `isTrusted()` returns `true`. Leave the condition off for an
+unconditional fallback branch. This matches the `automatic`/`condition` keys in the
+NEON/YAML formats.
+
 ## How Selection Works
 
 The engine evaluates automatic transitions in order:

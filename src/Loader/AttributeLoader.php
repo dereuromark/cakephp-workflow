@@ -10,6 +10,7 @@ use ReflectionClass;
 use ReflectionMethod;
 use Workflow\Attribute\Color;
 use Workflow\Attribute\Command as CommandAttr;
+use Workflow\Attribute\Condition as ConditionAttr;
 use Workflow\Attribute\FailedState;
 use Workflow\Attribute\FinalState;
 use Workflow\Attribute\Flag;
@@ -317,6 +318,8 @@ class AttributeLoader implements LoaderInterface
      * @param string $fromState
      * @param array<class-string> $allStateClasses
      *
+     * @throws \Workflow\Exception\WorkflowException
+     *
      * @return array<\Workflow\Engine\Definition\Transition>
      */
     private function buildTransitions(ReflectionClass $reflection, string $fromState, array $allStateClasses): array
@@ -326,6 +329,7 @@ class AttributeLoader implements LoaderInterface
 
         $guards = [];
         $commands = [];
+        $conditions = [];
 
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             foreach ($method->getAttributes(GuardAttr::class) as $guardAttr) {
@@ -335,6 +339,17 @@ class AttributeLoader implements LoaderInterface
             foreach ($method->getAttributes(CommandAttr::class) as $cmdAttr) {
                 $cmd = $cmdAttr->newInstance();
                 $commands[$cmd->transition][] = $reflection->getName() . '::' . $method->getName();
+            }
+            foreach ($method->getAttributes(ConditionAttr::class) as $conditionAttr) {
+                $condition = $conditionAttr->newInstance();
+                if (isset($conditions[$condition->transition])) {
+                    throw new WorkflowException(sprintf(
+                        "Transition '%s' on %s declares more than one #[Condition]; a transition supports only one condition.",
+                        $condition->transition,
+                        $reflection->getName(),
+                    ));
+                }
+                $conditions[$condition->transition] = $reflection->getName() . '::' . $method->getName();
             }
         }
 
@@ -349,6 +364,8 @@ class AttributeLoader implements LoaderInterface
                 happy: $transitionDef->happy,
                 guards: $guards[$transitionDef->name] ?? [],
                 commands: $commands[$transitionDef->name] ?? [],
+                condition: $conditions[$transitionDef->name] ?? null,
+                automatic: $transitionDef->automatic,
             );
         }
 
@@ -374,6 +391,8 @@ class AttributeLoader implements LoaderInterface
     /**
      * @param array<\Workflow\Engine\Definition\Transition> $transitions
      *
+     * @throws \Workflow\Exception\WorkflowException
+     *
      * @return array<\Workflow\Engine\Definition\Transition>
      */
     private function mergeTransitions(array $transitions): array
@@ -386,6 +405,23 @@ class AttributeLoader implements LoaderInterface
                 $merged[$name] = $transition;
             } else {
                 $existing = $merged[$name];
+
+                $existingCondition = $existing->getCondition();
+                $incomingCondition = $transition->getCondition();
+                if (
+                    $existingCondition !== null
+                    && $incomingCondition !== null
+                    && $existingCondition !== $incomingCondition
+                ) {
+                    throw new WorkflowException(sprintf(
+                        "Transition '%s' has conflicting #[Condition]s across states ('%s' vs '%s'); "
+                        . 'a transition supports only one condition.',
+                        $name,
+                        $existingCondition,
+                        $incomingCondition,
+                    ));
+                }
+
                 $merged[$name] = new Transition(
                     name: $name,
                     from: array_unique(array_merge($existing->getFrom(), $transition->getFrom())),
@@ -393,6 +429,8 @@ class AttributeLoader implements LoaderInterface
                     happy: $existing->isHappy() || $transition->isHappy(),
                     guards: array_unique(array_merge($existing->getGuards(), $transition->getGuards())),
                     commands: array_unique(array_merge($existing->getCommands(), $transition->getCommands())),
+                    condition: $existingCondition ?? $incomingCondition,
+                    automatic: $existing->isAutomatic() || $transition->isAutomatic(),
                 );
             }
         }

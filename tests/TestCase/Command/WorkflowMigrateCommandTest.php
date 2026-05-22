@@ -64,10 +64,12 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
         $this->assertArrayNotHasKey('legacy', $versions);
         $this->assertSame($hash, $versions['pending']);
 
-        $logCount = (int)ConnectionManager::get('test')
-            ->execute("SELECT COUNT(*) AS c FROM workflow_transitions WHERE from_state = 'legacy' AND to_state = 'pending'")
-            ->fetch('assoc')['c'];
-        $this->assertSame(1, $logCount);
+        $logRow = ConnectionManager::get('test')
+            ->execute("SELECT COUNT(*) AS c, MAX(workflow_version) AS v FROM workflow_transitions WHERE from_state = 'legacy' AND to_state = 'pending'")
+            ->fetch('assoc');
+        $this->assertSame(1, (int)$logRow['c']);
+        // The audit column stores the human workflow version, consistent with normal transitions.
+        $this->assertSame((string)$this->definition->getVersion(), $logRow['v']);
     }
 
     public function testMigrateRefusesWhenOrphanedStateUnmapped(): void

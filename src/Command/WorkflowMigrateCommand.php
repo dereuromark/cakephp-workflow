@@ -225,7 +225,8 @@ class WorkflowMigrateCommand extends Command
                 'status' => TransitionLogger::STATUS_SUCCESS,
                 'reason' => 'Version migration',
                 'context' => ['type' => 'version_migration'],
-                'workflow_version' => $hash,
+                // Audit column holds the human workflow version, like normal transitions.
+                'workflow_version' => (string)$definition->getVersion(),
             ]);
             $transitionsTable->saveOrFail($log);
 

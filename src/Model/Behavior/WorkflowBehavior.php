@@ -94,10 +94,11 @@ class WorkflowBehavior extends Behavior
      */
     public function beforeSave(EventInterface $event, EntityInterface $entity, ArrayObject $options): void
     {
-        // Stamp new entities so freshly created records are not left unversioned.
-        // Runs independently of validateOnSave; existing entities are stamped in executeTransition().
+        // Stamp new entities with the current version (plugin-managed metadata, so any
+        // client-supplied value is overwritten). Existing entities are stamped in
+        // executeTransition(). Runs independently of validateOnSave.
         if ($entity->isNew()) {
-            $this->stampVersion($entity, onlyIfMissing: true);
+            $this->stampVersion($entity);
         }
 
         if (!$this->getConfig('validateOnSave')) {
@@ -729,9 +730,8 @@ class WorkflowBehavior extends Behavior
      * Stamp the active definition version hash onto the entity when versioning is enabled.
      *
      * @param \Cake\Datasource\EntityInterface $entity
-     * @param bool $onlyIfMissing When true, only stamps if the field is currently empty
      */
-    protected function stampVersion(EntityInterface $entity, bool $onlyIfMissing = false): void
+    protected function stampVersion(EntityInterface $entity): void
     {
         if (!$this->getConfig('versioning')) {
             return;
@@ -743,12 +743,7 @@ class WorkflowBehavior extends Behavior
             return;
         }
 
-        $field = $this->getConfig('versionField');
-        if ($onlyIfMissing && $entity->get($field) !== null) {
-            return;
-        }
-
-        $entity->set($field, $this->getWorkflowDefinition()->getVersionHash());
+        $entity->set($this->getConfig('versionField'), $this->getWorkflowDefinition()->getVersionHash());
     }
 
     /**

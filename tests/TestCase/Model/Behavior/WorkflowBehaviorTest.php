@@ -224,6 +224,23 @@ class WorkflowBehaviorTest extends TestCase
         );
     }
 
+    public function testNewEntityStampOverwritesClientSuppliedValue(): void
+    {
+        $this->addBehavior(['versioning' => true]);
+        $entity = new Entity(['state' => 'pending', 'workflow_version' => 'stale123']);
+        $entity->setNew(true);
+
+        $this->table->dispatchEvent('Model.beforeSave', [
+            'entity' => $entity,
+            'options' => new ArrayObject(),
+        ]);
+
+        $this->assertSame(
+            $this->definition->getVersionHash(),
+            $entity->get('workflow_version'),
+        );
+    }
+
     public function testGetVersionStampReturnsStamp(): void
     {
         $behavior = $this->addBehavior(['versioning' => true]);

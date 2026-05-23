@@ -78,7 +78,7 @@ The simplest way is to set the column type **before** running the migration:
 
 ```php [config/app.php]
 'Polymorphic' => [
-    'type' => 'uuid', // or 'binaryuuid' / 'string'
+    'type' => 'uuid', // or 'binaryuuid'
 ],
 ```
 

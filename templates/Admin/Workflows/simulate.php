@@ -43,7 +43,7 @@ $this->assign('title', 'Simulate Transitions');
                     <dt class="col-sm-5">Table</dt>
                     <dd class="col-sm-7"><code><?= h($definition->getTable()) ?></code></dd>
 
-                    <dt class="col-sm-5">Entity ID</dt>
+                    <dt class="col-sm-5">Foreign key</dt>
                     <dd class="col-sm-7">#<?= h($foreignKey) ?></dd>
 
                     <dt class="col-sm-5">Current State</dt>

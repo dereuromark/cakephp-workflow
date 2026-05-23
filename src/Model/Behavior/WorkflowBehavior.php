@@ -79,7 +79,7 @@ class WorkflowBehavior extends Behavior
             throw new WorkflowException('WorkflowBehavior requires a workflow name');
         }
 
-        // Auto-detect entity table name if not set
+        // Auto-detect the polymorphic model (registry alias) if not set
         if ($this->getConfig('model') === null) {
             $this->setConfig('model', $this->_table->getRegistryAlias());
         }

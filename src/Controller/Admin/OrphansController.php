@@ -92,7 +92,7 @@ class OrphansController extends WorkflowAppController
      * Fix an orphaned entity by setting it to a valid state.
      *
      * @param string $workflow Workflow name
-     * @param string $foreignKey Entity ID to fix
+     * @param string $foreignKey Foreign key (record id) to fix
      *
      * @throws \RuntimeException
      */

@@ -74,7 +74,7 @@ $this->addBehavior('Workflow.Workflow', [
 | `autoSave` | bool | `false` | Auto-save entity after transition |
 | `autoLog` | bool | `false` | Log transitions to `workflow_transitions` table |
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
-| `model` | string | `null` | Entity table name (defaults to table name) |
+| `model` | string | `null` | Polymorphic model value stored in the `model` column (defaults to the table's registry alias) |
 | `stateTimestampField` | string\|null | `state_changed_at` | Column stamped with the current time on each state change (auto-applied only if the column exists; `null` disables) |
 | `useLocking` | bool\|null | `null` | Pessimistic locking via the lock table (`null` = auto-detect from the lock table) |
 | `useOptimisticLock` | bool | `false` | Lock-free concurrency via compare-and-set on the state field (takes precedence over `useLocking`) |

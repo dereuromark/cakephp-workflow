@@ -44,7 +44,7 @@ $this->assign('title', 'Fix Orphaned Entity');
                     <dt class="col-sm-4">Table</dt>
                     <dd class="col-sm-8"><code><?= h($definition->getTable()) ?></code></dd>
 
-                    <dt class="col-sm-4">Entity ID</dt>
+                    <dt class="col-sm-4">Foreign key</dt>
                     <dd class="col-sm-8">#<?= h($foreignKey) ?></dd>
 
                     <dt class="col-sm-4">State Field</dt>

@@ -108,7 +108,7 @@ class TransitionsControllerTest extends IntegrationTestCase
     /**
      * Test index action filters by foreign_key.
      */
-    public function testIndexFiltersEntityId(): void
+    public function testIndexFiltersForeignKey(): void
     {
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
 

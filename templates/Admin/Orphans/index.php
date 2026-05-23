@@ -92,7 +92,7 @@ $this->assign('title', 'Orphaned Items');
                     <?php } ?>
                     <th>Workflow</th>
                     <th>Table</th>
-                    <th>Entity ID</th>
+                    <th>Foreign key</th>
                     <th>Current State</th>
                     <th>Valid States</th>
                     <th>Actions</th>

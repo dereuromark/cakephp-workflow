@@ -47,7 +47,7 @@ $this->assign('title', 'Transitions');
             <div class="col-md-3">
                 <?= $this->Form->control('foreign_key', [
                     'type' => 'text',
-                    'placeholder' => 'Entity ID',
+                    'placeholder' => 'Foreign key',
                     'value' => $foreignKey,
                     'label' => false,
                     'class' => 'form-control',

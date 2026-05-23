@@ -46,7 +46,10 @@ class RenamePolymorphicColumns extends BaseMigration
             $table = $this->table($tableName);
             $changed = false;
             foreach ($renames as $from => $to) {
-                if ($table->hasColumn($from)) {
+                // Only rename when the source exists and the target does not, so the
+                // migration stays a safe no-op on fresh installs (new names already
+                // present) and on partially-migrated/hand-altered databases.
+                if ($table->hasColumn($from) && !$table->hasColumn($to)) {
                     $table->renameColumn($from, $to);
                     $changed = true;
                 }

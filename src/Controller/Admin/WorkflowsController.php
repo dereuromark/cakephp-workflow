@@ -605,7 +605,7 @@ class WorkflowsController extends WorkflowAppController
      * Shows which guards would block, what the target state would be, etc.
      *
      * @param string $name Workflow name
-     * @param string $foreignKey Entity ID
+     * @param string $foreignKey Foreign key (record id)
      * @param string|null $transition Optional specific transition to simulate
      *
      * @throws \RuntimeException
@@ -685,7 +685,7 @@ class WorkflowsController extends WorkflowAppController
      * Use with caution - this skips all guard checks.
      *
      * @param string $name Workflow name
-     * @param string $foreignKey Entity ID
+     * @param string $foreignKey Foreign key (record id)
      *
      * @throws \RuntimeException
      */

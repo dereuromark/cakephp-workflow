@@ -76,10 +76,10 @@ $this->assign('title', 'Timeout Details');
                         ) ?>
                     </dd>
 
-                    <dt class="col-sm-4">Entity Table</dt>
+                    <dt class="col-sm-4">Model</dt>
                     <dd class="col-sm-8"><code><?= h($timeout->model) ?></code></dd>
 
-                    <dt class="col-sm-4">Entity ID</dt>
+                    <dt class="col-sm-4">Foreign key</dt>
                     <dd class="col-sm-8">#<?= h($timeout->foreign_key) ?></dd>
 
                     <dt class="col-sm-4">Transition</dt>
@@ -136,7 +136,7 @@ $this->assign('title', 'Timeout Details');
                     </div>
                 <?php } else { ?>
                     <dl class="row mb-0">
-                        <dt class="col-sm-4">Entity ID</dt>
+                        <dt class="col-sm-4">Foreign key</dt>
                         <dd class="col-sm-8">#<?= h($entity->get('id')) ?></dd>
 
                         <dt class="col-sm-4">Current State</dt>

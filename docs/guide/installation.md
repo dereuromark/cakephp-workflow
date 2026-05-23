@@ -52,13 +52,13 @@ The workflow tables (`workflow_transitions`, `workflow_locks`, `workflow_timeout
 reference your entities through a generic `entity_id` column. It is **not** a real
 foreign key — each row can point at a different table — so it cannot be constrained.
 
-By default `entity_id` is an `integer`, matching CakePHP's default primary-key type. Set
-`Workflow.entityIdColumnType` before running the migration to change it — `'biginteger'`
-for large-id apps, or `'uuid'` / `'string'` for non-integer keys:
+`entity_id` is **polymorphic** (paired with `entity_table`). Its column type follows the
+shared `Polymorphic.type` config key (the same convention used across the plugin family),
+defaulting to `integer`. Set it **before** running the migration to change it:
 
 ```php [config/app.php]
-'Workflow' => [
-    'entityIdColumnType' => 'biginteger',
+'Polymorphic' => [
+    'type' => 'biginteger', // integer (default) | biginteger | uuid | binaryuuid
 ],
 ```
 
@@ -77,8 +77,8 @@ the `entity_id` column type.
 The simplest way is to set the column type **before** running the migration:
 
 ```php [config/app.php]
-'Workflow' => [
-    'entityIdColumnType' => 'uuid', // or 'string'
+'Polymorphic' => [
+    'type' => 'uuid', // or 'binaryuuid' / 'string'
 ],
 ```
 

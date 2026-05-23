@@ -119,18 +119,6 @@ return [
         'lockDuration' => 30,
 
         /**
-         * Column type for the `entity_id` columns created by the install migration
-         * (workflow_transitions, workflow_locks, workflow_timeouts). Match your
-         * application's primary-key type: 'integer' (default), 'biginteger' for
-         * large-id apps, or 'uuid' / 'string' for non-integer keys. Read at
-         * migration time only. For integer/biginteger the column signedness follows
-         * Migrations.unsigned_primary_keys.
-         *
-         * Default: 'integer'
-         */
-        // 'entityIdColumnType' => 'integer',
-
-        /**
          * Enable timeout handling for automatic transitions.
          * Allows states to auto-transition after a specified delay.
          *

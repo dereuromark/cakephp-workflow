@@ -8,10 +8,11 @@ class WorkflowInit extends BaseMigration
 {
     public function change(): void
     {
-        // entity_id mirrors the primary key of the rows it references. Default to
-        // 'integer' (CakePHP's default PK type); set Workflow.entityIdColumnType to
-        // 'biginteger' for large-id apps, or 'uuid'/'string' for non-integer keys.
-        $entityIdType = (string)Configure::read('Workflow.entityIdColumnType', 'integer');
+        // entity_id is polymorphic (paired with entity_table) — it stores the primary
+        // key of whatever source table a row belongs to. Its column type follows the
+        // shared Polymorphic.type key (integer default; biginteger / uuid / binaryuuid),
+        // the same convention used across the plugin family.
+        $entityIdType = (string)Configure::read('Polymorphic.type', 'integer');
         $entityIdOptions = ['null' => false];
         if (in_array($entityIdType, ['integer', 'biginteger'], true)) {
             // Match the application's primary-key signedness so entity_id lines up with

@@ -8,13 +8,17 @@ class WorkflowInit extends BaseMigration
 {
     public function change(): void
     {
-        // Match the application's primary-key signedness so entity_id lines up with
-        // the ids it references. Mirrors CakePHP Migrations' own default for this flag,
-        // which is false (signed primary keys) when unset — so an unset flag yields a
-        // signed entity_id, matching the default-signed ids it references. Pass the
-        // default explicitly to make that intent unmistakable. (Unsigned only takes
-        // effect on MySQL.)
-        $entityIdSigned = !(bool)Configure::read('Migrations.unsigned_primary_keys', false);
+        // entity_id mirrors the primary key of the rows it references. Default to
+        // 'integer' (CakePHP's default PK type); set Workflow.entityIdColumnType to
+        // 'biginteger' for large-id apps, or 'uuid'/'string' for non-integer keys.
+        $entityIdType = (string)Configure::read('Workflow.entityIdColumnType', 'integer');
+        $entityIdOptions = ['null' => false];
+        if (in_array($entityIdType, ['integer', 'biginteger'], true)) {
+            // Match the application's primary-key signedness so entity_id lines up with
+            // the ids it references. Mirrors CakePHP Migrations' own default for this
+            // flag (signed when unset). Unsigned only takes effect on MySQL.
+            $entityIdOptions['signed'] = !(bool)Configure::read('Migrations.unsigned_primary_keys', false);
+        }
 
         // Workflow transitions log table
         $this->table('workflow_transitions')
@@ -26,10 +30,7 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'biginteger', [
-                'null' => false,
-                'signed' => $entityIdSigned,
-            ])
+            ->addColumn('entity_id', $entityIdType, $entityIdOptions)
             ->addColumn('transition_name', 'string', [
                 'limit' => 64,
                 'null' => false,
@@ -74,10 +75,7 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'biginteger', [
-                'null' => false,
-                'signed' => $entityIdSigned,
-            ])
+            ->addColumn('entity_id', $entityIdType, $entityIdOptions)
             ->addColumn('locked_by', 'string', [
                 'limit' => 128,
                 'null' => true,
@@ -104,10 +102,7 @@ class WorkflowInit extends BaseMigration
                 'limit' => 128,
                 'null' => false,
             ])
-            ->addColumn('entity_id', 'biginteger', [
-                'null' => false,
-                'signed' => $entityIdSigned,
-            ])
+            ->addColumn('entity_id', $entityIdType, $entityIdOptions)
             ->addColumn('current_state', 'string', [
                 'limit' => 64,
                 'null' => false,

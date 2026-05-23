@@ -52,8 +52,17 @@ The workflow tables (`workflow_transitions`, `workflow_locks`, `workflow_timeout
 reference your entities through a generic `entity_id` column. It is **not** a real
 foreign key — each row can point at a different table — so it cannot be constrained.
 
-By default `entity_id` is a `biginteger`, which matches the common case of integer
-primary keys and keeps the indexes compact. Its signedness follows your
+By default `entity_id` is an `integer`, matching CakePHP's default primary-key type. Set
+`Workflow.entityIdColumnType` before running the migration to change it — `'biginteger'`
+for large-id apps, or `'uuid'` / `'string'` for non-integer keys:
+
+```php [config/app.php]
+'Workflow' => [
+    'entityIdColumnType' => 'biginteger',
+],
+```
+
+For `integer`/`biginteger` the column's signedness follows your
 `Migrations.unsigned_primary_keys` setting, so it lines up with how your application's
 primary keys are defined (signed by default; unsigned only takes effect on MySQL).
 
@@ -65,8 +74,23 @@ passes the id through as a string, so **no application code changes are needed**
 the `entity_id` column type.
 :::
 
-Because an integer column cannot hold a UUID, widen `entity_id` to a string **before
-storing any workflow data**. Add one migration in your app:
+The simplest way is to set the column type **before** running the migration:
+
+```php [config/app.php]
+'Workflow' => [
+    'entityIdColumnType' => 'uuid', // or 'string'
+],
+```
+
+```bash
+bin/cake migrations migrate --plugin Workflow
+```
+
+That's it — transitions, locks, and timeouts now store and look up your UUID ids
+unchanged.
+
+If you already ran the migration with an integer type, widen `entity_id` afterwards with
+a migration in your app instead:
 
 ```php [config/Migrations/XXXXXXXXXXXXXX_WorkflowEntityIdToUuid.php]
 use Migrations\BaseMigration;
@@ -83,16 +107,6 @@ class WorkflowEntityIdToUuid extends BaseMigration
     }
 }
 ```
-
-…then run the plugin migration followed by your own:
-
-```bash
-bin/cake migrations migrate --plugin Workflow
-bin/cake migrations migrate
-```
-
-That's it — transitions, locks, and timeouts now store and look up your UUID ids
-unchanged.
 
 ::: warning One id type per install
 A single installation should use one id type consistently. Mixing integer- and

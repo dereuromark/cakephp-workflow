@@ -117,7 +117,7 @@ $this->assign('title', 'Timeouts');
                                 ['controller' => 'Workflows', 'action' => 'view', $timeout->workflow_name],
                             ) ?>
                         </td>
-                        <td>#<?= h($timeout->entity_id) ?></td>
+                        <td>#<?= h($timeout->foreign_key) ?></td>
                         <td><span class="badge bg-secondary"><?= h($timeout->current_state) ?></span></td>
                         <td><code><?= h($timeout->transition_name) ?></code></td>
                         <td>

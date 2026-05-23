@@ -168,32 +168,32 @@ class WorkflowsController extends WorkflowAppController
 
             if ($entities) {
                 // Get the most recent transition for each entity
-                $entityIds = array_map(fn ($e) => (string)$e->get('id'), $entities);
+                $foreignKeys = array_map(fn ($e) => (string)$e->get('id'), $entities);
 
-                // Build a map of entity_id => last transition time
+                // Build a map of foreign_key => last transition time
                 /** @var array<string, \Cake\I18n\DateTime> $lastTransitions */
                 $lastTransitions = [];
                 /** @var array<\Workflow\Model\Entity\WorkflowTransition> $transitions */
                 $transitions = $transitionsTable->find()
                     ->where([
                         'workflow_name' => $name,
-                        'entity_id IN' => $entityIds,
+                        'foreign_key IN' => $foreignKeys,
                     ])
-                    ->orderBy(['entity_id' => 'ASC', 'id' => 'DESC'])
+                    ->orderBy(['foreign_key' => 'ASC', 'id' => 'DESC'])
                     ->toArray();
 
                 foreach ($transitions as $t) {
-                    $entityId = $t->entity_id;
+                    $foreignKey = $t->foreign_key;
                     // Only keep the first (most recent) transition per entity
-                    if (!isset($lastTransitions[$entityId])) {
-                        $lastTransitions[$entityId] = $t->created;
+                    if (!isset($lastTransitions[$foreignKey])) {
+                        $lastTransitions[$foreignKey] = $t->created;
                     }
                 }
 
                 // Now categorize each entity
                 foreach ($entities as $entity) {
                     $state = $entity->get($field);
-                    $entityId = (string)$entity->get('id');
+                    $foreignKey = (string)$entity->get('id');
 
                     // Skip if state not in workflow definition
                     if (!isset($matrix[$state])) {
@@ -201,7 +201,7 @@ class WorkflowsController extends WorkflowAppController
                     }
 
                     // Determine time in state
-                    $enteredAt = $lastTransitions[$entityId] ?? $entity->get('created') ?? $now;
+                    $enteredAt = $lastTransitions[$foreignKey] ?? $entity->get('created') ?? $now;
                     $hoursInState = $now->diffInHours($enteredAt, false);
 
                     // Find appropriate bucket
@@ -605,12 +605,12 @@ class WorkflowsController extends WorkflowAppController
      * Shows which guards would block, what the target state would be, etc.
      *
      * @param string $name Workflow name
-     * @param string $entityId Entity ID
+     * @param string $foreignKey Entity ID
      * @param string|null $transition Optional specific transition to simulate
      *
      * @throws \RuntimeException
      */
-    public function simulate(string $name, string $entityId, ?string $transition = null): void
+    public function simulate(string $name, string $foreignKey, ?string $transition = null): void
     {
         if ($this->workflowRegistry === null) {
             throw new RuntimeException('Workflow registry not configured');
@@ -621,7 +621,7 @@ class WorkflowsController extends WorkflowAppController
         $field = $definition->getField();
 
         $table = $this->fetchTable($tableName);
-        $entity = $table->get($entityId);
+        $entity = $table->get($foreignKey);
 
         $currentState = $entity->get($field);
         $engine = $this->workflowRegistry->getEngine($name);
@@ -671,7 +671,7 @@ class WorkflowsController extends WorkflowAppController
         $this->set(compact(
             'definition',
             'entity',
-            'entityId',
+            'foreignKey',
             'currentState',
             'simulationResults',
             'availableTransitions',
@@ -685,11 +685,11 @@ class WorkflowsController extends WorkflowAppController
      * Use with caution - this skips all guard checks.
      *
      * @param string $name Workflow name
-     * @param string $entityId Entity ID
+     * @param string $foreignKey Entity ID
      *
      * @throws \RuntimeException
      */
-    public function forceTransition(string $name, string $entityId): ?Response
+    public function forceTransition(string $name, string $foreignKey): ?Response
     {
         // GET renders the form, POST mutates. Restrict the action to safe-method
         // for rendering and require POST (with CSRF) for any state mutation.
@@ -704,7 +704,7 @@ class WorkflowsController extends WorkflowAppController
         $field = $definition->getField();
 
         $table = $this->fetchTable($tableName);
-        $entity = $table->get($entityId);
+        $entity = $table->get($foreignKey);
 
         $currentState = $entity->get($field);
 
@@ -751,7 +751,7 @@ class WorkflowsController extends WorkflowAppController
                     $this->logForcedTransition(
                         $name,
                         $tableName,
-                        $entityId,
+                        $foreignKey,
                         $transitionName,
                         $currentState,
                         $toState,
@@ -780,7 +780,7 @@ class WorkflowsController extends WorkflowAppController
         $this->set(compact(
             'definition',
             'entity',
-            'entityId',
+            'foreignKey',
             'currentState',
             'applicableTransitions',
         ));
@@ -794,7 +794,7 @@ class WorkflowsController extends WorkflowAppController
     private function logForcedTransition(
         string $workflow,
         string $tableName,
-        string $entityId,
+        string $foreignKey,
         string $transitionName,
         string $fromState,
         string $toState,
@@ -806,8 +806,8 @@ class WorkflowsController extends WorkflowAppController
             $userId = $this->getCurrentUserId();
             $transition = $transitionsTable->newEntity([
                 'workflow_name' => $workflow,
-                'entity_table' => $tableName,
-                'entity_id' => $entityId,
+                'model' => $tableName,
+                'foreign_key' => $foreignKey,
                 'transition_name' => $transitionName,
                 'from_state' => $fromState,
                 'to_state' => $toState,

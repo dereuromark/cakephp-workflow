@@ -103,7 +103,7 @@ $this->assign('title', 'Orphaned Items');
                     <tr class="table-danger">
                         <?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
                             <td>
-                                <input type="checkbox" name="entity_ids[]" value="<?= h($orphan['entity']->get('id')) ?>" class="form-check-input entity-checkbox">
+                                <input type="checkbox" name="foreign_keys[]" value="<?= h($orphan['entity']->get('id')) ?>" class="form-check-input entity-checkbox">
                             </td>
                         <?php } ?>
                         <td>

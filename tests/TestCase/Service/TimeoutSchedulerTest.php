@@ -27,8 +27,8 @@ class TimeoutSchedulerTest extends DatabaseTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'cancel',
             'due_at' => '2026-03-29 10:00:00',

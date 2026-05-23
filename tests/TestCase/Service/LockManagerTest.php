@@ -28,8 +28,8 @@ class LockManagerTest extends DatabaseTestCase
 
         $this->assertNotNull($lock);
         $this->assertSame('order', $lock->workflow_name);
-        $this->assertSame('Orders', $lock->entity_table);
-        $this->assertSame(123, $lock->entity_id);
+        $this->assertSame('Orders', $lock->model);
+        $this->assertSame(123, $lock->foreign_key);
         $this->assertSame('user-1', $lock->locked_by);
         $this->assertInstanceOf(DateTime::class, $lock->expires_at);
     }

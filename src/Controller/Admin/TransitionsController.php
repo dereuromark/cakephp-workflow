@@ -27,9 +27,9 @@ class TransitionsController extends WorkflowAppController
         }
 
         // Filter by entity
-        $entityId = $this->request->getQuery('entity_id');
-        if ($entityId) {
-            $query->where(['entity_id' => $entityId]);
+        $foreignKey = $this->request->getQuery('foreign_key');
+        if ($foreignKey) {
+            $query->where(['foreign_key' => $foreignKey]);
         }
 
         $status = $this->request->getQuery('status');
@@ -93,7 +93,7 @@ class TransitionsController extends WorkflowAppController
         $this->set(compact(
             'transitions',
             'workflow',
-            'entityId',
+            'foreignKey',
             'workflowNames',
             'status',
             'userId',

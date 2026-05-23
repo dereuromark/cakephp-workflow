@@ -38,6 +38,30 @@ bin/cake migrations migrate --plugin Workflow
 This creates three tables: `workflow_transitions`, `workflow_locks`, and
 `workflow_timeouts`.
 
+### Upgrading from 0.1.x
+
+0.2.0 renames the polymorphic columns to the CakePHP convention:
+`entity_table` → `model` and `entity_id` → `foreign_key`.
+
+1. Run `bin/cake migrations migrate --plugin Workflow` — the `RenamePolymorphicColumns`
+   migration renames the columns in place, **preserving existing data**.
+2. If you passed the **`entityTable`** option when attaching the behavior, rename that
+   key to **`model`**:
+
+   ```php
+   $this->addBehavior('Workflow.Workflow', [
+       'workflow' => 'order',
+       'model' => 'Orders', // was: 'entityTable' => 'Orders'
+   ]);
+   ```
+
+   ::: warning
+   If you previously set a **custom** `entityTable` (different from the table's
+   registry alias) and don't rename it to `model`, the behavior falls back to the
+   alias and will read/write a different polymorphic value than what's already stored.
+   Apps that never set `entityTable` (the default) need no code change.
+   :::
+
 ### Schema reference
 
 A merged snapshot of the full schema (all migrations combined) is shipped as DBML at
@@ -49,10 +73,10 @@ sync when a migration changes these tables.
 ### Entity id type (integer or UUID primary keys)
 
 The workflow tables (`workflow_transitions`, `workflow_locks`, `workflow_timeouts`)
-reference your entities through a generic `entity_id` column. It is **not** a real
+reference your entities through a generic `foreign_key` column. It is **not** a real
 foreign key — each row can point at a different table — so it cannot be constrained.
 
-`entity_id` is **polymorphic** (paired with `entity_table`). Its column type follows the
+`foreign_key` is **polymorphic** (paired with `model`). Its column type follows the
 shared `Polymorphic.type` config key (the same convention used across the plugin family),
 defaulting to `integer`. Set it **before** running the migration to change it:
 
@@ -71,7 +95,7 @@ primary keys are defined (signed by default; unsigned only takes effect on MySQL
 ::: tip Fully supported
 UUID (or other string/char) primary keys work out of the box. The behavior always
 passes the id through as a string, so **no application code changes are needed** — only
-the `entity_id` column type.
+the `foreign_key` column type.
 :::
 
 The simplest way is to set the column type **before** running the migration:
@@ -89,7 +113,7 @@ bin/cake migrations migrate --plugin Workflow
 That's it — transitions, locks, and timeouts now store and look up your UUID ids
 unchanged.
 
-If you already ran the migration with an integer type, widen `entity_id` afterwards with
+If you already ran the migration with an integer type, widen `foreign_key` afterwards with
 a migration in your app instead:
 
 ```php [config/Migrations/XXXXXXXXXXXXXX_WorkflowEntityIdToUuid.php]
@@ -101,7 +125,7 @@ class WorkflowEntityIdToUuid extends BaseMigration
     {
         foreach (['workflow_transitions', 'workflow_locks', 'workflow_timeouts'] as $table) {
             $this->table($table)
-                ->changeColumn('entity_id', 'string', ['limit' => 36, 'null' => false])
+                ->changeColumn('foreign_key', 'string', ['limit' => 36, 'null' => false])
                 ->update();
         }
     }

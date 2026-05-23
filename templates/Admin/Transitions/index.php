@@ -3,7 +3,7 @@
  * @var \Cake\View\View $this
  * @var iterable<\Workflow\Model\Entity\WorkflowTransition> $transitions
  * @var string|null $workflow
- * @var string|null $entityId
+ * @var string|null $foreignKey
  * @var string|null $status
  * @var string|null $userId
  * @var string|null $adminAction
@@ -45,10 +45,10 @@ $this->assign('title', 'Transitions');
                 ]) ?>
             </div>
             <div class="col-md-3">
-                <?= $this->Form->control('entity_id', [
+                <?= $this->Form->control('foreign_key', [
                     'type' => 'text',
                     'placeholder' => 'Entity ID',
-                    'value' => $entityId,
+                    'value' => $foreignKey,
                     'label' => false,
                     'class' => 'form-control',
                 ]) ?>
@@ -140,7 +140,7 @@ $this->assign('title', 'Transitions');
                                 ['controller' => 'Workflows', 'action' => 'view', $t->workflow_name],
                             ) ?>
                         </td>
-                        <td>#<?= h($t->entity_id) ?></td>
+                        <td>#<?= h($t->foreign_key) ?></td>
                         <td>
                             <div><code><?= h($t->transition_name) ?></code></div>
                             <?php if ($t->reason) { ?>

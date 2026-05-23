@@ -51,8 +51,8 @@ class WorkflowTimeoutsTableTest extends DatabaseTestCase
     {
         ConnectionManager::get('test')->insert('workflow_timeouts', [
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => 1,
+            'model' => 'Orders',
+            'foreign_key' => 1,
             'current_state' => $marker,
             'transition_name' => 'expire',
             'due_at' => $dueAt->format('Y-m-d H:i:s'),

@@ -4,7 +4,7 @@
  * @var string $workflow
  * @var \Workflow\Engine\Definition\Definition $definition
  * @var \Cake\Datasource\EntityInterface $entity
- * @var string $entityId
+ * @var string $foreignKey
  * @var string|null $currentState
  * @var array<string, string> $validStates
  * @var string $field
@@ -21,7 +21,7 @@ $this->assign('title', 'Fix Orphaned Entity');
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><?= $this->Html->link('Admin', ['controller' => 'Workflow', 'action' => 'index']) ?></li>
                 <li class="breadcrumb-item"><?= $this->Html->link('Orphans', ['action' => 'index']) ?></li>
-                <li class="breadcrumb-item active">Fix #<?= h($entityId) ?></li>
+                <li class="breadcrumb-item active">Fix #<?= h($foreignKey) ?></li>
             </ol>
         </nav>
     </div>
@@ -45,7 +45,7 @@ $this->assign('title', 'Fix Orphaned Entity');
                     <dd class="col-sm-8"><code><?= h($definition->getTable()) ?></code></dd>
 
                     <dt class="col-sm-4">Entity ID</dt>
-                    <dd class="col-sm-8">#<?= h($entityId) ?></dd>
+                    <dd class="col-sm-8">#<?= h($foreignKey) ?></dd>
 
                     <dt class="col-sm-4">State Field</dt>
                     <dd class="col-sm-8"><code><?= h($field) ?></code></dd>
@@ -64,7 +64,7 @@ $this->assign('title', 'Fix Orphaned Entity');
         <div class="card">
             <div class="card-header">Set New State</div>
             <div class="card-body">
-                <?= $this->Form->create(null, ['url' => ['action' => 'fix', $workflow, $entityId]]) ?>
+                <?= $this->Form->create(null, ['url' => ['action' => 'fix', $workflow, $foreignKey]]) ?>
 
                 <div class="alert alert-warning">
                     <i class="bi bi-exclamation-triangle me-2"></i>

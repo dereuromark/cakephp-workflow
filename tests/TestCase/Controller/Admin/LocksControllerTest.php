@@ -40,8 +40,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an active lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -50,8 +50,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an expired lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'locked_by' => 'user-2',
             'expires_at' => DateTime::now()->subMinutes(30),
             'created' => DateTime::now()->subHours(1),
@@ -68,7 +68,7 @@ class LocksControllerTest extends IntegrationTestCase
 
         $locks = $this->viewVariable('locks');
         $this->assertCount(1, $locks);
-        $this->assertSame(123, $locks->items()->first()->entity_id);
+        $this->assertSame(123, $locks->items()->first()->foreign_key);
     }
 
     /**
@@ -81,8 +81,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an active lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -91,8 +91,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an expired lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'locked_by' => 'user-2',
             'expires_at' => DateTime::now()->subMinutes(30),
             'created' => DateTime::now()->subHours(1),
@@ -110,7 +110,7 @@ class LocksControllerTest extends IntegrationTestCase
 
         $locks = $this->viewVariable('locks');
         $this->assertCount(1, $locks);
-        $this->assertSame(456, $locks->items()->first()->entity_id);
+        $this->assertSame(456, $locks->items()->first()->foreign_key);
     }
 
     /**
@@ -123,8 +123,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add locks for different workflows
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -132,8 +132,8 @@ class LocksControllerTest extends IntegrationTestCase
 
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'payment',
-            'entity_table' => 'Payments',
-            'entity_id' => '456',
+            'model' => 'Payments',
+            'foreign_key' => '456',
             'locked_by' => 'user-2',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -164,8 +164,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an active lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -174,8 +174,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an expired lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'locked_by' => 'user-2',
             'expires_at' => DateTime::now()->subMinutes(30),
             'created' => DateTime::now()->subHours(1),
@@ -241,8 +241,8 @@ class LocksControllerTest extends IntegrationTestCase
         $locksTable = $this->fetchTable('Workflow.WorkflowLocks');
         $lock = $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -312,8 +312,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add an active lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),
@@ -322,8 +322,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add expired locks
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'locked_by' => 'user-2',
             'expires_at' => DateTime::now()->subMinutes(30),
             'created' => DateTime::now()->subHours(1),
@@ -331,8 +331,8 @@ class LocksControllerTest extends IntegrationTestCase
 
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'payment',
-            'entity_table' => 'Payments',
-            'entity_id' => '789',
+            'model' => 'Payments',
+            'foreign_key' => '789',
             'locked_by' => 'user-3',
             'expires_at' => DateTime::now()->subMinutes(60),
             'created' => DateTime::now()->subHours(2),
@@ -355,7 +355,7 @@ class LocksControllerTest extends IntegrationTestCase
 
         // Verify only active lock remains
         $this->assertSame(1, $locksTable->find()->count());
-        $this->assertNotNull($locksTable->find()->where(['entity_id' => '123'])->first());
+        $this->assertNotNull($locksTable->find()->where(['foreign_key' => '123'])->first());
     }
 
     /**
@@ -370,8 +370,8 @@ class LocksControllerTest extends IntegrationTestCase
         // Add only an active lock
         $locksTable->save($locksTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'locked_by' => 'user-1',
             'expires_at' => DateTime::now()->addMinutes(30),
             'created' => DateTime::now(),

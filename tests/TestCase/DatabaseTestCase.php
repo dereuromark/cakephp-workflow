@@ -42,8 +42,8 @@ abstract class DatabaseTestCase extends TestCase
                 CREATE TABLE workflow_locks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     workflow_name VARCHAR(64) NOT NULL,
-                    entity_table VARCHAR(128) NOT NULL,
-                    entity_id INTEGER NOT NULL,
+                    model VARCHAR(128) NOT NULL,
+                    foreign_key INTEGER NOT NULL,
                     locked_by VARCHAR(128),
                     expires_at DATETIME NOT NULL,
                     created DATETIME NOT NULL
@@ -57,8 +57,8 @@ abstract class DatabaseTestCase extends TestCase
                 CREATE TABLE workflow_transitions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     workflow_name VARCHAR(64) NOT NULL,
-                    entity_table VARCHAR(128) NOT NULL,
-                    entity_id INTEGER NOT NULL,
+                    model VARCHAR(128) NOT NULL,
+                    foreign_key INTEGER NOT NULL,
                     transition_name VARCHAR(64) NOT NULL,
                     from_state VARCHAR(64) NOT NULL,
                     to_state VARCHAR(64) NOT NULL,
@@ -79,8 +79,8 @@ abstract class DatabaseTestCase extends TestCase
                 CREATE TABLE workflow_timeouts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     workflow_name VARCHAR(64) NOT NULL,
-                    entity_table VARCHAR(128) NOT NULL,
-                    entity_id INTEGER NOT NULL,
+                    model VARCHAR(128) NOT NULL,
+                    foreign_key INTEGER NOT NULL,
                     current_state VARCHAR(64) NOT NULL,
                     transition_name VARCHAR(64) NOT NULL,
                     due_at DATETIME NOT NULL,

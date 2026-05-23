@@ -40,7 +40,7 @@ class TransitionLogger
      * Logs all transition attempts (success, blocked, locked, error) for complete audit trail.
      *
      * @param string $workflowName
-     * @param string $entityTable
+     * @param string $model
      * @param \Cake\Datasource\EntityInterface $entity
      * @param \Workflow\Engine\TransitionResult $result
      * @param string $transitionName
@@ -49,7 +49,7 @@ class TransitionLogger
      */
     public function log(
         string $workflowName,
-        string $entityTable,
+        string $model,
         EntityInterface $entity,
         TransitionResult $result,
         string $transitionName,
@@ -82,8 +82,8 @@ class TransitionLogger
 
         $transition = $table->newEntity([
             'workflow_name' => $workflowName,
-            'entity_table' => $entityTable,
-            'entity_id' => (string)$entity->get('id'),
+            'model' => $model,
+            'foreign_key' => (string)$entity->get('id'),
             'transition_name' => $transitionName,
             'from_state' => $result->getFromState(),
             'to_state' => $result->getToState() ?? $result->getFromState(), // Stay in same state if blocked
@@ -152,23 +152,23 @@ class TransitionLogger
      * Get transition history for an entity.
      *
      * @param string $workflowName
-     * @param string $entityTable
-     * @param string $entityId
+     * @param string $model
+     * @param string $foreignKey
      * @param bool $successOnly If true, only return successful transitions
      *
      * @return array<\Workflow\Model\Entity\WorkflowTransition>
      */
     public function getHistory(
         string $workflowName,
-        string $entityTable,
-        string $entityId,
+        string $model,
+        string $foreignKey,
         bool $successOnly = false,
     ): array {
         /** @var \Workflow\Model\Table\WorkflowTransitionsTable $table */
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
 
         /** @var array<\Workflow\Model\Entity\WorkflowTransition> $result */
-        $result = $table->find('forEntity', workflow: $workflowName, table: $entityTable, id: $entityId, successOnly: $successOnly)->toArray();
+        $result = $table->find('forEntity', workflow: $workflowName, table: $model, id: $foreignKey, successOnly: $successOnly)->toArray();
 
         return $result;
     }

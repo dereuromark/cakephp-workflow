@@ -30,28 +30,28 @@ class LockManager
      */
     public function acquire(
         string $workflowName,
-        string $entityTable,
+        string $model,
         EntityInterface $entity,
         ?string $lockedBy = null,
     ): ?WorkflowLock {
         /** @var \Workflow\Model\Table\WorkflowLocksTable $table */
         $table = $this->fetchTable('Workflow.WorkflowLocks');
-        $entityId = (string)$entity->get('id');
+        $foreignKey = (string)$entity->get('id');
 
         // Fast path: someone already holds an active lock for this entity.
-        $existing = $table->find('activeLock', workflow: $workflowName, table: $entityTable, id: $entityId)->first();
+        $existing = $table->find('activeLock', workflow: $workflowName, table: $model, id: $foreignKey)->first();
         if ($existing !== null) {
             return null;
         }
 
-        // Try to take the lock. The unique index (workflow_name, entity_table,
-        // entity_id) is the real mutex and the INSERT is the atomic acquire.
+        // Try to take the lock. The unique index (workflow_name, model,
+        // foreign_key) is the real mutex and the INSERT is the atomic acquire.
         // We deliberately do NOT run a global expired-lock sweep here: a range
         // DELETE on the lock table under high insert concurrency causes InnoDB
         // gap-lock deadlocks. Expired rows for THIS entity are reclaimed on demand
         // below; cluster-wide GC of other entities' expired rows is left to
         // deleteExpired() (e.g. a maintenance command).
-        $lock = $this->insert($table, $workflowName, $entityTable, $entityId, $lockedBy);
+        $lock = $this->insert($table, $workflowName, $model, $foreignKey, $lockedBy);
         if ($lock !== null) {
             return $lock;
         }
@@ -62,8 +62,8 @@ class LockManager
         $stale = $table->find()
             ->where([
                 'workflow_name' => $workflowName,
-                'entity_table' => $entityTable,
-                'entity_id' => $entityId,
+                'model' => $model,
+                'foreign_key' => $foreignKey,
                 'expires_at <' => $this->currentTime(),
             ])
             ->first();
@@ -73,12 +73,12 @@ class LockManager
 
         $table->deleteAll([
             'workflow_name' => $workflowName,
-            'entity_table' => $entityTable,
-            'entity_id' => $entityId,
+            'model' => $model,
+            'foreign_key' => $foreignKey,
             'expires_at <' => $this->currentTime(),
         ]);
 
-        return $this->insert($table, $workflowName, $entityTable, $entityId, $lockedBy);
+        return $this->insert($table, $workflowName, $model, $foreignKey, $lockedBy);
     }
 
     /**
@@ -92,22 +92,22 @@ class LockManager
      *
      * @param \Workflow\Model\Table\WorkflowLocksTable $table
      * @param string $workflowName
-     * @param string $entityTable
-     * @param string $entityId
+     * @param string $model
+     * @param string $foreignKey
      * @param string|null $lockedBy
      */
     protected function insert(
         WorkflowLocksTable $table,
         string $workflowName,
-        string $entityTable,
-        string $entityId,
+        string $model,
+        string $foreignKey,
         ?string $lockedBy,
     ): ?WorkflowLock {
         /** @var \Workflow\Model\Entity\WorkflowLock $lock */
         $lock = $table->newEntity([
             'workflow_name' => $workflowName,
-            'entity_table' => $entityTable,
-            'entity_id' => $entityId,
+            'model' => $model,
+            'foreign_key' => $foreignKey,
             'locked_by' => $lockedBy,
             'expires_at' => DateTime::now()->addSeconds($this->lockDurationSeconds),
         ]);
@@ -185,7 +185,7 @@ class LockManager
      */
     public function isLocked(
         string $workflowName,
-        string $entityTable,
+        string $model,
         EntityInterface $entity,
     ): bool {
         $table = $this->fetchTable('Workflow.WorkflowLocks');
@@ -193,7 +193,7 @@ class LockManager
         $lock = $table->find(
             'activeLock',
             workflow: $workflowName,
-            table: $entityTable,
+            table: $model,
             id: (string)$entity->get('id'),
         )->first();
 
@@ -205,15 +205,15 @@ class LockManager
      */
     public function release(
         string $workflowName,
-        string $entityTable,
+        string $model,
         EntityInterface $entity,
     ): void {
         $table = $this->fetchTable('Workflow.WorkflowLocks');
 
         $table->deleteAll([
             'workflow_name' => $workflowName,
-            'entity_table' => $entityTable,
-            'entity_id' => (string)$entity->get('id'),
+            'model' => $model,
+            'foreign_key' => (string)$entity->get('id'),
         ]);
     }
 }

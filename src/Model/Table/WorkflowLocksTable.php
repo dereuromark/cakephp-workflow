@@ -39,16 +39,16 @@ class WorkflowLocksTable extends Table
             ->notEmptyString('workflow_name');
 
         $validator
-            ->scalar('entity_table')
-            ->maxLength('entity_table', 128)
-            ->requirePresence('entity_table', 'create')
-            ->notEmptyString('entity_table');
+            ->scalar('model')
+            ->maxLength('model', 128)
+            ->requirePresence('model', 'create')
+            ->notEmptyString('model');
 
         $validator
-            ->scalar('entity_id')
-            ->maxLength('entity_id', 36)
-            ->requirePresence('entity_id', 'create')
-            ->notEmptyString('entity_id');
+            ->scalar('foreign_key')
+            ->maxLength('foreign_key', 255)
+            ->requirePresence('foreign_key', 'create')
+            ->notEmptyString('foreign_key');
 
         $validator
             ->dateTime('expires_at')
@@ -71,8 +71,8 @@ class WorkflowLocksTable extends Table
         return $query
             ->where([
                 'workflow_name' => $workflow,
-                'entity_table' => $table,
-                'entity_id' => $id,
+                'model' => $table,
+                'foreign_key' => $id,
                 'expires_at >=' => $this->getCurrentTime(),
             ]);
     }

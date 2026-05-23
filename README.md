@@ -36,7 +36,7 @@ Run migrations:
 bin/cake migrations migrate --plugin Workflow
 ```
 
-The generic `entity_id` column is polymorphic and defaults to `integer`; set the shared
+The generic `foreign_key` column is polymorphic and defaults to `integer`; set the shared
 `Polymorphic.type` key to `biginteger` for large-id apps, or `uuid` / `binaryuuid` for
 non-integer keys. **UUID / char primary keys are fully supported** — no code changes needed. See
 [Installation: Entity id type](https://dereuromark.github.io/cakephp-workflow/guide/installation#using-uuid-char-primary-keys).

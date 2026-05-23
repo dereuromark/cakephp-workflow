@@ -92,11 +92,11 @@ class OrphansController extends WorkflowAppController
      * Fix an orphaned entity by setting it to a valid state.
      *
      * @param string $workflow Workflow name
-     * @param string $entityId Entity ID to fix
+     * @param string $foreignKey Entity ID to fix
      *
      * @throws \RuntimeException
      */
-    public function fix(string $workflow, string $entityId): ?Response
+    public function fix(string $workflow, string $foreignKey): ?Response
     {
         // GET renders the form, POST mutates. Restrict the action to safe-method
         // for rendering and require POST (with CSRF) for any state mutation.
@@ -111,7 +111,7 @@ class OrphansController extends WorkflowAppController
         $field = $definition->getField();
 
         $table = $this->fetchTable($tableName);
-        $entity = $table->get($entityId);
+        $entity = $table->get($foreignKey);
 
         $currentState = $entity->get($field);
 
@@ -147,11 +147,11 @@ class OrphansController extends WorkflowAppController
             try {
                 if ($table->save($entity)) {
                     // Log this fix as an admin action
-                    $this->logOrphanFix($workflow, $tableName, $entityId, $currentState, $newState, $reason);
+                    $this->logOrphanFix($workflow, $tableName, $foreignKey, $currentState, $newState, $reason);
 
                     $this->Flash->success(sprintf(
                         'Entity #%s state changed from "%s" to "%s".',
-                        $entityId,
+                        $foreignKey,
                         $currentState ?? 'NULL',
                         $newState,
                     ));
@@ -168,7 +168,7 @@ class OrphansController extends WorkflowAppController
             }
         }
 
-        $this->set(compact('workflow', 'definition', 'entity', 'entityId', 'currentState', 'validStates', 'field'));
+        $this->set(compact('workflow', 'definition', 'entity', 'foreignKey', 'currentState', 'validStates', 'field'));
 
         return null;
     }
@@ -190,11 +190,11 @@ class OrphansController extends WorkflowAppController
         $tableName = $definition->getTable();
         $field = $definition->getField();
 
-        $entityIds = $this->request->getData('entity_ids', []);
+        $foreignKeys = $this->request->getData('foreign_keys', []);
         $newState = $this->request->getData('new_state');
         $reason = $this->request->getData('reason');
 
-        if (!$entityIds || !$newState) {
+        if (!$foreignKeys || !$newState) {
             $this->Flash->error('Please select entities and a target state.');
 
             return $this->redirect(['action' => 'index', '?' => ['workflow' => $workflow]]);
@@ -219,14 +219,14 @@ class OrphansController extends WorkflowAppController
         $failed = 0;
 
         try {
-            foreach ($entityIds as $entityId) {
+            foreach ($foreignKeys as $foreignKey) {
                 try {
-                    $entity = $table->get($entityId);
+                    $entity = $table->get($foreignKey);
                     $oldState = $entity->get($field);
                     $entity->set($field, $newState);
 
                     if ($table->save($entity)) {
-                        $this->logOrphanFix($workflow, $tableName, (string)$entityId, $oldState, $newState, $reason);
+                        $this->logOrphanFix($workflow, $tableName, (string)$foreignKey, $oldState, $newState, $reason);
                         $fixed++;
                     } else {
                         $failed++;
@@ -257,7 +257,7 @@ class OrphansController extends WorkflowAppController
      *
      * @param string $workflow
      * @param string $tableName
-     * @param string $entityId
+     * @param string $foreignKey
      * @param string|null $oldState
      * @param string $newState
      * @param string|null $reason
@@ -265,7 +265,7 @@ class OrphansController extends WorkflowAppController
     private function logOrphanFix(
         string $workflow,
         string $tableName,
-        string $entityId,
+        string $foreignKey,
         ?string $oldState,
         string $newState,
         ?string $reason,
@@ -275,8 +275,8 @@ class OrphansController extends WorkflowAppController
             $userId = $this->getCurrentUserId();
             $transition = $transitionsTable->newEntity([
                 'workflow_name' => $workflow,
-                'entity_table' => $tableName,
-                'entity_id' => $entityId,
+                'model' => $tableName,
+                'foreign_key' => $foreignKey,
                 'transition_name' => '_admin_fix',
                 'from_state' => $oldState ?? '_orphaned',
                 'to_state' => $newState,

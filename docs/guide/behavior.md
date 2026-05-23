@@ -61,7 +61,7 @@ $this->addBehavior('Workflow.Workflow', [
     'autoSave' => false,
     'autoLog' => false,
     'logAllOutcomes' => true,
-    'entityTable' => 'Orders',
+    'model' => 'Orders',
 ]);
 ```
 
@@ -74,7 +74,7 @@ $this->addBehavior('Workflow.Workflow', [
 | `autoSave` | bool | `false` | Auto-save entity after transition |
 | `autoLog` | bool | `false` | Log transitions to `workflow_transitions` table |
 | `logAllOutcomes` | bool | `true` | Log blocked/locked/error transitions for audit |
-| `entityTable` | string | `null` | Entity table name (defaults to table name) |
+| `model` | string | `null` | Entity table name (defaults to table name) |
 | `stateTimestampField` | string\|null | `state_changed_at` | Column stamped with the current time on each state change (auto-applied only if the column exists; `null` disables) |
 | `useLocking` | bool\|null | `null` | Pessimistic locking via the lock table (`null` = auto-detect from the lock table) |
 | `useOptimisticLock` | bool | `false` | Lock-free concurrency via compare-and-set on the state field (takes precedence over `useLocking`) |
@@ -162,7 +162,7 @@ $transitions = $this->Orders->getBehavior('Workflow')
 // Filter by status
 $failedTransitions = $this->fetchTable('Workflow.WorkflowTransitions')
     ->find('failed')
-    ->where(['entity_id' => $order->id])
+    ->where(['foreign_key' => $order->id])
     ->toArray();
 
 // Check blocked reasons

@@ -3,7 +3,7 @@
  * @var \Cake\View\View $this
  * @var \Workflow\Engine\Definition\Definition $definition
  * @var \Cake\Datasource\EntityInterface $entity
- * @var string $entityId
+ * @var string $foreignKey
  * @var string $currentState
  * @var array<string, string> $applicableTransitions
  */
@@ -19,14 +19,14 @@ $this->assign('title', 'Force Transition');
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><?= $this->Html->link('Admin', ['controller' => 'Workflow', 'action' => 'index']) ?></li>
                 <li class="breadcrumb-item"><?= $this->Html->link($definition->getName(), ['action' => 'view', $definition->getName()]) ?></li>
-                <li class="breadcrumb-item active">Force #<?= h($entityId) ?></li>
+                <li class="breadcrumb-item active">Force #<?= h($foreignKey) ?></li>
             </ol>
         </nav>
     </div>
     <div>
         <?= $this->Html->link(
             '<i class="bi bi-play-circle"></i> Simulate',
-            ['action' => 'simulate', $definition->getName(), $entityId],
+            ['action' => 'simulate', $definition->getName(), $foreignKey],
             ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
         ) ?>
     </div>
@@ -45,7 +45,7 @@ $this->assign('title', 'Force Transition');
                     <dd class="col-sm-8"><code><?= h($definition->getTable()) ?></code></dd>
 
                     <dt class="col-sm-4">Entity ID</dt>
-                    <dd class="col-sm-8">#<?= h($entityId) ?></dd>
+                    <dd class="col-sm-8">#<?= h($foreignKey) ?></dd>
 
                     <dt class="col-sm-4">Current State</dt>
                     <dd class="col-sm-8">
@@ -75,7 +75,7 @@ $this->assign('title', 'Force Transition');
                         This entity may be in a final state or the workflow definition has no outgoing transitions.
                     </div>
                 <?php } else { ?>
-                    <?= $this->Form->create(null, ['url' => ['action' => 'forceTransition', $definition->getName(), $entityId]]) ?>
+                    <?= $this->Form->create(null, ['url' => ['action' => 'forceTransition', $definition->getName(), $foreignKey]]) ?>
 
                     <?= $this->Form->control('transition', [
                         'type' => 'select',

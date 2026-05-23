@@ -13,8 +13,8 @@ use Workflow\Service\TransitionLogger;
 /**
  * @property int $id
  * @property string $workflow_name
- * @property string $entity_table
- * @property int|string $entity_id
+ * @property string $model
+ * @property int|string $foreign_key
  * @property string $transition_name
  * @property string $from_state
  * @property string $to_state
@@ -30,8 +30,8 @@ class WorkflowTransition extends Entity
 {
     protected array $_accessible = [
         'workflow_name' => true,
-        'entity_table' => true,
-        'entity_id' => true,
+        'model' => true,
+        'foreign_key' => true,
         'transition_name' => true,
         'from_state' => true,
         'to_state' => true,

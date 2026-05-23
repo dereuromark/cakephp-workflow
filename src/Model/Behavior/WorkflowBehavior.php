@@ -44,7 +44,7 @@ class WorkflowBehavior extends Behavior
         'autoSave' => false,
         'autoLog' => false,
         'logAllOutcomes' => true, // When true, also log blocked/error transitions for audit trail
-        'entityTable' => null, // Auto-detected if not set
+        'model' => null, // Auto-detected if not set
         // Column stamped with the current time on every state change. Auto-applied
         // only when the table actually has this column; set to null/false to disable.
         'stateTimestampField' => 'state_changed_at',
@@ -80,8 +80,8 @@ class WorkflowBehavior extends Behavior
         }
 
         // Auto-detect entity table name if not set
-        if ($this->getConfig('entityTable') === null) {
-            $this->setConfig('entityTable', $this->_table->getRegistryAlias());
+        if ($this->getConfig('model') === null) {
+            $this->setConfig('model', $this->_table->getRegistryAlias());
         }
     }
 
@@ -479,15 +479,15 @@ class WorkflowBehavior extends Behavior
         }
 
         $table = $this->fetchTable('Workflow.WorkflowTransitions');
-        $entityId = (string)$entity->get('id');
+        $foreignKey = (string)$entity->get('id');
 
         $existing = $table->find()
             ->where([
                 'workflow_name' => $this->getConfig('workflow'),
                 // Scope to the same entity table too: the same workflow name and
                 // id could otherwise collide across tables.
-                'entity_table' => $this->getConfig('entityTable'),
-                'entity_id' => $entityId,
+                'model' => $this->getConfig('model'),
+                'foreign_key' => $foreignKey,
                 'transition_name' => $transition,
                 // Only a previously SUCCESSFUL application counts as a duplicate;
                 // a prior blocked/locked/error attempt with the same key must not
@@ -512,7 +512,7 @@ class WorkflowBehavior extends Behavior
     {
         return $this->getLockManager()->acquire(
             $this->getConfig('workflow'),
-            $this->getConfig('entityTable'),
+            $this->getConfig('model'),
             $entity,
             $lockedBy,
         );
@@ -527,7 +527,7 @@ class WorkflowBehavior extends Behavior
     {
         $this->getLockManager()->release(
             $this->getConfig('workflow'),
-            $this->getConfig('entityTable'),
+            $this->getConfig('model'),
             $entity,
         );
     }
@@ -670,7 +670,7 @@ class WorkflowBehavior extends Behavior
         $definition = $this->getWorkflowDefinition();
         $this->getLogger()->log(
             $this->getConfig('workflow'),
-            $this->getConfig('entityTable'),
+            $this->getConfig('model'),
             $entity,
             $result,
             $transition,
@@ -706,7 +706,7 @@ class WorkflowBehavior extends Behavior
 
         $this->getTimeoutScheduler()->syncStateTimeouts(
             $this->getConfig('workflow'),
-            $this->getConfig('entityTable'),
+            $this->getConfig('model'),
             $entity,
             $state,
         );

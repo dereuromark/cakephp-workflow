@@ -40,8 +40,8 @@ class TransitionLoggerTest extends DatabaseTestCase
 
         $this->assertNotNull($transition);
         $this->assertSame('order', $transition->workflow_name);
-        $this->assertSame('Orders', $transition->entity_table);
-        $this->assertSame(123, $transition->entity_id);
+        $this->assertSame('Orders', $transition->model);
+        $this->assertSame(123, $transition->foreign_key);
         $this->assertSame('pay', $transition->transition_name);
         $this->assertSame('pending', $transition->from_state);
         $this->assertSame('paid', $transition->to_state);
@@ -235,7 +235,7 @@ class TransitionLoggerTest extends DatabaseTestCase
         $history = $this->logger->getHistory('order', 'Orders', '123');
 
         $this->assertCount(1, $history);
-        $this->assertSame(123, $history[0]->entity_id);
+        $this->assertSame(123, $history[0]->foreign_key);
         $this->assertSame('order', $history[0]->workflow_name);
     }
 

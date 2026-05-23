@@ -187,7 +187,7 @@ class WorkflowBehaviorTest extends TestCase
 
             public function log(
                 string $workflowName,
-                string $entityTable,
+                string $model,
                 EntityInterface $entity,
                 TransitionResult $result,
                 string $transitionName,
@@ -230,7 +230,7 @@ class WorkflowBehaviorTest extends TestCase
 
             public function acquire(
                 string $workflowName,
-                string $entityTable,
+                string $model,
                 EntityInterface $entity,
                 ?string $lockedBy = null,
             ): ?WorkflowLock {
@@ -238,14 +238,14 @@ class WorkflowBehaviorTest extends TestCase
 
                 return new WorkflowLock([
                     'workflow_name' => $workflowName,
-                    'entity_table' => $entityTable,
-                    'entity_id' => (string)$entity->get('id'),
+                    'model' => $model,
+                    'foreign_key' => (string)$entity->get('id'),
                 ]);
             }
 
             public function release(
                 string $workflowName,
-                string $entityTable,
+                string $model,
                 EntityInterface $entity,
             ): void {
                 $this->releaseCalls++;
@@ -293,7 +293,7 @@ class WorkflowBehaviorTest extends TestCase
 
             public function syncStateTimeouts(
                 string $workflowName,
-                string $entityTable,
+                string $model,
                 EntityInterface $entity,
                 State $state,
             ): void {
@@ -332,7 +332,7 @@ class WorkflowBehaviorTest extends TestCase
 
             public function syncStateTimeouts(
                 string $workflowName,
-                string $entityTable,
+                string $model,
                 EntityInterface $entity,
                 State $state,
             ): void {

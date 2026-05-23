@@ -98,8 +98,8 @@ class WorkflowBehaviorIdempotencyTest extends DatabaseTestCase
         $transitions = $this->fetchTable('Workflow.WorkflowTransitions');
         $transitions->saveOrFail($transitions->newEntity([
             'workflow_name' => 'ticket',
-            'entity_table' => 'Tickets',
-            'entity_id' => (string)$ticket->get('id'),
+            'model' => 'Tickets',
+            'foreign_key' => (string)$ticket->get('id'),
             'transition_name' => 'touch',
             'from_state' => 'open',
             'to_state' => 'open',

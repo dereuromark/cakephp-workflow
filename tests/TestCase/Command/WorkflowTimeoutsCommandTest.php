@@ -74,8 +74,8 @@ class WorkflowTimeoutsCommandTest extends DatabaseTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => (string)$order->get('id'),
+            'model' => 'Orders',
+            'foreign_key' => (string)$order->get('id'),
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now('UTC')->subSeconds(60),
@@ -101,8 +101,8 @@ class WorkflowTimeoutsCommandTest extends DatabaseTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '999999',
+            'model' => 'Orders',
+            'foreign_key' => '999999',
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now('UTC')->subSeconds(60),

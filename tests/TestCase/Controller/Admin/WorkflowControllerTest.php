@@ -66,8 +66,8 @@ class WorkflowControllerTest extends IntegrationTestCase
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -98,8 +98,8 @@ class WorkflowControllerTest extends IntegrationTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -131,8 +131,8 @@ class WorkflowControllerTest extends IntegrationTestCase
         // Add today's transition
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -143,8 +143,8 @@ class WorkflowControllerTest extends IntegrationTestCase
         // Add yesterday's transition
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',

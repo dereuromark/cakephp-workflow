@@ -104,7 +104,7 @@ $now = DateTime::now();
                                 ['controller' => 'Workflows', 'action' => 'view', $lock->workflow_name],
                             ) ?>
                         </td>
-                        <td>#<?= h($lock->entity_id) ?></td>
+                        <td>#<?= h($lock->foreign_key) ?></td>
                         <td><code><?= h($lock->locked_by ?? '-') ?></code></td>
                         <td>
                             <span title="<?= h($lock->created) ?>">

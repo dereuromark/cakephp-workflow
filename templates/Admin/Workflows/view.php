@@ -352,7 +352,7 @@ foreach ($terminalStateIssues as $issue) {
                                 <i class="bi bi-clock-history text-warning" style="font-size:1.5rem"></i>
                             </div>
                             <div>
-                                <strong><?= h($timeout->entity_table) ?> #<?= h($timeout->entity_id) ?>: <?= h($timeout->transition_name) ?></strong>
+                                <strong><?= h($timeout->model) ?> #<?= h($timeout->foreign_key) ?>: <?= h($timeout->transition_name) ?></strong>
                                 <div class="small text-muted">Due: <?= $timeout->due_at->nice() ?></div>
                             </div>
                         </div>
@@ -377,7 +377,7 @@ foreach ($terminalStateIssues as $issue) {
                             ?>
                             <li class="mb-2">
                                 <small class="text-muted"><?= $t->created->diffForHumans() ?></small><br>
-                                <strong><?= h($t->entity_table) ?> #<?= h($t->entity_id) ?></strong>:
+                                <strong><?= h($t->model) ?> #<?= h($t->foreign_key) ?></strong>:
                                 <?= h($t->from_state) ?> &rarr; <?= h($t->to_state) ?>
                                 <?php if ($guards || $commands || $usedLock) { ?>
                                     <div class="small text-muted mt-1">

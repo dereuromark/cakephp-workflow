@@ -40,8 +40,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add a pending timeout
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -52,8 +52,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add a processed timeout
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->subHours(1),
@@ -72,7 +72,7 @@ class TimeoutsControllerTest extends IntegrationTestCase
 
         $timeouts = $this->viewVariable('timeouts');
         $this->assertCount(1, $timeouts);
-        $this->assertSame(123, $timeouts->items()->first()->entity_id);
+        $this->assertSame(123, $timeouts->items()->first()->foreign_key);
     }
 
     /**
@@ -85,8 +85,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add a pending timeout
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -97,8 +97,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add a processed timeout
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->subHours(1),
@@ -118,7 +118,7 @@ class TimeoutsControllerTest extends IntegrationTestCase
 
         $timeouts = $this->viewVariable('timeouts');
         $this->assertCount(1, $timeouts);
-        $this->assertSame(456, $timeouts->items()->first()->entity_id);
+        $this->assertSame(456, $timeouts->items()->first()->foreign_key);
     }
 
     /**
@@ -131,8 +131,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add a pending timeout
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -143,8 +143,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add a processed timeout
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->subHours(1),
@@ -176,8 +176,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add timeouts for different workflows
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -187,8 +187,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
 
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'payment',
-            'entity_table' => 'Payments',
-            'entity_id' => '456',
+            'model' => 'Payments',
+            'foreign_key' => '456',
             'current_state' => 'pending',
             'transition_name' => 'auto_fail',
             'due_at' => DateTime::now()->addHours(1),
@@ -241,8 +241,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add timeout due later
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(2),
@@ -253,8 +253,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         // Add timeout due sooner
         $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -274,8 +274,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeouts = $this->viewVariable('timeouts')->toArray();
         $this->assertCount(2, $timeouts);
         // Soonest due date first
-        $this->assertSame(456, $timeouts[0]->entity_id);
-        $this->assertSame(123, $timeouts[1]->entity_id);
+        $this->assertSame(456, $timeouts[0]->foreign_key);
+        $this->assertSame(123, $timeouts[1]->foreign_key);
     }
 
     /**
@@ -304,8 +304,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeout = $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->addHours(1),
@@ -344,8 +344,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeout = $timeoutsTable->save($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'auto_cancel',
             'due_at' => DateTime::now()->subHours(1),
@@ -394,8 +394,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeoutA = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now()->addHours(1),
@@ -403,8 +403,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         ]));
         $timeoutB = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now()->addHours(2),
@@ -447,8 +447,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $timeoutA = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => (string)$orderA,
+            'model' => 'Orders',
+            'foreign_key' => (string)$orderA,
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now()->subMinutes(1),
@@ -456,8 +456,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         ]));
         $timeoutB = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => (string)$orderB,
+            'model' => 'Orders',
+            'foreign_key' => (string)$orderB,
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now()->subMinutes(2),
@@ -506,8 +506,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeoutsTable = $this->fetchTable('Workflow.WorkflowTimeouts');
         $dueTimeout = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => (string)$dueOrder,
+            'model' => 'Orders',
+            'foreign_key' => (string)$dueOrder,
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now()->subMinutes(1),
@@ -515,8 +515,8 @@ class TimeoutsControllerTest extends IntegrationTestCase
         ]));
         $futureTimeout = $timeoutsTable->saveOrFail($timeoutsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => (string)$futureOrder,
+            'model' => 'Orders',
+            'foreign_key' => (string)$futureOrder,
             'current_state' => 'pending',
             'transition_name' => 'pay',
             'due_at' => DateTime::now()->addHours(1),

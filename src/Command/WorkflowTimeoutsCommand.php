@@ -74,8 +74,8 @@ class WorkflowTimeoutsCommand extends Command
             $io->out(sprintf(
                 'Processing: %s/%s entity #%s - %s',
                 $timeout->workflow_name,
-                $timeout->entity_table,
-                $timeout->entity_id,
+                $timeout->model,
+                $timeout->foreign_key,
                 $timeout->transition_name,
             ));
 
@@ -93,9 +93,9 @@ class WorkflowTimeoutsCommand extends Command
                 // Load the entity. If it no longer exists (deleted after the timeout
                 // was scheduled), mark the timeout processed and skip it - otherwise
                 // it would error on every run and never clear.
-                $entityTable = $this->fetchTable($timeout->entity_table);
+                $model = $this->fetchTable($timeout->model);
                 try {
-                    $entity = $entityTable->get($timeout->entity_id);
+                    $entity = $model->get($timeout->foreign_key);
                 } catch (RecordNotFoundException $e) {
                     $io->warning('  Entity no longer exists, marking timeout processed.');
                     $timeout->processed = true;
@@ -131,7 +131,7 @@ class WorkflowTimeoutsCommand extends Command
                 // workflow; a table may carry a Workflow behaviour for a different
                 // workflow, in which case we fall back to the engine for the right one.
                 /** @var \Workflow\Model\Behavior\WorkflowBehavior|null $behavior */
-                $behavior = $entityTable->hasBehavior('Workflow') ? $entityTable->getBehavior('Workflow') : null;
+                $behavior = $model->hasBehavior('Workflow') ? $model->getBehavior('Workflow') : null;
                 if ($behavior !== null && $behavior->getConfig('workflow') === $timeout->workflow_name) {
                     $result = $behavior->transition($entity, $timeout->transition_name, $context);
 
@@ -150,7 +150,7 @@ class WorkflowTimeoutsCommand extends Command
 
                 // Fallback: entity table without the Workflow behaviour (no beforeSave guard).
                 $engine = $registry->getEngine($timeout->workflow_name);
-                $connection = $entityTable->getConnection();
+                $connection = $model->getConnection();
                 $result = null;
 
                 $success = $connection->transactional(function () use (
@@ -158,7 +158,7 @@ class WorkflowTimeoutsCommand extends Command
                     $definition,
                     $entity,
                     $timeout,
-                    $entityTable,
+                    $model,
                     $timeoutsTable,
                     $context,
                     $field,
@@ -171,13 +171,13 @@ class WorkflowTimeoutsCommand extends Command
                     }
 
                     // Save entity
-                    $entityTable->saveOrFail($entity);
+                    $model->saveOrFail($entity);
 
                     // Log the transition
                     $logger = new TransitionLogger();
                     $logger->log(
                         $timeout->workflow_name,
-                        $timeout->entity_table,
+                        $timeout->model,
                         $entity,
                         $result,
                         $timeout->transition_name,
@@ -192,7 +192,7 @@ class WorkflowTimeoutsCommand extends Command
                     $scheduler = new TimeoutScheduler();
                     $scheduler->syncStateTimeouts(
                         $timeout->workflow_name,
-                        $timeout->entity_table,
+                        $timeout->model,
                         $entity,
                         $definition->getState((string)$entity->get($field)),
                     );

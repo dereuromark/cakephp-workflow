@@ -119,7 +119,7 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
 
         $this->assertExitSuccess();
         $timeoutCount = (int)ConnectionManager::get('test')
-            ->execute("SELECT COUNT(*) AS c FROM workflow_timeouts WHERE current_state = 'pending' AND entity_id = '1'")
+            ->execute("SELECT COUNT(*) AS c FROM workflow_timeouts WHERE current_state = 'pending' AND foreign_key = '1'")
             ->fetch('assoc')['c'];
         $this->assertSame(1, $timeoutCount);
     }
@@ -151,8 +151,8 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
             CREATE TABLE workflow_transitions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 workflow_name VARCHAR(64) NOT NULL,
-                entity_table VARCHAR(128) NOT NULL,
-                entity_id BIGINT NOT NULL,
+                model VARCHAR(128) NOT NULL,
+                foreign_key BIGINT NOT NULL,
                 transition_name VARCHAR(64) NOT NULL,
                 from_state VARCHAR(64) NOT NULL,
                 to_state VARCHAR(64) NOT NULL,

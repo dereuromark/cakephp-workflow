@@ -38,8 +38,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -70,8 +70,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         // Add transitions for both workflows
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -81,8 +81,8 @@ class TransitionsControllerTest extends IntegrationTestCase
 
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'payment',
-            'entity_table' => 'Payments',
-            'entity_id' => '456',
+            'model' => 'Payments',
+            'foreign_key' => '456',
             'transition_name' => 'process',
             'from_state' => 'pending',
             'to_state' => 'processed',
@@ -106,17 +106,17 @@ class TransitionsControllerTest extends IntegrationTestCase
     }
 
     /**
-     * Test index action filters by entity_id.
+     * Test index action filters by foreign_key.
      */
-    public function testIndexFiltersEntityId(): void
+    public function testIndexFiltersForeignKey(): void
     {
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
 
         // Add transitions for different entities
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -126,8 +126,8 @@ class TransitionsControllerTest extends IntegrationTestCase
 
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -140,14 +140,14 @@ class TransitionsControllerTest extends IntegrationTestCase
             'plugin' => 'Workflow',
             'controller' => 'Transitions',
             'action' => 'index',
-            '?' => ['entity_id' => '123'],
+            '?' => ['foreign_key' => '123'],
         ]);
 
         $this->assertResponseOk();
 
         $transitions = $this->viewVariable('transitions');
         $this->assertCount(1, $transitions);
-        $this->assertSame(123, $transitions->items()->first()->entity_id);
+        $this->assertSame(123, $transitions->items()->first()->foreign_key);
     }
 
     /**
@@ -198,8 +198,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         // Add older transition first
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -210,8 +210,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         // Add newer transition
         $transitionsTable->save($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '456',
+            'model' => 'Orders',
+            'foreign_key' => '456',
             'transition_name' => 'ship',
             'from_state' => 'paid',
             'to_state' => 'shipped',
@@ -231,8 +231,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         $transitions = $this->viewVariable('transitions')->toArray();
         $this->assertCount(2, $transitions);
         // Newest first
-        $this->assertSame(456, $transitions[0]->entity_id);
-        $this->assertSame(123, $transitions[1]->entity_id);
+        $this->assertSame(456, $transitions[0]->foreign_key);
+        $this->assertSame(123, $transitions[1]->foreign_key);
     }
 
     public function testIndexFiltersByStatusAndActor(): void
@@ -241,8 +241,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         $transitionsTable->saveManyOrFail([
             $transitionsTable->newEntity([
                 'workflow_name' => 'order',
-                'entity_table' => 'Orders',
-                'entity_id' => '123',
+                'model' => 'Orders',
+                'foreign_key' => '123',
                 'transition_name' => 'pay',
                 'from_state' => 'pending',
                 'to_state' => 'paid',
@@ -252,8 +252,8 @@ class TransitionsControllerTest extends IntegrationTestCase
             ]),
             $transitionsTable->newEntity([
                 'workflow_name' => 'order',
-                'entity_table' => 'Orders',
-                'entity_id' => '456',
+                'model' => 'Orders',
+                'foreign_key' => '456',
                 'transition_name' => 'pay',
                 'from_state' => 'pending',
                 'to_state' => 'paid',
@@ -287,8 +287,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
         $todayTransition = $transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',
@@ -300,8 +300,8 @@ class TransitionsControllerTest extends IntegrationTestCase
             $todayTransition,
             $transitionsTable->newEntity([
                 'workflow_name' => 'order',
-                'entity_table' => 'Orders',
-                'entity_id' => '456',
+                'model' => 'Orders',
+                'foreign_key' => '456',
                 'transition_name' => 'ship',
                 'from_state' => 'paid',
                 'to_state' => 'shipped',
@@ -311,7 +311,7 @@ class TransitionsControllerTest extends IntegrationTestCase
             ]),
         ]);
         $savedDate = $transitionsTable->getConnection()
-            ->execute('SELECT substr(created, 1, 10) AS created_date FROM workflow_transitions WHERE entity_id = :id', ['id' => '123'])
+            ->execute('SELECT substr(created, 1, 10) AS created_date FROM workflow_transitions WHERE foreign_key = :id', ['id' => '123'])
             ->fetch('assoc')['created_date'];
 
         $this->get([
@@ -345,8 +345,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         $transitionsTable = $this->fetchTable('Workflow.WorkflowTransitions');
         $transition = $transitionsTable->saveOrFail($transitionsTable->newEntity([
             'workflow_name' => 'order',
-            'entity_table' => 'Orders',
-            'entity_id' => '123',
+            'model' => 'Orders',
+            'foreign_key' => '123',
             'transition_name' => 'pay',
             'from_state' => 'pending',
             'to_state' => 'paid',

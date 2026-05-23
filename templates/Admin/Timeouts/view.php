@@ -76,11 +76,11 @@ $this->assign('title', 'Timeout Details');
                         ) ?>
                     </dd>
 
-                    <dt class="col-sm-4">Entity Table</dt>
-                    <dd class="col-sm-8"><code><?= h($timeout->entity_table) ?></code></dd>
+                    <dt class="col-sm-4">Model</dt>
+                    <dd class="col-sm-8"><code><?= h($timeout->model) ?></code></dd>
 
-                    <dt class="col-sm-4">Entity ID</dt>
-                    <dd class="col-sm-8">#<?= h($timeout->entity_id) ?></dd>
+                    <dt class="col-sm-4">Foreign key</dt>
+                    <dd class="col-sm-8">#<?= h($timeout->foreign_key) ?></dd>
 
                     <dt class="col-sm-4">Transition</dt>
                     <dd class="col-sm-8"><code><?= h($timeout->transition_name) ?></code></dd>
@@ -131,12 +131,12 @@ $this->assign('title', 'Timeout Details');
                 <?php if ($entity === null) { ?>
                     <div class="alert alert-danger mb-0">
                         <i class="bi bi-exclamation-triangle me-2"></i>
-                        Entity #<?= h($timeout->entity_id) ?> not found in table "<?= h($timeout->entity_table) ?>".
+                        Entity #<?= h($timeout->foreign_key) ?> not found in table "<?= h($timeout->model) ?>".
                         The entity may have been deleted.
                     </div>
                 <?php } else { ?>
                     <dl class="row mb-0">
-                        <dt class="col-sm-4">Entity ID</dt>
+                        <dt class="col-sm-4">Foreign key</dt>
                         <dd class="col-sm-8">#<?= h($entity->get('id')) ?></dd>
 
                         <dt class="col-sm-4">Current State</dt>
@@ -186,7 +186,7 @@ $this->assign('title', 'Timeout Details');
                     </ul>
                     <?= $this->Html->link(
                         'Simulate Transition',
-                        ['controller' => 'Workflows', 'action' => 'simulate', $timeout->workflow_name, $timeout->entity_id, $timeout->transition_name],
+                        ['controller' => 'Workflows', 'action' => 'simulate', $timeout->workflow_name, $timeout->foreign_key, $timeout->transition_name],
                         ['class' => 'btn btn-outline-primary'],
                     ) ?>
                 </div>

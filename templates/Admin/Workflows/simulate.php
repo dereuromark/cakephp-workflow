@@ -3,7 +3,7 @@
  * @var \Cake\View\View $this
  * @var \Workflow\Engine\Definition\Definition $definition
  * @var \Cake\Datasource\EntityInterface $entity
- * @var string $entityId
+ * @var string $foreignKey
  * @var string $currentState
  * @var array<array<string, mixed>> $simulationResults
  * @var array<string> $availableTransitions
@@ -21,14 +21,14 @@ $this->assign('title', 'Simulate Transitions');
             <ol class="breadcrumb mb-0">
                 <li class="breadcrumb-item"><?= $this->Html->link('Admin', ['controller' => 'Workflow', 'action' => 'index']) ?></li>
                 <li class="breadcrumb-item"><?= $this->Html->link($definition->getName(), ['action' => 'view', $definition->getName()]) ?></li>
-                <li class="breadcrumb-item active">Simulate #<?= h($entityId) ?></li>
+                <li class="breadcrumb-item active">Simulate #<?= h($foreignKey) ?></li>
             </ol>
         </nav>
     </div>
     <div>
         <?= $this->Html->link(
             '<i class="bi bi-lightning"></i> Force Transition',
-            ['action' => 'forceTransition', $definition->getName(), $entityId],
+            ['action' => 'forceTransition', $definition->getName(), $foreignKey],
             ['class' => 'btn btn-warning', 'escapeTitle' => false],
         ) ?>
     </div>
@@ -43,8 +43,8 @@ $this->assign('title', 'Simulate Transitions');
                     <dt class="col-sm-5">Table</dt>
                     <dd class="col-sm-7"><code><?= h($definition->getTable()) ?></code></dd>
 
-                    <dt class="col-sm-5">Entity ID</dt>
-                    <dd class="col-sm-7">#<?= h($entityId) ?></dd>
+                    <dt class="col-sm-5">Foreign key</dt>
+                    <dd class="col-sm-7">#<?= h($foreignKey) ?></dd>
 
                     <dt class="col-sm-5">Current State</dt>
                     <dd class="col-sm-7">

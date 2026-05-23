@@ -6,20 +6,20 @@
 // DBML reference: https://dbml.dbdiagram.io/docs
 // Need it as a migration or raw SQL? Convert this DBML at https://toolbox.dereuromark.de/dbml
 //
-// Note: entity_id is a *polymorphic* reference to your application's records — each
+// Note: foreign_key is a *polymorphic* reference to your application's records — each
 // row may point at a different table — so it is intentionally not a real foreign key.
 // It defaults to a (big)integer; widen it to varchar(36) for UUID / char primary keys.
 
 Project cakephp_workflow {
   database_type: 'Generic'
-  Note: 'Workflow plugin tables only. Your own entity tables are referenced loosely via entity_id.'
+  Note: 'Workflow plugin tables only. Your own entity tables are referenced loosely via foreign_key.'
 }
 
 Table workflow_transitions {
   id integer [pk, increment]
   workflow_name varchar(64) [not null]
-  entity_table varchar(128) [not null]
-  entity_id int [not null, note: 'Polymorphic entity id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
+  model varchar(128) [not null]
+  foreign_key int [not null, note: 'Polymorphic entity id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
   transition_name varchar(64) [not null]
   from_state varchar(64) [not null]
   to_state varchar(64) [not null]
@@ -32,7 +32,7 @@ Table workflow_transitions {
   created datetime [not null]
 
   indexes {
-    (workflow_name, entity_table, entity_id)
+    (workflow_name, model, foreign_key)
     (workflow_name, from_state)
     created
     status
@@ -43,22 +43,22 @@ Table workflow_transitions {
 Table workflow_locks {
   id integer [pk, increment]
   workflow_name varchar(64) [not null]
-  entity_table varchar(128) [not null]
-  entity_id int [not null, note: 'Polymorphic entity id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
+  model varchar(128) [not null]
+  foreign_key int [not null, note: 'Polymorphic entity id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
   locked_by varchar(128) [null]
   expires_at datetime [not null]
   created datetime [not null]
 
   indexes {
-    (workflow_name, entity_table, entity_id) [unique, name: 'workflow_locks_unique']
+    (workflow_name, model, foreign_key) [unique, name: 'workflow_locks_unique']
   }
 }
 
 Table workflow_timeouts {
   id integer [pk, increment]
   workflow_name varchar(64) [not null]
-  entity_table varchar(128) [not null]
-  entity_id int [not null, note: 'Polymorphic entity id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
+  model varchar(128) [not null]
+  foreign_key int [not null, note: 'Polymorphic entity id; set Polymorphic.type to biginteger/uuid/binaryuuid to change']
   current_state varchar(64) [not null]
   transition_name varchar(64) [not null]
   due_at datetime [not null]
@@ -67,6 +67,6 @@ Table workflow_timeouts {
 
   indexes {
     (due_at, processed)
-    (workflow_name, entity_table, entity_id)
+    (workflow_name, model, foreign_key)
   }
 }

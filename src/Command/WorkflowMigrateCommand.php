@@ -177,8 +177,8 @@ class WorkflowMigrateCommand extends Command
 
             $log = $transitionsTable->newEntity([
                 'workflow_name' => $definition->getName(),
-                'entity_table' => $definition->getTable(),
-                'entity_id' => $id,
+                'model' => $definition->getTable(),
+                'foreign_key' => $id,
                 'transition_name' => '_migrate',
                 'from_state' => $oldState,
                 'to_state' => $newState,

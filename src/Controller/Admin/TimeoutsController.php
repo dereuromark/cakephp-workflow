@@ -144,8 +144,8 @@ class TimeoutsController extends WorkflowAppController
         // Create a new timeout entry based on the original
         $newTimeout = $timeoutsTable->newEntity([
             'workflow_name' => $originalTimeout->workflow_name,
-            'entity_table' => $originalTimeout->entity_table,
-            'entity_id' => $originalTimeout->entity_id,
+            'model' => $originalTimeout->model,
+            'foreign_key' => $originalTimeout->foreign_key,
             'transition_name' => $originalTimeout->transition_name,
             'current_state' => $originalTimeout->current_state,
             'due_at' => DateTime::now(),
@@ -156,7 +156,7 @@ class TimeoutsController extends WorkflowAppController
             $this->Flash->success(sprintf(
                 'Timeout retried. New timeout #%d created for entity #%s.',
                 $newTimeout->get('id'),
-                $originalTimeout->entity_id,
+                $originalTimeout->foreign_key,
             ));
         } else {
             $this->Flash->error('Could not create retry timeout.');
@@ -193,7 +193,7 @@ class TimeoutsController extends WorkflowAppController
         if ($execution['status'] === 'success') {
             $this->Flash->success(sprintf(
                 'Timeout executed. Entity #%s transitioned to "%s".',
-                $timeout->entity_id,
+                $timeout->foreign_key,
                 $execution['toState'] ?? 'unknown',
             ));
         } elseif ($execution['status'] === 'stale') {
@@ -312,8 +312,8 @@ class TimeoutsController extends WorkflowAppController
         $stateMatches = null;
 
         try {
-            $entityTable = $this->fetchTable($timeout->entity_table);
-            $entity = $entityTable->get($timeout->entity_id);
+            $model = $this->fetchTable($timeout->model);
+            $entity = $model->get($timeout->foreign_key);
 
             if ($this->workflowRegistry !== null) {
                 $definition = $this->workflowRegistry->getWorkflow($timeout->workflow_name);
@@ -348,8 +348,8 @@ class TimeoutsController extends WorkflowAppController
             $definition = $this->workflowRegistry->getWorkflow($timeout->workflow_name);
             $field = $definition->getField();
 
-            $entityTable = $this->fetchTable($timeout->entity_table);
-            $entity = $entityTable->get($timeout->entity_id);
+            $model = $this->fetchTable($timeout->model);
+            $entity = $model->get($timeout->foreign_key);
 
             if ($entity->get($field) !== $timeout->current_state) {
                 $timeout->processed = true;
@@ -362,7 +362,7 @@ class TimeoutsController extends WorkflowAppController
             }
 
             $engine = $this->workflowRegistry->getEngine($timeout->workflow_name);
-            $connection = $entityTable->getConnection();
+            $connection = $model->getConnection();
             $userId = $this->getCurrentUserId();
             $context = [
                 'triggered_by' => 'admin_manual',
@@ -378,7 +378,7 @@ class TimeoutsController extends WorkflowAppController
                 $definition,
                 $entity,
                 $timeout,
-                $entityTable,
+                $model,
                 $timeoutsTable,
                 $context,
                 $field,
@@ -390,12 +390,12 @@ class TimeoutsController extends WorkflowAppController
                     return false;
                 }
 
-                $entityTable->saveOrFail($entity);
+                $model->saveOrFail($entity);
 
                 $logger = new TransitionLogger();
                 $logger->log(
                     $timeout->workflow_name,
-                    $timeout->entity_table,
+                    $timeout->model,
                     $entity,
                     $result,
                     $timeout->transition_name,
@@ -409,7 +409,7 @@ class TimeoutsController extends WorkflowAppController
                 $scheduler = new TimeoutScheduler();
                 $scheduler->syncStateTimeouts(
                     $timeout->workflow_name,
-                    $timeout->entity_table,
+                    $timeout->model,
                     $entity,
                     $definition->getState((string)$entity->get($field)),
                 );

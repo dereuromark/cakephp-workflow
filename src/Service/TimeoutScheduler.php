@@ -19,24 +19,24 @@ class TimeoutScheduler
 
     public function syncStateTimeouts(
         string $workflowName,
-        string $entityTable,
+        string $model,
         EntityInterface $entity,
         State $state,
     ): void {
-        $entityId = (string)$entity->get('id');
-        if ($entityId === '') {
+        $foreignKey = (string)$entity->get('id');
+        if ($foreignKey === '') {
             throw new WorkflowException('Cannot schedule workflow timeouts for an entity without an id');
         }
 
         /** @var \Workflow\Model\Table\WorkflowTimeoutsTable $table */
         $table = $this->fetchTable('Workflow.WorkflowTimeouts');
-        $table->markPendingProcessed($workflowName, $entityTable, $entityId);
+        $table->markPendingProcessed($workflowName, $model, $foreignKey);
 
         foreach ($state->getTimeouts() as $timeout) {
             $record = $table->newEntity([
                 'workflow_name' => $workflowName,
-                'entity_table' => $entityTable,
-                'entity_id' => $entityId,
+                'model' => $model,
+                'foreign_key' => $foreignKey,
                 'current_state' => $state->getName(),
                 'transition_name' => $timeout->getTransition(),
                 'due_at' => $this->calculateDueAt($timeout->getAfter()),

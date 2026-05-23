@@ -44,7 +44,7 @@ $error = $transition->getErrorDetails();
                     <dd class="col-sm-8"><?= h($transition->workflow_name) ?></dd>
 
                     <dt class="col-sm-4">Entity</dt>
-                    <dd class="col-sm-8"><?= h($transition->entity_table) ?> #<?= h($transition->entity_id) ?></dd>
+                    <dd class="col-sm-8"><?= h($transition->model) ?> #<?= h($transition->foreign_key) ?></dd>
 
                     <dt class="col-sm-4">Transition</dt>
                     <dd class="col-sm-8"><code><?= h($transition->transition_name) ?></code></dd>

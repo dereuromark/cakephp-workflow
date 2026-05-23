@@ -9,8 +9,8 @@ use Cake\ORM\Entity;
 /**
  * @property int $id
  * @property string $workflow_name
- * @property string $entity_table
- * @property int|string $entity_id
+ * @property string $model
+ * @property int|string $foreign_key
  * @property string|null $locked_by
  * @property \Cake\I18n\DateTime $expires_at
  * @property \Cake\I18n\DateTime $created
@@ -19,8 +19,8 @@ class WorkflowLock extends Entity
 {
     protected array $_accessible = [
         'workflow_name' => true,
-        'entity_table' => true,
-        'entity_id' => true,
+        'model' => true,
+        'foreign_key' => true,
         'locked_by' => true,
         'expires_at' => true,
         'created' => true,

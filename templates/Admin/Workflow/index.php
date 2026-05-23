@@ -155,7 +155,7 @@ $this->assign('title', 'Dashboard');
                     ?>
                     <div class="timeout-warning">
                         <div class="d-flex justify-content-between">
-                            <strong><?= h($timeout->workflow_name) ?> #<?= h($timeout->entity_id) ?></strong>
+                            <strong><?= h($timeout->workflow_name) ?> #<?= h($timeout->foreign_key) ?></strong>
                             <small class="text-muted"><?= $timeText ?></small>
                         </div>
                         <small><?= h($timeout->current_state) ?> &rarr; <?= h($timeout->transition_name) ?></small>
@@ -180,7 +180,7 @@ $this->assign('title', 'Dashboard');
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <strong><?= h($t->workflow_name) ?> #<?= h($t->entity_id) ?></strong>
+                                    <strong><?= h($t->workflow_name) ?> #<?= h($t->foreign_key) ?></strong>
                                     <div class="small">
                                         <span class="text-secondary"><?= h($t->from_state) ?></span>
                                         <i class="bi bi-arrow-right transition-arrow"></i>

@@ -7,8 +7,8 @@ return [
         'columns' => [
             'id' => ['type' => 'integer', 'autoIncrement' => true],
             'workflow_name' => ['type' => 'string', 'length' => 64, 'null' => false],
-            'entity_table' => ['type' => 'string', 'length' => 128, 'null' => false],
-            'entity_id' => ['type' => 'integer', 'null' => false],
+            'model' => ['type' => 'string', 'length' => 128, 'null' => false],
+            'foreign_key' => ['type' => 'integer', 'null' => false],
             'transition_name' => ['type' => 'string', 'length' => 64, 'null' => false],
             'from_state' => ['type' => 'string', 'length' => 64, 'null' => false],
             'to_state' => ['type' => 'string', 'length' => 64, 'null' => false],
@@ -29,8 +29,8 @@ return [
         'columns' => [
             'id' => ['type' => 'integer', 'autoIncrement' => true],
             'workflow_name' => ['type' => 'string', 'length' => 64, 'null' => false],
-            'entity_table' => ['type' => 'string', 'length' => 128, 'null' => false],
-            'entity_id' => ['type' => 'integer', 'null' => false],
+            'model' => ['type' => 'string', 'length' => 128, 'null' => false],
+            'foreign_key' => ['type' => 'integer', 'null' => false],
             'locked_by' => ['type' => 'string', 'length' => 128, 'null' => true],
             'expires_at' => ['type' => 'datetime', 'null' => false],
             'created' => ['type' => 'datetime', 'null' => false],
@@ -39,7 +39,7 @@ return [
             'primary' => ['type' => 'primary', 'columns' => ['id']],
             'workflow_locks_unique' => [
                 'type' => 'unique',
-                'columns' => ['workflow_name', 'entity_table', 'entity_id'],
+                'columns' => ['workflow_name', 'model', 'foreign_key'],
             ],
         ],
     ],
@@ -48,8 +48,8 @@ return [
         'columns' => [
             'id' => ['type' => 'integer', 'autoIncrement' => true],
             'workflow_name' => ['type' => 'string', 'length' => 64, 'null' => false],
-            'entity_table' => ['type' => 'string', 'length' => 128, 'null' => false],
-            'entity_id' => ['type' => 'integer', 'null' => false],
+            'model' => ['type' => 'string', 'length' => 128, 'null' => false],
+            'foreign_key' => ['type' => 'integer', 'null' => false],
             'current_state' => ['type' => 'string', 'length' => 64, 'null' => false],
             'transition_name' => ['type' => 'string', 'length' => 64, 'null' => false],
             'due_at' => ['type' => 'datetime', 'null' => false],

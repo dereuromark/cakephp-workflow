@@ -156,39 +156,14 @@ class WorkflowAnalyzer
      */
     private function checkMissingFallback(Definition $definition): void
     {
-        foreach ($definition->getStates() as $state) {
-            if ($state->isFinal() || $state->isFailed()) {
-                continue;
-            }
-
-            $autoTransitions = $definition->getAutomaticTransitionsFromState($state->getName());
-            if (count($autoTransitions) <= 1) {
-                continue;
-            }
-
-            // Skip when the state has a non-automatic transition exit (manual, or a timeout target).
-            if (count($definition->getTransitionsFromState($state->getName())) > count($autoTransitions)) {
-                continue;
-            }
-
-            $hasFallback = false;
-            foreach ($autoTransitions as $transition) {
-                if ($transition->getCondition() === null) {
-                    $hasFallback = true;
-
-                    break;
-                }
-            }
-
-            if (!$hasFallback) {
-                $this->addIssue(
-                    'missing_fallback',
-                    'warning',
-                    "Automatic state '{$state->getName()}' has only conditional transitions and no "
-                        . 'unconditional fallback - items may get stuck if no condition matches',
-                    ['state' => $state->getName()],
-                );
-            }
+        foreach ($definition->getStuckAutomaticBranchStates() as $stateName) {
+            $this->addIssue(
+                'missing_fallback',
+                'warning',
+                "Automatic branch state '{$stateName}' has only conditional transitions and no "
+                    . 'unconditional fallback - items may get stuck if no condition matches',
+                ['state' => $stateName],
+            );
         }
     }
 

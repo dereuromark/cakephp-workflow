@@ -201,6 +201,58 @@ final class Definition
     }
 
     /**
+     * Whether a state is a "stuck" automatic branch: it has more than one automatic transition,
+     * all of them conditional (no unconditional fallback), and the automatic branch is its sole
+     * exit - no manual transition and no transition a timeout could fire. Such a state can leave
+     * an item stuck when no condition matches.
+     *
+     * A single conditional automatic transition (an "advance when ready, otherwise wait" step) and
+     * a branch that also has a non-automatic exit are not considered stuck.
+     */
+    public function isStuckAutomaticBranchState(string $stateName): bool
+    {
+        $state = $this->findState($stateName);
+        if ($state === null || $state->isFinal() || $state->isFailed()) {
+            return false;
+        }
+
+        $autoTransitions = $this->getAutomaticTransitionsFromState($stateName);
+        if (count($autoTransitions) <= 1) {
+            return false;
+        }
+
+        // A non-automatic transition (manual, or one a timeout fires) is a real exit.
+        if (count($this->getTransitionsFromState($stateName)) > count($autoTransitions)) {
+            return false;
+        }
+
+        foreach ($autoTransitions as $transition) {
+            if ($transition->getCondition() === null) {
+                return false; // has an unconditional fallback
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Names of all states that are stuck automatic branches.
+     *
+     * @return array<string>
+     */
+    public function getStuckAutomaticBranchStates(): array
+    {
+        $states = [];
+        foreach ($this->states as $state) {
+            if ($this->isStuckAutomaticBranchState($state->getName())) {
+                $states[] = $state->getName();
+            }
+        }
+
+        return $states;
+    }
+
+    /**
      * Get a transition by name.
      *
      * @param string $name

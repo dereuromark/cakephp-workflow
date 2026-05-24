@@ -365,14 +365,12 @@ class StateMachineEngine implements EngineInterface
         }
 
         if ($selectedTransition === null) {
-            // A state with several automatic transitions is a branch: when none matched and there
-            // is no unconditional fallback the item has nowhere to go automatically. In strict mode
-            // this is a hard error rather than a silent stay-put - but only when the automatic branch
-            // is the sole exit. A non-automatic transition (a manual transition, or the transition a
-            // timeout fires) is a real escape hatch, so the item is not stuck; and a single conditional
-            // automatic transition is a deliberate "advance when ready, otherwise wait" step.
-            $hasNonAutomaticExit = count($definition->getTransitionsFromState($currentState)) > count($autoTransitions);
-            if ($this->strictMode && count($autoTransitions) > 1 && !$hasNonAutomaticExit) {
+            // A conditional-only automatic branch whose automatic transitions are the state's sole
+            // exit has nowhere to go when nothing matched. In strict mode this is a hard error rather
+            // than a silent stay-put, which would otherwise leave the item stuck in an automatic
+            // (non-interactive) state. See Definition::isStuckAutomaticBranchState for the exemptions
+            // (a single conditional transition, or a branch that also has a non-automatic exit).
+            if ($this->strictMode && $definition->isStuckAutomaticBranchState($currentState)) {
                 throw new WorkflowException(
                     sprintf(
                         'No automatic transition matched from state \'%s\' in workflow \'%s\' and no '

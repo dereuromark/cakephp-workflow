@@ -85,17 +85,17 @@ class WorkflowValidateCommand extends Command
                 $hasErrors = true;
             }
 
-            // Check for automatic states with no fallback (can get stuck if no condition matches)
-            $statesWithoutFallback = $this->findStatesWithoutFallback($definition);
+            // Check for automatic branch states with no fallback (can get stuck if no condition matches)
+            $statesWithoutFallback = $definition->getStuckAutomaticBranchStates();
             if ($statesWithoutFallback) {
                 if ((bool)Configure::read('Workflow.strictMode', false)) {
-                    $io->error('  Automatic states without a fallback (strictMode throws at runtime):');
+                    $io->error('  Automatic branch states without a fallback (strictMode throws at runtime):');
                     foreach ($statesWithoutFallback as $state) {
                         $io->out("    - <error>{$state}</error>");
                     }
                     $hasErrors = true;
                 } else {
-                    $io->warning('  Automatic states without a fallback (may get stuck if no condition matches):');
+                    $io->warning('  Automatic branch states without a fallback (may get stuck if no condition matches):');
                     foreach ($statesWithoutFallback as $state) {
                         $io->out("    - <warning>{$state}</warning>");
                     }
@@ -216,51 +216,6 @@ class WorkflowValidateCommand extends Command
         }
 
         return $deadEnds;
-    }
-
-    /**
-     * Find non-terminal branch states whose automatic transitions are all conditional (no fallback).
-     *
-     * Only reported when the automatic branch is the sole exit: a single conditional automatic
-     * transition is a deliberate "advance when ready, otherwise wait" step, and a state that also
-     * has a non-automatic transition (a manual transition, or one a timeout fires) is not stuck.
-     *
-     * @return array<string>
-     */
-    private function findStatesWithoutFallback(Definition $definition): array
-    {
-        $states = [];
-
-        foreach ($definition->getStates() as $state) {
-            if ($state->isFinal() || $state->isFailed()) {
-                continue;
-            }
-
-            $autoTransitions = $definition->getAutomaticTransitionsFromState($state->getName());
-            if (count($autoTransitions) <= 1) {
-                continue;
-            }
-
-            // Skip when the state has a non-automatic transition exit (manual, or a timeout target).
-            if (count($definition->getTransitionsFromState($state->getName())) > count($autoTransitions)) {
-                continue;
-            }
-
-            $hasFallback = false;
-            foreach ($autoTransitions as $transition) {
-                if ($transition->getCondition() === null) {
-                    $hasFallback = true;
-
-                    break;
-                }
-            }
-
-            if (!$hasFallback) {
-                $states[] = $state->getName();
-            }
-        }
-
-        return $states;
     }
 
     /**

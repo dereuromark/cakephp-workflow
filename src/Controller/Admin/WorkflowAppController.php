@@ -78,6 +78,9 @@ class WorkflowAppController extends Controller
 
         try {
             $allowed = $gate($this->request) === true;
+        } catch (ForbiddenException $e) {
+            // Caller explicitly chose the 403 path; preserve its message.
+            throw $e;
         } catch (Throwable $e) {
             Log::warning(sprintf(
                 'Workflow.adminAccess threw %s: %s',

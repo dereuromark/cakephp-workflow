@@ -70,4 +70,101 @@ class WorkflowAnalyzerTest extends TestCase
         $this->assertSame('failed', $terminalIssues[0]['context']['stateType']);
         $this->assertStringContainsString("Transition 'revise' starts from failed state 'rejected'", $terminalIssues[0]['message']);
     }
+
+    public function testAnalyzeReportsMissingFallbackForConditionalOnlyAutomaticState(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processing'),
+                new State('shipped', final: true),
+                new State('express_shipped', final: true),
+            ],
+            transitions: [
+                new Transition('process', ['pending'], 'processing'),
+                // A branch of two conditional automatic transitions with no unconditional fallback.
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_express', ['processing'], 'express_shipped', automatic: true, condition: 'isExpress'),
+            ],
+        );
+
+        $analyzer = new WorkflowAnalyzer();
+        $issues = $analyzer->analyze($definition);
+
+        $fallbackIssues = array_values(array_filter(
+            $issues,
+            fn (array $issue): bool => $issue['type'] === 'missing_fallback',
+        ));
+
+        $this->assertCount(1, $fallbackIssues);
+        $this->assertSame('warning', $fallbackIssues[0]['severity']);
+        $this->assertSame('processing', $fallbackIssues[0]['context']['state']);
+    }
+
+    public function testAnalyzeDoesNotReportMissingFallbackWhenFallbackExists(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processing'),
+                new State('shipped', final: true),
+                new State('waiting', final: true),
+            ],
+            transitions: [
+                new Transition('process', ['pending'], 'processing'),
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_wait', ['processing'], 'waiting', automatic: true),
+            ],
+        );
+
+        $analyzer = new WorkflowAnalyzer();
+        $issues = $analyzer->analyze($definition);
+
+        $fallbackIssues = array_filter(
+            $issues,
+            fn (array $issue): bool => $issue['type'] === 'missing_fallback',
+        );
+
+        $this->assertSame([], array_values($fallbackIssues));
+    }
+
+    public function testAnalyzeDoesNotReportMissingFallbackWhenStateHasManualExit(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('processing'),
+                new State('shipped', final: true),
+                new State('express_shipped', final: true),
+                new State('cancelled', final: true, failed: true),
+            ],
+            transitions: [
+                new Transition('process', ['pending'], 'processing'),
+                // A conditional automatic branch with no fallback ...
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_express', ['processing'], 'express_shipped', automatic: true, condition: 'isExpress'),
+                // ... but the state also offers a manual exit, so it is not stuck.
+                new Transition('cancel', ['processing'], 'cancelled'),
+            ],
+        );
+
+        $analyzer = new WorkflowAnalyzer();
+        $issues = $analyzer->analyze($definition);
+
+        $fallbackIssues = array_filter(
+            $issues,
+            fn (array $issue): bool => $issue['type'] === 'missing_fallback',
+        );
+
+        $this->assertSame([], array_values($fallbackIssues));
+    }
 }

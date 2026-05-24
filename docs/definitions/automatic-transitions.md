@@ -63,6 +63,30 @@ The engine evaluates automatic transitions in order:
 
 To avoid loops, the engine enforces a maximum automatic transition count.
 
+### Always Provide a Fallback on a Branch
+
+When a state has **several** automatic transitions (a branch) that are all conditional and
+none matches at runtime, the item has nowhere to go and silently stays put — easy to
+introduce by forgetting the `else` branch. Guard against it:
+
+- `bin/cake workflow validate` reports any automatic **branch** state (more than one
+  automatic transition) that has no unconditional fallback. With `Workflow.strictMode` off
+  this is a warning; with it on it is a hard error (non-zero exit).
+- With `Workflow.strictMode` enabled, the engine **throws** at runtime instead of staying
+  put when such a branch is reached and no condition matches — turning a silent stuck into
+  a loud, debuggable failure.
+
+The cleanest fix is simply to add an unconditional fallback transition (the `else`).
+
+Two cases are exempt, because the item is not actually stuck:
+
+- a **single** conditional automatic transition — a deliberate "advance when ready, otherwise
+  wait" step, so it stays put when its condition is false (even in strict mode);
+- a branch state that **also** has a non-automatic transition — a manual transition, or the
+  transition a timeout fires — since a user or the timeout worker can still move the item.
+
+Only a branch whose automatic transitions are its **sole** exit is reported or throws.
+
 ## Important Limitation
 
 Automatic transitions are still part of a single-state model.

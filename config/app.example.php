@@ -134,9 +134,16 @@ return [
         'timeoutDelay' => 3600,
 
         /**
-         * Strict mode for guards and commands.
-         * When enabled, throws exceptions for missing guards/commands.
-         * When disabled, missing handlers are silently skipped.
+         * Strict mode for workflow correctness.
+         * When enabled, throws exceptions for missing guards/commands/conditions, and when an
+         * automatic branch state (more than one automatic transition) has no matching condition
+         * and no unconditional fallback, and the automatic branch is the sole exit (otherwise the
+         * item would silently stay put). A single conditional automatic transition, or a branch
+         * that also has a non-automatic exit (a manual transition or one a timeout fires), is not
+         * stuck and is exempt.
+         * When disabled, missing handlers are silently skipped and such a branch stays put.
+         * Either way, `bin/cake workflow validate` reports automatic branch states without a
+         * fallback (as a warning when off, as a hard error when on).
          *
          * Default: false
          */

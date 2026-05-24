@@ -27,7 +27,8 @@ class StateMachineEngine implements EngineInterface
      * @param \Cake\Event\EventManager $eventManager
      * @param array<string, callable> $guards
      * @param array<string, callable> $commands
-     * @param bool $strictMode When true, throws exception for missing guards/commands/conditions
+     * @param bool $strictMode When true, throws for missing guards/commands/conditions and when an automatic
+     *   state has conditional transitions but none match and no unconditional fallback exists
      * @param int $maxAutomaticTransitions Maximum automatic transitions to chain before aborting
      */
     public function __construct(
@@ -364,6 +365,25 @@ class StateMachineEngine implements EngineInterface
         }
 
         if ($selectedTransition === null) {
+            // A state with several automatic transitions is a branch: when none matched and there
+            // is no unconditional fallback the item has nowhere to go automatically. In strict mode
+            // this is a hard error rather than a silent stay-put - but only when the automatic branch
+            // is the sole exit. A non-automatic transition (a manual transition, or the transition a
+            // timeout fires) is a real escape hatch, so the item is not stuck; and a single conditional
+            // automatic transition is a deliberate "advance when ready, otherwise wait" step.
+            $hasNonAutomaticExit = count($definition->getTransitionsFromState($currentState)) > count($autoTransitions);
+            if ($this->strictMode && count($autoTransitions) > 1 && !$hasNonAutomaticExit) {
+                throw new WorkflowException(
+                    sprintf(
+                        'No automatic transition matched from state \'%s\' in workflow \'%s\' and no '
+                        . 'unconditional fallback exists. Add a fallback transition (an automatic transition '
+                        . 'without a condition) or ensure a condition always matches.',
+                        $currentState,
+                        $definition->getName(),
+                    ),
+                );
+            }
+
             return null; // No automatic transition to apply
         }
 

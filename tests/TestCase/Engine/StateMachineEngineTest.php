@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 use RuntimeException;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
+use Workflow\Engine\Definition\StateTimeout;
 use Workflow\Engine\Definition\Transition;
 use Workflow\Engine\StateMachineEngine;
 use Workflow\Exception\WorkflowException;
@@ -573,6 +574,157 @@ class StateMachineEngineTest extends TestCase
         $this->assertNotNull($result);
         $this->assertTrue($result->isSuccess());
         $this->assertSame('approved', $entity->get('status'));
+    }
+
+    public function testStrictModeThrowsWhenAutomaticBranchHasNoMatchAndNoFallback(): void
+    {
+        $this->engine->setStrictMode(true);
+        $this->engine->addCondition('isPaid', fn ($entity, $context) => $entity->get('payment_received') === true);
+        $this->engine->addCondition('isExpress', fn ($entity, $context) => $entity->get('express') === true);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('processing', initial: true),
+                new State('shipped'),
+                new State('express_shipped'),
+            ],
+            transitions: [
+                // A branch of two conditional automatic transitions, no unconditional fallback.
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_express', ['processing'], 'express_shipped', automatic: true, condition: 'isExpress'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'processing', 'payment_received' => false, 'express' => false]);
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage("No automatic transition matched from state 'processing'");
+
+        $this->engine->processAutomaticTransitions($definition, $entity);
+    }
+
+    public function testNonStrictModeStaysPutWhenAutomaticBranchHasNoMatchAndNoFallback(): void
+    {
+        // strictMode is off by default - the item stays put instead of throwing.
+        $this->engine->addCondition('isPaid', fn ($entity, $context) => $entity->get('payment_received') === true);
+        $this->engine->addCondition('isExpress', fn ($entity, $context) => $entity->get('express') === true);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('processing', initial: true),
+                new State('shipped'),
+                new State('express_shipped'),
+            ],
+            transitions: [
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_express', ['processing'], 'express_shipped', automatic: true, condition: 'isExpress'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'processing', 'payment_received' => false, 'express' => false]);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNull($result);
+        $this->assertSame('processing', $entity->get('state'));
+    }
+
+    public function testStrictModeStaysPutForSingleConditionalAutomaticTransition(): void
+    {
+        // A lone conditional automatic transition is an "advance when ready, otherwise wait"
+        // step, not a branch - it must stay put even in strict mode, never throw.
+        $this->engine->setStrictMode(true);
+        $this->engine->addCondition('isPaid', fn ($entity, $context) => $entity->get('payment_received') === true);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('processing', initial: true),
+                new State('shipped'),
+            ],
+            transitions: [
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'processing', 'payment_received' => false]);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNull($result);
+        $this->assertSame('processing', $entity->get('state'));
+    }
+
+    public function testStrictModeStaysPutWhenAutomaticBranchAlsoHasManualExit(): void
+    {
+        // The branch has no fallback, but the state also offers a manual transition, so the item
+        // is not stuck (a user can act). Strict mode must not throw here.
+        $this->engine->setStrictMode(true);
+        $this->engine->addCondition('isPaid', fn ($entity, $context) => $entity->get('payment_received') === true);
+        $this->engine->addCondition('isExpress', fn ($entity, $context) => $entity->get('express') === true);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('processing', initial: true),
+                new State('shipped'),
+                new State('express_shipped'),
+                new State('cancelled'),
+            ],
+            transitions: [
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_express', ['processing'], 'express_shipped', automatic: true, condition: 'isExpress'),
+                // Manual exit: the item can still be moved by a user.
+                new Transition('cancel', ['processing'], 'cancelled'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'processing', 'payment_received' => false, 'express' => false]);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNull($result);
+        $this->assertSame('processing', $entity->get('state'));
+    }
+
+    public function testStrictModeStaysPutWhenAutomaticBranchHasTimeoutTransitionExit(): void
+    {
+        // The auto-branch has no fallback, but the state also has a (non-automatic) transition that
+        // a timeout fires - a real exit - so the item is not stuck. Strict mode must not throw.
+        $this->engine->setStrictMode(true);
+        $this->engine->addCondition('isPaid', fn ($entity, $context) => $entity->get('payment_received') === true);
+        $this->engine->addCondition('isExpress', fn ($entity, $context) => $entity->get('express') === true);
+
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('processing', initial: true, timeouts: [new StateTimeout('PT5M', 'time_out')]),
+                new State('shipped'),
+                new State('express_shipped'),
+                new State('expired'),
+            ],
+            transitions: [
+                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_express', ['processing'], 'express_shipped', automatic: true, condition: 'isExpress'),
+                // The transition fired by the timeout - a non-automatic exit.
+                new Transition('time_out', ['processing'], 'expired'),
+            ],
+        );
+
+        $entity = new Entity(['state' => 'processing', 'payment_received' => false, 'express' => false]);
+        $result = $this->engine->processAutomaticTransitions($definition, $entity);
+
+        $this->assertNull($result);
+        $this->assertSame('processing', $entity->get('state'));
     }
 
     public function testNoAutomaticTransitionsFromState(): void

@@ -27,7 +27,8 @@ class StateMachineEngine implements EngineInterface
      * @param \Cake\Event\EventManager $eventManager
      * @param array<string, callable> $guards
      * @param array<string, callable> $commands
-     * @param bool $strictMode When true, throws exception for missing guards/commands/conditions
+     * @param bool $strictMode When true, throws for missing guards/commands/conditions and when an automatic
+     *   state has conditional transitions but none match and no unconditional fallback exists
      * @param int $maxAutomaticTransitions Maximum automatic transitions to chain before aborting
      */
     public function __construct(
@@ -364,6 +365,23 @@ class StateMachineEngine implements EngineInterface
         }
 
         if ($selectedTransition === null) {
+            // A conditional-only automatic branch whose automatic transitions are the state's sole
+            // exit has nowhere to go when nothing matched. In strict mode this is a hard error rather
+            // than a silent stay-put, which would otherwise leave the item stuck in an automatic
+            // (non-interactive) state. See Definition::isStuckAutomaticBranchState for the exemptions
+            // (a single conditional transition, or a branch that also has a non-automatic exit).
+            if ($this->strictMode && $definition->isStuckAutomaticBranchState($currentState)) {
+                throw new WorkflowException(
+                    sprintf(
+                        'No automatic transition matched from state \'%s\' in workflow \'%s\' and no '
+                        . 'unconditional fallback exists. Add a fallback transition (an automatic transition '
+                        . 'without a condition) or ensure a condition always matches.',
+                        $currentState,
+                        $definition->getName(),
+                    ),
+                );
+            }
+
             return null; // No automatic transition to apply
         }
 

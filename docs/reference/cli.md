@@ -85,8 +85,12 @@ The transition audit trail is browsable in the admin UI (`/admin/workflow/transi
 
 ### `workflow validate`
 
-Validate one or more workflows and surface analyzer findings. With `--check-data`
-it also reports records sitting in states that no longer exist (orphaned records).
+Validate one or more workflows and surface analyzer findings: unreachable states,
+dead-end states, transitions to/from invalid or terminal states, and automatic states
+that have only conditional transitions and no unconditional fallback (which can leave an
+item stuck). The fallback finding is a warning by default and a hard error when
+`Workflow.strictMode` is enabled. With `--check-data` it also reports records sitting in
+states that no longer exist (orphaned records).
 
 ```bash
 bin/cake workflow validate

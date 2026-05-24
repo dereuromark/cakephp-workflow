@@ -85,6 +85,24 @@ class WorkflowValidateCommand extends Command
                 $hasErrors = true;
             }
 
+            // Check for automatic branch states with no fallback (can get stuck if no condition matches)
+            $statesWithoutFallback = $definition->getStuckAutomaticBranchStates();
+            if ($statesWithoutFallback) {
+                if ((bool)Configure::read('Workflow.strictMode', false)) {
+                    $io->error('  Automatic branch states without a fallback (strictMode throws at runtime):');
+                    foreach ($statesWithoutFallback as $state) {
+                        $io->out("    - <error>{$state}</error>");
+                    }
+                    $hasErrors = true;
+                } else {
+                    $io->warning('  Automatic branch states without a fallback (may get stuck if no condition matches):');
+                    foreach ($statesWithoutFallback as $state) {
+                        $io->out("    - <warning>{$state}</warning>");
+                    }
+                }
+                $workflowHasErrors = true;
+            }
+
             // Check for missing initial state
             try {
                 $definition->getInitialState();

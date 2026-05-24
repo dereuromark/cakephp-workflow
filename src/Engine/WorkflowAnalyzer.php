@@ -34,6 +34,7 @@ class WorkflowAnalyzer
         $this->checkFinalStates($definition);
         $this->checkUnreachableStates($definition);
         $this->checkDeadEndStates($definition);
+        $this->checkMissingFallback($definition);
         $this->checkTransitionTargets($definition);
         $this->checkOutgoingTransitionsFromFinalStates($definition);
         $this->checkDuplicateTransitions($definition);
@@ -139,6 +140,30 @@ class WorkflowAnalyzer
                     ['state' => $state->getName()],
                 );
             }
+        }
+    }
+
+    /**
+     * Check for automatic branch states that can fall through with no matching transition.
+     *
+     * If a non-terminal state has several automatic transitions (a branch) but every one is
+     * conditional (no unconditional fallback), an item can get stuck there when no condition
+     * matches. With Workflow.strictMode enabled the engine throws in that case at runtime.
+     *
+     * Only reported when the automatic branch is the sole exit: a single conditional automatic
+     * transition is a deliberate "advance when ready, otherwise wait" step, and a state that also
+     * has a non-automatic transition (a manual transition, or one a timeout fires) is not stuck.
+     */
+    private function checkMissingFallback(Definition $definition): void
+    {
+        foreach ($definition->getStuckAutomaticBranchStates() as $stateName) {
+            $this->addIssue(
+                'missing_fallback',
+                'warning',
+                "Automatic branch state '{$stateName}' has only conditional transitions and no "
+                    . 'unconditional fallback - items may get stuck if no condition matches',
+                ['state' => $stateName],
+            );
         }
     }
 

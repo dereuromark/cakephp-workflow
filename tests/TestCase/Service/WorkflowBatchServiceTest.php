@@ -53,6 +53,7 @@ class WorkflowBatchServiceTest extends DatabaseTestCase
     public function tearDown(): void
     {
         Configure::delete('Workflow.registry');
+        parent::tearDown();
     }
 
     public function testApplyToStatePersistsAllMatching(): void

@@ -62,6 +62,7 @@ class WorkflowTimeoutsCommandTest extends DatabaseTestCase
     {
         Configure::delete('Workflow.registry');
         TableRegistry::getTableLocator()->remove('Orders');
+        parent::tearDown();
     }
 
     public function testProcessesDueTimeoutOnTableWithBehavior(): void

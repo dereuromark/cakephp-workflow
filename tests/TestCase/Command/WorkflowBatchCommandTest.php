@@ -51,6 +51,7 @@ class WorkflowBatchCommandTest extends DatabaseTestCase
     {
         Configure::delete('Workflow.registry');
         TableRegistry::getTableLocator()->remove('Orders');
+        parent::tearDown();
     }
 
     private function seedPending(int $count): void

@@ -35,6 +35,7 @@ abstract class IntegrationTestCase extends DatabaseTestCase
     {
         Configure::delete('Workflow.adminActorResolver');
         Configure::delete('Workflow.registry');
+        parent::tearDown();
     }
 
     /**

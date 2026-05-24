@@ -9,7 +9,4 @@ use Attribute;
 #[Attribute(Attribute::TARGET_METHOD)]
 final class OnEnter
 {
-    public function __construct()
-    {
-    }
 }

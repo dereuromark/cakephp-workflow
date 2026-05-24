@@ -7,6 +7,7 @@ namespace Workflow\Controller\Admin;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Http\Exception\NotFoundException;
 use DateTimeImmutable;
+use Workflow\Service\WorkflowRegistry;
 
 class TransitionsController extends WorkflowAppController
 {
@@ -73,7 +74,7 @@ class TransitionsController extends WorkflowAppController
 
         // Get workflow names for filter dropdown
         $workflowNames = [];
-        if ($this->workflowRegistry !== null) {
+        if ($this->workflowRegistry instanceof WorkflowRegistry) {
             $workflowNames = $this->workflowRegistry->getWorkflowNames();
         }
 
@@ -90,19 +91,7 @@ class TransitionsController extends WorkflowAppController
             'no' => 'Automated / Runtime',
         ];
 
-        $this->set(compact(
-            'transitions',
-            'workflow',
-            'foreignKey',
-            'workflowNames',
-            'status',
-            'userId',
-            'adminAction',
-            'createdFrom',
-            'createdTo',
-            'statusOptions',
-            'adminActionOptions',
-        ));
+        $this->set(['transitions' => $transitions, 'workflow' => $workflow, 'foreignKey' => $foreignKey, 'workflowNames' => $workflowNames, 'status' => $status, 'userId' => $userId, 'adminAction' => $adminAction, 'createdFrom' => $createdFrom, 'createdTo' => $createdTo, 'statusOptions' => $statusOptions, 'adminActionOptions' => $adminActionOptions]);
     }
 
     /**
@@ -120,6 +109,6 @@ class TransitionsController extends WorkflowAppController
             throw new NotFoundException(sprintf('Transition #%d not found.', $id));
         }
 
-        $this->set(compact('transition'));
+        $this->set(['transition' => $transition]);
     }
 }

@@ -24,14 +24,14 @@ final class Definition
      * @param int $version Workflow version number (increment when making breaking changes)
      */
     public function __construct(
-        private string $name,
-        private string $table,
-        private string $field,
-        private array $states,
-        private array $transitions,
-        private ?string $label = null,
-        private ?string $description = null,
-        private int $version = 1,
+        private readonly string $name,
+        private readonly string $table,
+        private readonly string $field,
+        private readonly array $states,
+        private readonly array $transitions,
+        private readonly ?string $label = null,
+        private readonly ?string $description = null,
+        private readonly int $version = 1,
     ) {
         foreach ($states as $state) {
             $this->stateMap[$state->getName()] = $state;

@@ -7,6 +7,7 @@ namespace Workflow\Controller\Admin;
 use Cake\I18n\DateTime;
 use RuntimeException;
 use Throwable;
+use Workflow\Service\WorkflowRegistry;
 
 class WorkflowController extends WorkflowAppController
 {
@@ -15,7 +16,7 @@ class WorkflowController extends WorkflowAppController
      */
     public function index(): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -81,12 +82,6 @@ class WorkflowController extends WorkflowAppController
             ->limit(10)
             ->toArray();
 
-        $this->set(compact(
-            'workflows',
-            'totalActiveItems',
-            'transitionsToday',
-            'pendingTimeouts',
-            'recentTransitions',
-        ));
+        $this->set(['workflows' => $workflows, 'totalActiveItems' => $totalActiveItems, 'transitionsToday' => $transitionsToday, 'pendingTimeouts' => $pendingTimeouts, 'recentTransitions' => $recentTransitions]);
     }
 }

@@ -23,7 +23,6 @@ class StateMachineEngineTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
         $this->engine = new StateMachineEngine(new EventManager());
         $this->definition = $this->createTestDefinition();
     }
@@ -501,7 +500,7 @@ class StateMachineEngineTest extends TestCase
             transitions: [
                 new Transition('process', ['pending'], 'processing'),
                 // Automatic transitions from processing state
-                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_ship', ['processing'], 'shipped', condition: 'isPaid', automatic: true),
                 new Transition('auto_wait', ['processing'], 'waiting_payment', automatic: true), // Fallback
             ],
         );
@@ -534,7 +533,7 @@ class StateMachineEngineTest extends TestCase
             transitions: [
                 new Transition('process', ['pending'], 'processing'),
                 // Automatic transitions from processing state
-                new Transition('auto_ship', ['processing'], 'shipped', automatic: true, condition: 'isPaid'),
+                new Transition('auto_ship', ['processing'], 'shipped', condition: 'isPaid', automatic: true),
                 new Transition('auto_wait', ['processing'], 'waiting_payment', automatic: true), // Fallback
             ],
         );
@@ -563,7 +562,7 @@ class StateMachineEngineTest extends TestCase
                 new State('rejected'),
             ],
             transitions: [
-                new Transition('auto_approve', ['review'], 'approved', automatic: true, condition: 'isApproved'),
+                new Transition('auto_approve', ['review'], 'approved', condition: 'isApproved', automatic: true),
                 new Transition('auto_reject', ['review'], 'rejected', automatic: true),
             ],
         );
@@ -767,9 +766,9 @@ class StateMachineEngineTest extends TestCase
             transitions: [
                 new Transition('begin', ['start'], 'step1'),
                 // Auto from step1 to step2 if urgent
-                new Transition('auto_step2', ['step1'], 'step2', automatic: true, condition: 'isUrgent'),
+                new Transition('auto_step2', ['step1'], 'step2', condition: 'isUrgent', automatic: true),
                 // Auto from step2 to done if ready
-                new Transition('auto_done', ['step2'], 'done', automatic: true, condition: 'isReady'),
+                new Transition('auto_done', ['step2'], 'done', condition: 'isReady', automatic: true),
             ],
         );
 
@@ -794,7 +793,7 @@ class StateMachineEngineTest extends TestCase
                 new State('b'),
             ],
             transitions: [
-                new Transition('auto_b', ['a'], 'b', automatic: true, condition: 'nonexistentCondition'),
+                new Transition('auto_b', ['a'], 'b', condition: 'nonexistentCondition', automatic: true),
             ],
         );
 
@@ -904,7 +903,7 @@ class StateMachineEngineTest extends TestCase
                 new State('fallback'),
             ],
             transitions: [
-                new Transition('auto_process', ['pending'], 'processed', automatic: true, condition: 'throwingCondition'),
+                new Transition('auto_process', ['pending'], 'processed', condition: 'throwingCondition', automatic: true),
                 new Transition('auto_fallback', ['pending'], 'fallback', automatic: true), // No condition = fallback
             ],
         );
@@ -934,7 +933,7 @@ class StateMachineEngineTest extends TestCase
                 new State('processed'),
             ],
             transitions: [
-                new Transition('auto_process', ['pending'], 'processed', automatic: true, condition: 'throwingCondition'),
+                new Transition('auto_process', ['pending'], 'processed', condition: 'throwingCondition', automatic: true),
             ],
         );
 

@@ -25,7 +25,7 @@ class YamlLoader implements LoaderInterface
 
     private bool $scanned = false;
 
-    public function __construct(private string $path)
+    public function __construct(private readonly string $path)
     {
         if (!class_exists(Yaml::class)) {
             throw new WorkflowException(

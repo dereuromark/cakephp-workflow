@@ -36,7 +36,6 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
     public function tearDown(): void
     {
         Configure::delete('Workflow.registry');
-        parent::tearDown();
     }
 
     public function testMigrateMapsOrphanedRecordsAndLogsTransition(): void
@@ -190,7 +189,7 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
     private function loaderFor(Definition $definition): LoaderInterface
     {
         return new class ($definition) implements LoaderInterface {
-            public function __construct(private Definition $definition)
+            public function __construct(private readonly Definition $definition)
             {
             }
 

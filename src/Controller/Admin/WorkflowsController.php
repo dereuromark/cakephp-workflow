@@ -13,6 +13,7 @@ use Throwable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\WorkflowAnalyzer;
 use Workflow\Service\TransitionLogger;
+use Workflow\Service\WorkflowRegistry;
 
 class WorkflowsController extends WorkflowAppController
 {
@@ -23,7 +24,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function index(): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -40,7 +41,7 @@ class WorkflowsController extends WorkflowAppController
             ];
         }
 
-        $this->set(compact('workflows'));
+        $this->set(['workflows' => $workflows]);
     }
 
     /**
@@ -48,7 +49,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function view(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -109,17 +110,7 @@ class WorkflowsController extends WorkflowAppController
         $issues = $analyzer->analyze($definition);
         $issuesBySeverity = $analyzer->getIssuesBySeverity();
 
-        $this->set(compact(
-            'definition',
-            'stateCounts',
-            'totalActive',
-            'recentTransitions',
-            'transitionsToday',
-            'pendingTimeouts',
-            'exportFormats',
-            'issues',
-            'issuesBySeverity',
-        ));
+        $this->set(['definition' => $definition, 'stateCounts' => $stateCounts, 'totalActive' => $totalActive, 'recentTransitions' => $recentTransitions, 'transitionsToday' => $transitionsToday, 'pendingTimeouts' => $pendingTimeouts, 'exportFormats' => $exportFormats, 'issues' => $issues, 'issuesBySeverity' => $issuesBySeverity]);
     }
 
     /**
@@ -127,7 +118,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function matrix(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -220,13 +211,7 @@ class WorkflowsController extends WorkflowAppController
             // Table might not exist
         }
 
-        $this->set(compact(
-            'definition',
-            'matrix',
-            'timeBuckets',
-            'totals',
-            'stateTotals',
-        ));
+        $this->set(['definition' => $definition, 'matrix' => $matrix, 'timeBuckets' => $timeBuckets, 'totals' => $totals, 'stateTotals' => $stateTotals]);
     }
 
     /**
@@ -236,7 +221,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function validate(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -250,14 +235,7 @@ class WorkflowsController extends WorkflowAppController
         $warningCount = count($issuesBySeverity['warnings']);
         $infoCount = count($issuesBySeverity['info']);
 
-        $this->set(compact(
-            'definition',
-            'issues',
-            'issuesBySeverity',
-            'errorCount',
-            'warningCount',
-            'infoCount',
-        ));
+        $this->set(['definition' => $definition, 'issues' => $issues, 'issuesBySeverity' => $issuesBySeverity, 'errorCount' => $errorCount, 'warningCount' => $warningCount, 'infoCount' => $infoCount]);
     }
 
     /**
@@ -267,7 +245,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function designer(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -300,7 +278,7 @@ class WorkflowsController extends WorkflowAppController
             ];
         }
 
-        $this->set(compact('definition', 'states', 'transitions'));
+        $this->set(['definition' => $definition, 'states' => $states, 'transitions' => $transitions]);
     }
 
     /**
@@ -313,7 +291,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function export(string $name, ?string $format = null): Response
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -491,7 +469,7 @@ class WorkflowsController extends WorkflowAppController
                 ->withStringBody($content);
         }
 
-        $this->set(compact('exportFormats'));
+        $this->set(['exportFormats' => $exportFormats]);
 
         return null;
     }
@@ -556,7 +534,7 @@ class WorkflowsController extends WorkflowAppController
                     $stateData['failed'] = true;
                 }
                 if (!empty($state['flags'])) {
-                    $flags = array_filter(array_map('trim', explode(',', $state['flags'])));
+                    $flags = array_filter(array_map('trim', explode(',', (string)$state['flags'])));
                     if ($flags) {
                         $stateData['flags'] = $flags;
                     }
@@ -574,7 +552,7 @@ class WorkflowsController extends WorkflowAppController
                 }
                 $transitionData = [];
                 if (!empty($transition['from'])) {
-                    $from = array_filter(array_map('trim', explode(',', $transition['from'])));
+                    $from = array_filter(array_map('trim', explode(',', (string)$transition['from'])));
                     $transitionData['from'] = $from;
                 }
                 if (!empty($transition['to'])) {
@@ -612,7 +590,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function simulate(string $name, string $foreignKey, ?string $transition = null): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -668,15 +646,7 @@ class WorkflowsController extends WorkflowAppController
         // Get available transitions (those that can actually be applied)
         $availableTransitions = $engine->getAvailableTransitions($definition, $entity);
 
-        $this->set(compact(
-            'definition',
-            'entity',
-            'foreignKey',
-            'currentState',
-            'simulationResults',
-            'availableTransitions',
-            'transition',
-        ));
+        $this->set(['definition' => $definition, 'entity' => $entity, 'foreignKey' => $foreignKey, 'currentState' => $currentState, 'simulationResults' => $simulationResults, 'availableTransitions' => $availableTransitions, 'transition' => $transition]);
     }
 
     /**
@@ -695,7 +665,7 @@ class WorkflowsController extends WorkflowAppController
         // for rendering and require POST (with CSRF) for any state mutation.
         $this->request->allowMethod(['get', 'post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -777,13 +747,7 @@ class WorkflowsController extends WorkflowAppController
             }
         }
 
-        $this->set(compact(
-            'definition',
-            'entity',
-            'foreignKey',
-            'currentState',
-            'applicableTransitions',
-        ));
+        $this->set(['definition' => $definition, 'entity' => $entity, 'foreignKey' => $foreignKey, 'currentState' => $currentState, 'applicableTransitions' => $applicableTransitions]);
 
         return null;
     }

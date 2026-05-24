@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Engine\Definition;
 
-final class Transition
+final readonly class Transition
 {
     /**
      * @param string $name Transition name

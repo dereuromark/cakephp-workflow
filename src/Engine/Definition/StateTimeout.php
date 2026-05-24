@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Engine\Definition;
 
-final class StateTimeout
+final readonly class StateTimeout
 {
     public function __construct(
         private string $after,

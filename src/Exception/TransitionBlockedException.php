@@ -9,7 +9,7 @@ class TransitionBlockedException extends WorkflowException
     /**
      * @var array<string, string>
      */
-    private array $blockedBy;
+    private readonly array $blockedBy;
 
     /**
      * @param string $transition

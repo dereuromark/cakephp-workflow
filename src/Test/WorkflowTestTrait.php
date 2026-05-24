@@ -61,7 +61,7 @@ trait WorkflowTestTrait
     protected function createTestRegistry(Definition $definition): WorkflowRegistry
     {
         $loader = new class ($definition) implements LoaderInterface {
-            public function __construct(private Definition $definition)
+            public function __construct(private readonly Definition $definition)
             {
             }
 

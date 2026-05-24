@@ -14,7 +14,6 @@ class PhpLoaderTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
         $this->dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'wf-php-loader-' . uniqid('', true);
         mkdir($this->dir, 0775, true);
         file_put_contents($this->dir . DIRECTORY_SEPARATOR . 'order.php', <<<'PHP'
@@ -42,7 +41,6 @@ PHP);
     {
         @unlink($this->dir . DIRECTORY_SEPARATOR . 'order.php');
         @rmdir($this->dir);
-        parent::tearDown();
     }
 
     public function testSupportsAndNames(): void

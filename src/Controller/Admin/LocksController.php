@@ -6,6 +6,7 @@ namespace Workflow\Controller\Admin;
 
 use Cake\Http\Response;
 use Cake\I18n\DateTime;
+use Workflow\Service\WorkflowRegistry;
 
 class LocksController extends WorkflowAppController
 {
@@ -40,11 +41,11 @@ class LocksController extends WorkflowAppController
 
         // Get workflow names for filter dropdown
         $workflowNames = [];
-        if ($this->workflowRegistry !== null) {
+        if ($this->workflowRegistry instanceof WorkflowRegistry) {
             $workflowNames = $this->workflowRegistry->getWorkflowNames();
         }
 
-        $this->set(compact('locks', 'workflow', 'status', 'workflowNames'));
+        $this->set(['locks' => $locks, 'workflow' => $workflow, 'status' => $status, 'workflowNames' => $workflowNames]);
     }
 
     /**

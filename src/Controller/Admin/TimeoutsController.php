@@ -10,6 +10,7 @@ use RuntimeException;
 use Throwable;
 use Workflow\Service\TimeoutScheduler;
 use Workflow\Service\TransitionLogger;
+use Workflow\Service\WorkflowRegistry;
 
 class TimeoutsController extends WorkflowAppController
 {
@@ -43,11 +44,11 @@ class TimeoutsController extends WorkflowAppController
 
         // Get workflow names for filter dropdown
         $workflowNames = [];
-        if ($this->workflowRegistry !== null) {
+        if ($this->workflowRegistry instanceof WorkflowRegistry) {
             $workflowNames = $this->workflowRegistry->getWorkflowNames();
         }
 
-        $this->set(compact('timeouts', 'workflow', 'status', 'workflowNames'));
+        $this->set(['timeouts' => $timeouts, 'workflow' => $workflow, 'status' => $status, 'workflowNames' => $workflowNames]);
     }
 
     /**
@@ -174,7 +175,7 @@ class TimeoutsController extends WorkflowAppController
     {
         $this->request->allowMethod(['post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -315,7 +316,7 @@ class TimeoutsController extends WorkflowAppController
             $model = $this->fetchTable($timeout->model);
             $entity = $model->get($timeout->foreign_key);
 
-            if ($this->workflowRegistry !== null) {
+            if ($this->workflowRegistry instanceof WorkflowRegistry) {
                 $definition = $this->workflowRegistry->getWorkflow($timeout->workflow_name);
                 $currentState = $entity->get($definition->getField());
                 $stateMatches = $currentState === $timeout->current_state;
@@ -324,7 +325,7 @@ class TimeoutsController extends WorkflowAppController
             // Entity might not exist
         }
 
-        $this->set(compact('timeout', 'entity', 'currentState', 'stateMatches'));
+        $this->set(['timeout' => $timeout, 'entity' => $entity, 'currentState' => $currentState, 'stateMatches' => $stateMatches]);
     }
 
     /**
@@ -337,7 +338,7 @@ class TimeoutsController extends WorkflowAppController
      */
     protected function executeTimeoutRecord($timeoutsTable, $timeout): array
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             return [
                 'status' => 'error',
                 'message' => 'Workflow registry not configured',

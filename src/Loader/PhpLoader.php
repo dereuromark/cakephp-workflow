@@ -46,7 +46,7 @@ class PhpLoader implements LoaderInterface
 
     private bool $scanned = false;
 
-    public function __construct(private string $path)
+    public function __construct(private readonly string $path)
     {
     }
 

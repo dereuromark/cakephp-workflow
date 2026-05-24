@@ -21,7 +21,6 @@ class WorkflowHelperTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
         Router::reload();
         Router::createRouteBuilder('/')->connect('/{controller}/{action}/*');
         $this->helper = new WorkflowHelper(new View());
@@ -30,7 +29,7 @@ class WorkflowHelperTest extends TestCase
             table: 'Orders',
             field: 'state',
             states: [
-                new State('pending', initial: true, color: '#FFA500'),
+                new State('pending', color: '#FFA500', initial: true),
                 new State('paid', label: 'Paid'),
             ],
             transitions: [
@@ -42,7 +41,6 @@ class WorkflowHelperTest extends TestCase
     protected function tearDown(): void
     {
         Router::reload();
-        parent::tearDown();
     }
 
     public function testStateBadgeRendersKnownState(): void

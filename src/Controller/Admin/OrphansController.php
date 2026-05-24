@@ -8,6 +8,7 @@ use Cake\Http\Response;
 use RuntimeException;
 use Throwable;
 use Workflow\Service\TransitionLogger;
+use Workflow\Service\WorkflowRegistry;
 
 class OrphansController extends WorkflowAppController
 {
@@ -18,7 +19,7 @@ class OrphansController extends WorkflowAppController
      */
     public function index(): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -85,7 +86,7 @@ class OrphansController extends WorkflowAppController
 
         $totalOrphans = array_sum($orphanCounts);
 
-        $this->set(compact('orphans', 'orphanCounts', 'totalOrphans', 'workflowNames', 'selectedWorkflow'));
+        $this->set(['orphans' => $orphans, 'orphanCounts' => $orphanCounts, 'totalOrphans' => $totalOrphans, 'workflowNames' => $workflowNames, 'selectedWorkflow' => $selectedWorkflow]);
     }
 
     /**
@@ -102,7 +103,7 @@ class OrphansController extends WorkflowAppController
         // for rendering and require POST (with CSRF) for any state mutation.
         $this->request->allowMethod(['get', 'post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -168,7 +169,7 @@ class OrphansController extends WorkflowAppController
             }
         }
 
-        $this->set(compact('workflow', 'definition', 'entity', 'foreignKey', 'currentState', 'validStates', 'field'));
+        $this->set(['workflow' => $workflow, 'definition' => $definition, 'entity' => $entity, 'foreignKey' => $foreignKey, 'currentState' => $currentState, 'validStates' => $validStates, 'field' => $field]);
 
         return null;
     }
@@ -182,7 +183,7 @@ class OrphansController extends WorkflowAppController
     {
         $this->request->allowMethod(['post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 

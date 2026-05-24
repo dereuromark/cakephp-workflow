@@ -123,7 +123,7 @@ class WorkflowBehavior extends Behavior
             $newState = $entity->get($field);
 
             // Allow setting to initial state or leaving empty (will default to initial)
-            if ($newState === null || $newState === '' || $newState === $initialState) {
+            if (in_array($newState, [null, '', $initialState], true)) {
                 return;
             }
 
@@ -146,7 +146,7 @@ class WorkflowBehavior extends Behavior
      */
     public function getWorkflowDefinition(): Definition
     {
-        if ($this->definition === null) {
+        if (!$this->definition instanceof Definition) {
             $registry = $this->getRegistry();
             $this->definition = $registry->getWorkflow($this->getConfig('workflow'));
         }
@@ -159,7 +159,7 @@ class WorkflowBehavior extends Behavior
      */
     protected function getWorkflowEngine(): EngineInterface
     {
-        if ($this->engine === null) {
+        if (!$this->engine instanceof EngineInterface) {
             $registry = $this->getRegistry();
             $this->engine = $registry->getEngine($this->getConfig('workflow'));
         }
@@ -204,7 +204,7 @@ class WorkflowBehavior extends Behavior
         $usedLock = false;
         if (!$this->getConfig('useOptimisticLock') && $this->shouldUseLocking()) {
             $lock = $this->acquireLock($entity, $context['_locked_by'] ?? null);
-            if ($lock === null) {
+            if (!$lock instanceof WorkflowLock) {
                 return TransitionResult::locked($this->getCurrentState($entity));
             }
             $usedLock = true;
@@ -237,7 +237,7 @@ class WorkflowBehavior extends Behavior
             return $this->executeTransition($entity, $transition, $context, $usedLock);
         } finally {
             // Always release lock
-            if ($lock !== null) {
+            if ($lock instanceof WorkflowLock) {
                 $this->releaseLock($entity);
             }
         }
@@ -537,7 +537,7 @@ class WorkflowBehavior extends Behavior
      */
     protected function getLockManager(): LockManager
     {
-        if ($this->lockManager === null) {
+        if (!$this->lockManager instanceof LockManager) {
             $this->lockManager = new LockManager();
         }
 
@@ -553,7 +553,7 @@ class WorkflowBehavior extends Behavior
 
     protected function getTimeoutScheduler(): TimeoutScheduler
     {
-        if ($this->timeoutScheduler === null) {
+        if (!$this->timeoutScheduler instanceof TimeoutScheduler) {
             $this->timeoutScheduler = new TimeoutScheduler();
         }
 
@@ -684,7 +684,7 @@ class WorkflowBehavior extends Behavior
      */
     protected function getLogger(): TransitionLogger
     {
-        if ($this->logger === null) {
+        if (!$this->logger instanceof TransitionLogger) {
             $this->logger = new TransitionLogger();
         }
 
@@ -1034,7 +1034,7 @@ class WorkflowBehavior extends Behavior
     private function withTemporaryConfig(array $config, Closure $callback): TransitionResult
     {
         $originalConfig = [];
-        foreach ($config as $key => $value) {
+        foreach (array_keys($config) as $key) {
             $originalConfig[$key] = $this->getConfig($key);
         }
 

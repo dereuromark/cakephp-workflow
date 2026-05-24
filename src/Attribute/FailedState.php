@@ -13,7 +13,4 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class FailedState
 {
-    public function __construct()
-    {
-    }
 }

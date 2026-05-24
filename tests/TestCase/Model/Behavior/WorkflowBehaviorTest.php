@@ -233,7 +233,7 @@ class WorkflowBehaviorTest extends TestCase
                 string $model,
                 EntityInterface $entity,
                 ?string $lockedBy = null,
-            ): ?WorkflowLock {
+            ): WorkflowLock {
                 $this->acquireCalls++;
 
                 return new WorkflowLock([

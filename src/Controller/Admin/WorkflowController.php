@@ -82,6 +82,12 @@ class WorkflowController extends WorkflowAppController
             ->limit(10)
             ->toArray();
 
-        $this->set(['workflows' => $workflows, 'totalActiveItems' => $totalActiveItems, 'transitionsToday' => $transitionsToday, 'pendingTimeouts' => $pendingTimeouts, 'recentTransitions' => $recentTransitions]);
+        $this->set(compact(
+            'workflows',
+            'totalActiveItems',
+            'transitionsToday',
+            'pendingTimeouts',
+            'recentTransitions',
+        ));
     }
 }

@@ -45,7 +45,7 @@ class LocksController extends WorkflowAppController
             $workflowNames = $this->workflowRegistry->getWorkflowNames();
         }
 
-        $this->set(['locks' => $locks, 'workflow' => $workflow, 'status' => $status, 'workflowNames' => $workflowNames]);
+        $this->set(compact('locks', 'workflow', 'status', 'workflowNames'));
     }
 
     /**

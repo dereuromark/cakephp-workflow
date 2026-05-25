@@ -8,6 +8,7 @@ use Cake\Http\Response;
 use RuntimeException;
 use Throwable;
 use Workflow\Service\TransitionLogger;
+use Workflow\Service\WorkflowRegistry;
 
 class OrphansController extends WorkflowAppController
 {
@@ -18,7 +19,7 @@ class OrphansController extends WorkflowAppController
      */
     public function index(): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -102,7 +103,7 @@ class OrphansController extends WorkflowAppController
         // for rendering and require POST (with CSRF) for any state mutation.
         $this->request->allowMethod(['get', 'post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -182,7 +183,7 @@ class OrphansController extends WorkflowAppController
     {
         $this->request->allowMethod(['post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 

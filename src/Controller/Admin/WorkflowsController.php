@@ -13,6 +13,7 @@ use Throwable;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\WorkflowAnalyzer;
 use Workflow\Service\TransitionLogger;
+use Workflow\Service\WorkflowRegistry;
 
 class WorkflowsController extends WorkflowAppController
 {
@@ -23,7 +24,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function index(): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -48,7 +49,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function view(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -127,7 +128,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function matrix(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -236,7 +237,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function validate(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -267,7 +268,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function designer(string $name): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -313,7 +314,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function export(string $name, ?string $format = null): Response
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -556,7 +557,7 @@ class WorkflowsController extends WorkflowAppController
                     $stateData['failed'] = true;
                 }
                 if (!empty($state['flags'])) {
-                    $flags = array_filter(array_map('trim', explode(',', $state['flags'])));
+                    $flags = array_filter(array_map('trim', explode(',', (string)$state['flags'])));
                     if ($flags) {
                         $stateData['flags'] = $flags;
                     }
@@ -574,7 +575,7 @@ class WorkflowsController extends WorkflowAppController
                 }
                 $transitionData = [];
                 if (!empty($transition['from'])) {
-                    $from = array_filter(array_map('trim', explode(',', $transition['from'])));
+                    $from = array_filter(array_map('trim', explode(',', (string)$transition['from'])));
                     $transitionData['from'] = $from;
                 }
                 if (!empty($transition['to'])) {
@@ -612,7 +613,7 @@ class WorkflowsController extends WorkflowAppController
      */
     public function simulate(string $name, string $foreignKey, ?string $transition = null): void
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 
@@ -695,7 +696,7 @@ class WorkflowsController extends WorkflowAppController
         // for rendering and require POST (with CSRF) for any state mutation.
         $this->request->allowMethod(['get', 'post']);
 
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             throw new RuntimeException('Workflow registry not configured');
         }
 

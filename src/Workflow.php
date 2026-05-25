@@ -31,9 +31,9 @@ class Workflow
      * @param \Workflow\Engine\EngineInterface $engine
      */
     public function __construct(
-        private Definition $definition,
-        private EntityInterface $entity,
-        private EngineInterface $engine,
+        private readonly Definition $definition,
+        private readonly EntityInterface $entity,
+        private readonly EngineInterface $engine,
     ) {
     }
 

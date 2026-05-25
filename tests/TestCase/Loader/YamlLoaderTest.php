@@ -18,8 +18,6 @@ class YamlLoaderTest extends TestCase
 
     public function setUp(): void
     {
-        parent::setUp();
-
         // Skip tests if symfony/yaml is not installed
         if (!class_exists(Yaml::class)) {
             $this->markTestSkipped('symfony/yaml is required for these tests');
@@ -31,8 +29,6 @@ class YamlLoaderTest extends TestCase
 
     public function tearDown(): void
     {
-        parent::tearDown();
-
         // Clean up temp files
         if (is_dir($this->tempDir)) {
             $files = glob($this->tempDir . '/*');

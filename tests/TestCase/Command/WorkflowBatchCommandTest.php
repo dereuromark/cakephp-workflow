@@ -51,7 +51,6 @@ class WorkflowBatchCommandTest extends DatabaseTestCase
     {
         Configure::delete('Workflow.registry');
         TableRegistry::getTableLocator()->remove('Orders');
-
         parent::tearDown();
     }
 
@@ -124,7 +123,7 @@ class WorkflowBatchCommandTest extends DatabaseTestCase
         );
 
         $loader = new class ($definition) implements LoaderInterface {
-            public function __construct(private Definition $definition)
+            public function __construct(private readonly Definition $definition)
             {
             }
 

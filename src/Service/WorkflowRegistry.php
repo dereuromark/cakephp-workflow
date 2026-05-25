@@ -21,10 +21,10 @@ class WorkflowRegistry
     private array $engines = [];
 
     public function __construct(
-        private LoaderInterface $loader,
-        private EventManager $eventManager,
-        private bool $strictMode = false,
-        private int $maxAutomaticTransitions = 10,
+        private readonly LoaderInterface $loader,
+        private readonly EventManager $eventManager,
+        private readonly bool $strictMode = false,
+        private readonly int $maxAutomaticTransitions = 10,
     ) {
     }
 

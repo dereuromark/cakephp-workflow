@@ -6,6 +6,7 @@ namespace Workflow\Service;
 
 use Cake\Datasource\EntityInterface;
 use Cake\ORM\Locator\LocatorAwareTrait;
+use Throwable;
 use Workflow\Engine\TransitionResult;
 
 class TransitionLogger
@@ -72,7 +73,7 @@ class TransitionLogger
             $error = $result->getError();
             $contextWithRuntime['_error'] = [
                 'message' => $error?->getMessage(),
-                'class' => $error !== null ? get_class($error) : null,
+                'class' => $error instanceof Throwable ? get_class($error) : null,
                 'file' => $error?->getFile(),
                 'line' => $error?->getLine(),
             ];

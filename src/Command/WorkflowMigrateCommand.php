@@ -85,7 +85,7 @@ class WorkflowMigrateCommand extends Command
         $validStates = array_map(fn ($s) => $s->getName(), $definition->getStates());
         $map = $this->parseMap((string)$args->getOption('map'));
 
-        foreach ($map as $old => $new) {
+        foreach ($map as $new) {
             if (!in_array($new, $validStates, true)) {
                 $io->error("Mapping target '{$new}' is not a defined state in workflow '{$name}'.");
 

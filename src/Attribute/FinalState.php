@@ -9,7 +9,4 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class FinalState
 {
-    public function __construct()
-    {
-    }
 }

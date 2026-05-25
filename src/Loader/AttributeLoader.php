@@ -49,8 +49,8 @@ class AttributeLoader implements LoaderInterface
      * @param array<string, string> $pathMap Namespace prefix to path mapping (e.g., ['App\\' => APP])
      */
     public function __construct(
-        private array $namespaces,
-        private array $pathMap = [],
+        private readonly array $namespaces,
+        private readonly array $pathMap = [],
     ) {
     }
 
@@ -138,7 +138,7 @@ class AttributeLoader implements LoaderInterface
             }
 
             $smAttr = $this->findStateMachineAttribute($reflection);
-            if ($smAttr === null) {
+            if (!$smAttr instanceof StateMachine) {
                 continue;
             }
 

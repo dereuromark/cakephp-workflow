@@ -6,7 +6,7 @@ namespace Workflow\Engine;
 
 use Throwable;
 
-final class TransitionResult
+final readonly class TransitionResult
 {
     /**
      * @var string

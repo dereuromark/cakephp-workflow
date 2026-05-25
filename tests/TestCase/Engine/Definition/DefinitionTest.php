@@ -16,7 +16,6 @@ class DefinitionTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
         $this->definition = new Definition(
             name: 'order',
             table: 'Orders',

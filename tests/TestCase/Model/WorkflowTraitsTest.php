@@ -50,7 +50,6 @@ class WorkflowTraitsTest extends DatabaseTestCase
     {
         Configure::delete('Workflow.registry');
         $this->getTableLocator()->clear();
-
         parent::tearDown();
     }
 

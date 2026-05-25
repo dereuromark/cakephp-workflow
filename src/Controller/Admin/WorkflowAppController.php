@@ -79,7 +79,7 @@ class WorkflowAppController extends Controller
         try {
             $allowed = $gate($this->request) === true;
         } catch (ForbiddenException $e) {
-            // Caller explicitly chose the 403 path — respect it.
+            // Caller explicitly chose the 403 path; preserve its message.
             throw $e;
         } catch (Throwable $e) {
             Log::warning(sprintf(
@@ -167,7 +167,7 @@ class WorkflowAppController extends Controller
      */
     protected function getWorkflowStats(): array
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             return [];
         }
 
@@ -232,7 +232,7 @@ class WorkflowAppController extends Controller
      */
     protected function getOrphanCount(): int
     {
-        if ($this->workflowRegistry === null) {
+        if (!$this->workflowRegistry instanceof WorkflowRegistry) {
             return 0;
         }
 

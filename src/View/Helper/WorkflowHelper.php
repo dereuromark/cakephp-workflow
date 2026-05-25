@@ -212,7 +212,7 @@ class WorkflowHelper extends Helper
 
     private function getMermaidRenderer(): MermaidRenderer
     {
-        if ($this->mermaidRenderer === null) {
+        if (!$this->mermaidRenderer instanceof MermaidRenderer) {
             $this->mermaidRenderer = new MermaidRenderer();
         }
 

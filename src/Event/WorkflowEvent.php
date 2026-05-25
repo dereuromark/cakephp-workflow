@@ -41,12 +41,12 @@ class WorkflowEvent extends Event
      */
     public function __construct(
         string $name,
-        private Definition $definition,
-        private EntityInterface $entity,
-        private string $transition,
-        private string $fromState,
-        private ?string $toState = null,
-        private array $context = [],
+        private readonly Definition $definition,
+        private readonly EntityInterface $entity,
+        private readonly string $transition,
+        private readonly string $fromState,
+        private readonly ?string $toState = null,
+        private readonly array $context = [],
     ) {
         parent::__construct($name, $this);
     }

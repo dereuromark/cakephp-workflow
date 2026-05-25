@@ -15,8 +15,6 @@ class NeonLoaderTest extends TestCase
 
     public function setUp(): void
     {
-        parent::setUp();
-
         // Skip tests if nette/neon is not installed
         if (!class_exists(Neon::class)) {
             $this->markTestSkipped('nette/neon is required for these tests');
@@ -28,8 +26,6 @@ class NeonLoaderTest extends TestCase
 
     public function tearDown(): void
     {
-        parent::tearDown();
-
         // Clean up temp files
         if (is_dir($this->tempDir)) {
             $files = glob($this->tempDir . '/*');

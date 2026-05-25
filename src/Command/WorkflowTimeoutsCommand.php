@@ -13,6 +13,7 @@ use Cake\Datasource\Exception\RecordNotFoundException;
 use Cake\ORM\Locator\LocatorAwareTrait;
 use Exception;
 use RuntimeException;
+use Workflow\Engine\TransitionResult;
 use Workflow\Service\TimeoutScheduler;
 use Workflow\Service\TransitionLogger;
 use Workflow\Service\WorkflowRegistry;
@@ -204,7 +205,7 @@ class WorkflowTimeoutsCommand extends Command
                     $processed++;
                     $io->success('  Transition applied and logged successfully.');
                 } else {
-                    $blockedBy = $result !== null ? $result->getBlockedBy() : ['unknown' => 'Transaction failed'];
+                    $blockedBy = $result instanceof TransitionResult ? $result->getBlockedBy() : ['unknown' => 'Transaction failed'];
                     $io->warning('  Transition blocked: ' . json_encode($blockedBy));
                     $errors++;
                 }

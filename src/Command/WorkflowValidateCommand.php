@@ -106,7 +106,7 @@ class WorkflowValidateCommand extends Command
             // Check for missing initial state
             try {
                 $definition->getInitialState();
-            } catch (Exception $e) {
+            } catch (Exception) {
                 $io->error('  No initial state defined!');
                 $workflowHasErrors = true;
                 $hasErrors = true;
@@ -283,7 +283,7 @@ class WorkflowValidateCommand extends Command
 
         try {
             $table = $this->fetchTable($tableName);
-        } catch (Exception $e) {
+        } catch (Exception) {
             return [];
         }
 

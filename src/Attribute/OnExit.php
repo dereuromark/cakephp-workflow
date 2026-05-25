@@ -9,7 +9,4 @@ use Attribute;
 #[Attribute(Attribute::TARGET_METHOD)]
 final class OnExit
 {
-    public function __construct()
-    {
-    }
 }

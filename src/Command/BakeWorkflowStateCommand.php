@@ -211,31 +211,31 @@ PHP;
 
     private function namespacePart(string $name): ?string
     {
-        if (strpos($name, '/') === false) {
+        if (!str_contains($name, '/')) {
             return null;
         }
 
         $parts = explode('/', $name);
         array_pop($parts);
 
-        return implode('\\', array_map([$this, 'camelizeSegment'], $parts));
+        return implode('\\', array_map($this->camelizeSegment(...), $parts));
     }
 
     private function subPath(string $name): string
     {
-        if (strpos($name, '/') === false) {
+        if (!str_contains($name, '/')) {
             return '';
         }
 
         $parts = explode('/', $name);
         array_pop($parts);
 
-        return implode(DIRECTORY_SEPARATOR, array_map([$this, 'camelizeSegment'], $parts)) . DIRECTORY_SEPARATOR;
+        return implode(DIRECTORY_SEPARATOR, array_map($this->camelizeSegment(...), $parts)) . DIRECTORY_SEPARATOR;
     }
 
     private function className(string $name): string
     {
-        $leaf = strpos($name, '/') === false ? $name : (string)substr($name, strrpos($name, '/') + 1);
+        $leaf = str_contains($name, '/') ? (string)substr($name, strrpos($name, '/') + 1) : $name;
 
         return $this->stateClass($leaf);
     }

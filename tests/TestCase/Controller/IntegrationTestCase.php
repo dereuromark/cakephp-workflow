@@ -33,9 +33,9 @@ abstract class IntegrationTestCase extends DatabaseTestCase
 
     public function tearDown(): void
     {
-        parent::tearDown();
         Configure::delete('Workflow.adminActorResolver');
         Configure::delete('Workflow.registry');
+        parent::tearDown();
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Workflow\Controller\Admin;
 use Cake\Database\Expression\QueryExpression;
 use Cake\Http\Exception\NotFoundException;
 use DateTimeImmutable;
+use Workflow\Service\WorkflowRegistry;
 
 class TransitionsController extends WorkflowAppController
 {
@@ -73,7 +74,7 @@ class TransitionsController extends WorkflowAppController
 
         // Get workflow names for filter dropdown
         $workflowNames = [];
-        if ($this->workflowRegistry !== null) {
+        if ($this->workflowRegistry instanceof WorkflowRegistry) {
             $workflowNames = $this->workflowRegistry->getWorkflowNames();
         }
 

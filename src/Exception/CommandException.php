@@ -8,7 +8,7 @@ use Throwable;
 
 class CommandException extends WorkflowException
 {
-    private string $commandName;
+    private readonly string $commandName;
 
     public function __construct(string $commandName, Throwable $previous)
     {

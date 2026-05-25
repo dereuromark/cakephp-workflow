@@ -52,7 +52,7 @@ class LockManager
         // below; cluster-wide GC of other entities' expired rows is left to
         // deleteExpired() (e.g. a maintenance command).
         $lock = $this->insert($table, $workflowName, $model, $foreignKey, $lockedBy);
-        if ($lock !== null) {
+        if ($lock instanceof WorkflowLock) {
             return $lock;
         }
 

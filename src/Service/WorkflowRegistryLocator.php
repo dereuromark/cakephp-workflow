@@ -18,7 +18,7 @@ class WorkflowRegistryLocator
 
     public static function get(): ?WorkflowRegistry
     {
-        if (self::$container === null || !self::$container->has(WorkflowRegistry::class)) {
+        if (!self::$container instanceof ContainerInterface || !self::$container->has(WorkflowRegistry::class)) {
             return null;
         }
 

@@ -32,7 +32,7 @@ class StateMachineEngine implements EngineInterface
      * @param int $maxAutomaticTransitions Maximum automatic transitions to chain before aborting
      */
     public function __construct(
-        private EventManager $eventManager,
+        private readonly EventManager $eventManager,
         private array $guards = [],
         private array $commands = [],
         private bool $strictMode = false,
@@ -274,7 +274,7 @@ class StateMachineEngine implements EngineInterface
 
         // Process automatic transitions from the new state
         $autoResult = $this->processAutomaticTransitions($definition, $entity, $context);
-        if ($autoResult !== null) {
+        if ($autoResult instanceof TransitionResult) {
             // Return the final result after automatic transitions, merging runtime data
             return TransitionResult::success(
                 $currentState,
@@ -440,7 +440,7 @@ class StateMachineEngine implements EngineInterface
 
         // Recursively process further automatic transitions
         $furtherResult = $this->processAutomaticTransitionsInternal($definition, $entity, $context, $processedCount + 1);
-        if ($furtherResult !== null) {
+        if ($furtherResult instanceof TransitionResult) {
             // Merge commands from this transition with further results
             return TransitionResult::success(
                 $currentState,

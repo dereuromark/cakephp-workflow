@@ -16,7 +16,6 @@ class MermaidRendererTest extends TestCase
 
     protected function setUp(): void
     {
-        parent::setUp();
         $this->renderer = new MermaidRenderer();
     }
 

@@ -30,8 +30,6 @@ class WorkflowRegistryTest extends TestCase
 
     public function setUp(): void
     {
-        parent::setUp();
-
         $this->testDefinition = $this->createTestDefinition();
         $this->mockLoader = $this->createMock(LoaderInterface::class);
         $this->eventManager = new EventManager();

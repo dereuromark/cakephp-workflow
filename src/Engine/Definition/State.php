@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Engine\Definition;
 
-final class State
+final readonly class State
 {
     /**
      * @param string $name

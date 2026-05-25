@@ -86,7 +86,7 @@ class OrphansController extends WorkflowAppController
 
         $totalOrphans = array_sum($orphanCounts);
 
-        $this->set(['orphans' => $orphans, 'orphanCounts' => $orphanCounts, 'totalOrphans' => $totalOrphans, 'workflowNames' => $workflowNames, 'selectedWorkflow' => $selectedWorkflow]);
+        $this->set(compact('orphans', 'orphanCounts', 'totalOrphans', 'workflowNames', 'selectedWorkflow'));
     }
 
     /**
@@ -169,7 +169,7 @@ class OrphansController extends WorkflowAppController
             }
         }
 
-        $this->set(['workflow' => $workflow, 'definition' => $definition, 'entity' => $entity, 'foreignKey' => $foreignKey, 'currentState' => $currentState, 'validStates' => $validStates, 'field' => $field]);
+        $this->set(compact('workflow', 'definition', 'entity', 'foreignKey', 'currentState', 'validStates', 'field'));
 
         return null;
     }

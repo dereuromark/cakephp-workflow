@@ -41,7 +41,7 @@ class WorkflowsController extends WorkflowAppController
             ];
         }
 
-        $this->set(['workflows' => $workflows]);
+        $this->set(compact('workflows'));
     }
 
     /**
@@ -110,7 +110,17 @@ class WorkflowsController extends WorkflowAppController
         $issues = $analyzer->analyze($definition);
         $issuesBySeverity = $analyzer->getIssuesBySeverity();
 
-        $this->set(['definition' => $definition, 'stateCounts' => $stateCounts, 'totalActive' => $totalActive, 'recentTransitions' => $recentTransitions, 'transitionsToday' => $transitionsToday, 'pendingTimeouts' => $pendingTimeouts, 'exportFormats' => $exportFormats, 'issues' => $issues, 'issuesBySeverity' => $issuesBySeverity]);
+        $this->set(compact(
+            'definition',
+            'stateCounts',
+            'totalActive',
+            'recentTransitions',
+            'transitionsToday',
+            'pendingTimeouts',
+            'exportFormats',
+            'issues',
+            'issuesBySeverity',
+        ));
     }
 
     /**
@@ -211,7 +221,13 @@ class WorkflowsController extends WorkflowAppController
             // Table might not exist
         }
 
-        $this->set(['definition' => $definition, 'matrix' => $matrix, 'timeBuckets' => $timeBuckets, 'totals' => $totals, 'stateTotals' => $stateTotals]);
+        $this->set(compact(
+            'definition',
+            'matrix',
+            'timeBuckets',
+            'totals',
+            'stateTotals',
+        ));
     }
 
     /**
@@ -235,7 +251,14 @@ class WorkflowsController extends WorkflowAppController
         $warningCount = count($issuesBySeverity['warnings']);
         $infoCount = count($issuesBySeverity['info']);
 
-        $this->set(['definition' => $definition, 'issues' => $issues, 'issuesBySeverity' => $issuesBySeverity, 'errorCount' => $errorCount, 'warningCount' => $warningCount, 'infoCount' => $infoCount]);
+        $this->set(compact(
+            'definition',
+            'issues',
+            'issuesBySeverity',
+            'errorCount',
+            'warningCount',
+            'infoCount',
+        ));
     }
 
     /**
@@ -278,7 +301,7 @@ class WorkflowsController extends WorkflowAppController
             ];
         }
 
-        $this->set(['definition' => $definition, 'states' => $states, 'transitions' => $transitions]);
+        $this->set(compact('definition', 'states', 'transitions'));
     }
 
     /**
@@ -469,7 +492,7 @@ class WorkflowsController extends WorkflowAppController
                 ->withStringBody($content);
         }
 
-        $this->set(['exportFormats' => $exportFormats]);
+        $this->set(compact('exportFormats'));
 
         return null;
     }
@@ -646,7 +669,15 @@ class WorkflowsController extends WorkflowAppController
         // Get available transitions (those that can actually be applied)
         $availableTransitions = $engine->getAvailableTransitions($definition, $entity);
 
-        $this->set(['definition' => $definition, 'entity' => $entity, 'foreignKey' => $foreignKey, 'currentState' => $currentState, 'simulationResults' => $simulationResults, 'availableTransitions' => $availableTransitions, 'transition' => $transition]);
+        $this->set(compact(
+            'definition',
+            'entity',
+            'foreignKey',
+            'currentState',
+            'simulationResults',
+            'availableTransitions',
+            'transition',
+        ));
     }
 
     /**
@@ -747,7 +778,13 @@ class WorkflowsController extends WorkflowAppController
             }
         }
 
-        $this->set(['definition' => $definition, 'entity' => $entity, 'foreignKey' => $foreignKey, 'currentState' => $currentState, 'applicableTransitions' => $applicableTransitions]);
+        $this->set(compact(
+            'definition',
+            'entity',
+            'foreignKey',
+            'currentState',
+            'applicableTransitions',
+        ));
 
         return null;
     }

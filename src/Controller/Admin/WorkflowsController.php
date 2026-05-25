@@ -556,8 +556,8 @@ class WorkflowsController extends WorkflowAppController
                 if (!empty($state['failed'])) {
                     $stateData['failed'] = true;
                 }
-                if (!empty($state['flags'])) {
-                    $flags = array_filter(array_map('trim', explode(',', (string)$state['flags'])));
+                if (!empty($state['flags']) && is_string($state['flags'])) {
+                    $flags = array_filter(array_map('trim', explode(',', $state['flags'])));
                     if ($flags) {
                         $stateData['flags'] = $flags;
                     }
@@ -574,8 +574,8 @@ class WorkflowsController extends WorkflowAppController
                     continue;
                 }
                 $transitionData = [];
-                if (!empty($transition['from'])) {
-                    $from = array_filter(array_map('trim', explode(',', (string)$transition['from'])));
+                if (!empty($transition['from']) && is_string($transition['from'])) {
+                    $from = array_filter(array_map('trim', explode(',', $transition['from'])));
                     $transitionData['from'] = $from;
                 }
                 if (!empty($transition['to'])) {

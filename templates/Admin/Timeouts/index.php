@@ -105,7 +105,6 @@ $this->assign('title', 'Timeouts');
                             <?php if (!$timeout->processed) { ?>
                                 <?= $this->Form->checkbox('timeout_ids[]', [
                                     'value' => $timeout->id,
-                                    'hiddenField' => false,
                                     'class' => 'form-check-input',
                                 ]) ?>
                             <?php } ?>

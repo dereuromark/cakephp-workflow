@@ -73,6 +73,7 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $timeouts = $this->viewVariable('timeouts');
         $this->assertCount(1, $timeouts);
         $this->assertSame(123, $timeouts->items()->first()->foreign_key);
+        $this->assertResponseContains('type="hidden" name="timeout_ids[]" value="0"');
     }
 
     /**

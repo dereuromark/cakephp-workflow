@@ -320,4 +320,19 @@ class TransitionLoggerTest extends DatabaseTestCase
         $this->assertContains('sendEmail', $transition->getCommandsExecuted());
         $this->assertTrue($transition->usedLock());
     }
+
+    public function testLogSuccessfulTransitionWithUuidForeignKey(): void
+    {
+        $uuid = '550e8400-e29b-41d4-a716-446655440000';
+        $entity = new Entity(['id' => $uuid]);
+        $result = TransitionResult::success('pending', 'paid');
+        $this->fetchTable('Workflow.WorkflowTransitions')->getSchema()->setColumnType('foreign_key', 'string');
+
+        $this->logger->log('order', 'Orders', $entity, $result, 'pay');
+
+        $table = $this->fetchTable('Workflow.WorkflowTransitions');
+        $transition = $table->find()->firstOrFail();
+
+        $this->assertSame($uuid, $transition->foreign_key);
+    }
 }

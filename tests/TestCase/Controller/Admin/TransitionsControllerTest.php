@@ -147,7 +147,7 @@ class TransitionsControllerTest extends IntegrationTestCase
 
         $transitions = $this->viewVariable('transitions');
         $this->assertCount(1, $transitions);
-        $this->assertSame('123', $transitions->items()->first()->foreign_key);
+        $this->assertSame(123, $transitions->items()->first()->foreign_key);
     }
 
     /**
@@ -231,8 +231,8 @@ class TransitionsControllerTest extends IntegrationTestCase
         $transitions = $this->viewVariable('transitions')->toArray();
         $this->assertCount(2, $transitions);
         // Newest first
-        $this->assertSame('456', $transitions[0]->foreign_key);
-        $this->assertSame('123', $transitions[1]->foreign_key);
+        $this->assertSame(456, $transitions[0]->foreign_key);
+        $this->assertSame(123, $transitions[1]->foreign_key);
     }
 
     public function testIndexFiltersByStatusAndActor(): void

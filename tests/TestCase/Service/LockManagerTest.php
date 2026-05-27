@@ -29,7 +29,7 @@ class LockManagerTest extends DatabaseTestCase
         $this->assertNotNull($lock);
         $this->assertSame('order', $lock->workflow_name);
         $this->assertSame('Orders', $lock->model);
-        $this->assertSame('123', $lock->foreign_key);
+        $this->assertSame(123, $lock->foreign_key);
         $this->assertSame('user-1', $lock->locked_by);
         $this->assertInstanceOf(DateTime::class, $lock->expires_at);
     }
@@ -186,6 +186,7 @@ class LockManagerTest extends DatabaseTestCase
     {
         $uuid = '550e8400-e29b-41d4-a716-446655440000';
         $entity = new Entity(['id' => $uuid]);
+        $this->fetchTable('Workflow.WorkflowLocks')->getSchema()->setColumnType('foreign_key', 'string');
 
         $lock = $this->lockManager->acquire('order', 'Orders', $entity, 'user-1');
 

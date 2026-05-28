@@ -72,6 +72,19 @@ public function transition(int $id): Response
 
 This extracts `transition` and `reason` from the request data automatically.
 
+If the request does not include a `transition`, `handleTransition()` now fails
+early with a flash error and redirects without attempting any workflow change.
+You can override that message per call:
+
+```php
+return $this->Workflow->handleTransition(
+    $this->Orders,
+    $order,
+    ['action' => 'view', $id],
+    ['missingTransitionMessage' => 'Please choose a transition first.'],
+);
+```
+
 ## Custom Messages
 
 Override messages per-call:

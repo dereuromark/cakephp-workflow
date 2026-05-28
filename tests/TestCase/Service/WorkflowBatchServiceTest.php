@@ -160,7 +160,7 @@ class WorkflowBatchServiceTest extends DatabaseTestCase
         $table->setAlias('TestTable');
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('Table "TestTable" must have WorkflowBehavior attached');
+        $this->expectExceptionMessage('Table `TestTable` must have WorkflowBehavior attached');
 
         $this->batchService->applyToEntities($table, [], 'pay');
     }

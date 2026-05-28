@@ -273,7 +273,7 @@ class WorkflowHelper extends Helper
      *
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string, mixed> $options Supported keys: id, title, class, currentState, showDetails,
-     *  detailMarkers, focusCurrentState, fullscreen, code, exportSvg, minWidth, maxHeight, modalMinWidth
+     *  detailMarkers, focusCurrentState, fullscreen, code, exportSvg, exportFilename, minWidth, maxHeight, modalMinWidth
      */
     public function widget(Definition $definition, array $options = []): string
     {
@@ -285,6 +285,7 @@ class WorkflowHelper extends Helper
         $fullscreen = (bool)($options['fullscreen'] ?? true);
         $showCode = (bool)($options['code'] ?? true);
         $exportSvg = (bool)($options['exportSvg'] ?? true);
+        $exportFilename = (string)($options['exportFilename'] ?? $widgetId . '.svg');
         $minWidth = (string)($options['minWidth'] ?? '760px');
         $maxHeight = (string)($options['maxHeight'] ?? '320px');
         $modalMinWidth = (string)($options['modalMinWidth'] ?? '960px');
@@ -299,8 +300,9 @@ class WorkflowHelper extends Helper
         }
         if ($exportSvg) {
             $buttons[] = sprintf(
-                '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-svg="%s">Export SVG</button>',
+                '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-svg="%s" data-workflow-export-filename="%s">Export SVG</button>',
                 h($widgetId),
+                h($exportFilename),
             );
         }
         if ($fullscreen) {
@@ -449,6 +451,36 @@ class WorkflowHelper extends Helper
         });
     }
 
+    function standaloneSvgMarkup(svg) {
+        const clone = svg.cloneNode(true);
+        const viewBox = clone.getAttribute('viewBox');
+        if (!clone.getAttribute('xmlns')) {
+            clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        }
+
+        let width = clone.getAttribute('width');
+        let height = clone.getAttribute('height');
+        if ((!width || width === '100%') && viewBox) {
+            const parts = viewBox.trim().split(/\s+/);
+            if (parts.length === 4) {
+                width = parts[2];
+                height = parts[3];
+            }
+        }
+
+        if (width) {
+            clone.setAttribute('width', width);
+        }
+        if (height) {
+            clone.setAttribute('height', height);
+        }
+
+        clone.removeAttribute('style');
+        clone.style.background = '#ffffff';
+
+        return '<?xml version="1.0" encoding="UTF-8"?>\n' + clone.outerHTML;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-workflow-render-root]').forEach(renderRoot);
 
@@ -469,11 +501,12 @@ class WorkflowHelper extends Helper
                     return;
                 }
 
-                const blob = new Blob([svg.outerHTML], {type: 'image/svg+xml;charset=utf-8'});
+                const filename = button.getAttribute('data-workflow-export-filename') || (widgetId + '.svg');
+                const blob = new Blob([standaloneSvgMarkup(svg)], {type: 'image/svg+xml;charset=utf-8'});
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = widgetId + '.svg';
+                link.download = filename;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);

@@ -224,6 +224,7 @@ Render a compact workflow widget with:
     'showDetails' => true,
     'detailMarkers' => 'ascii', // emoji | ascii | none
     'focusCurrentState' => true,
+    'exportFilename' => 'order-workflow.svg',
 ]) ?>
 ```
 
@@ -258,9 +259,14 @@ Supported helper options:
   - `fullscreen`
   - `code`
   - `exportSvg`
+  - `exportFilename`
   - `minWidth`
   - `maxHeight`
   - `modalMinWidth`
+
+SVG export uses a standalone serializer, so downloaded files get explicit
+dimensions from the rendered `viewBox` instead of keeping Mermaid's responsive
+`width="100%"` markup. This makes saved SVGs much more usable in external tools.
 
 ## Drift Safety
 

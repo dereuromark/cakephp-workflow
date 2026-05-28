@@ -105,6 +105,28 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('mermaid.initialize', $script);
     }
 
+    public function testDiagramSupportsCurrentStateAndDetailedLabels(): void
+    {
+        $diagram = $this->helper->diagram($this->definition, [
+            'currentState' => 'paid',
+            'showDetails' => true,
+        ]);
+
+        $this->assertStringContainsString('class paid current', $diagram);
+        $this->assertStringContainsString('|pay|', $diagram);
+    }
+
+    public function testGetMermaidCodeSupportsOptions(): void
+    {
+        $diagram = $this->helper->getMermaidCode($this->definition, [
+            'currentState' => 'paid',
+            'showDetails' => true,
+        ]);
+
+        $this->assertStringContainsString('class paid current', $diagram);
+        $this->assertStringContainsString('|pay|', $diagram);
+    }
+
     public function testPanelWithoutTransitionsRendersBadgeOnly(): void
     {
         $entity = new Entity(['id' => 7, 'state' => 'pending']);

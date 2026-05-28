@@ -99,12 +99,16 @@ class WorkflowHelper extends Helper
      * Render a Mermaid diagram for a workflow.
      *
      * @param \Workflow\Engine\Definition\Definition $definition
-     * @param array<string, mixed> $options
+     * @param array<string, mixed> $options Supported keys: id, class, currentState, showDetails
      */
     public function diagram(Definition $definition, array $options = []): string
     {
         $renderer = $this->getMermaidRenderer();
-        $mermaid = $renderer->render($definition);
+        $mermaid = $renderer->render(
+            $definition,
+            isset($options['currentState']) ? (string)$options['currentState'] : null,
+            (bool)($options['showDetails'] ?? false),
+        );
 
         $divId = $options['id'] ?? 'workflow-diagram-' . $definition->getName();
         $class = $options['class'] ?? 'mermaid';
@@ -193,12 +197,17 @@ class WorkflowHelper extends Helper
      * Get the raw Mermaid code for a workflow.
      *
      * @param \Workflow\Engine\Definition\Definition $definition
+     * @param array<string, mixed> $options Supported keys: currentState, showDetails
      */
-    public function getMermaidCode(Definition $definition): string
+    public function getMermaidCode(Definition $definition, array $options = []): string
     {
         $renderer = $this->getMermaidRenderer();
 
-        return $renderer->render($definition);
+        return $renderer->render(
+            $definition,
+            isset($options['currentState']) ? (string)$options['currentState'] : null,
+            (bool)($options['showDetails'] ?? false),
+        );
     }
 
     /**

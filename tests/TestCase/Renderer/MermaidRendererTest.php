@@ -185,4 +185,46 @@ class MermaidRendererTest extends TestCase
         $this->assertStringContainsString('pending -->|cancel| cancelled', $output);
         $this->assertStringContainsString('paid -->|cancel| cancelled', $output);
     }
+
+    public function testRenderSupportsAsciiDetailMarkers(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', false, ['ensurePayable'], ['markPaymentCaptured'], 'canAutoPay'),
+            ],
+        );
+
+        $output = $this->renderer->render($definition, null, true, 'ascii');
+
+        $this->assertStringContainsString('|pay [G][C][?]|', $output);
+    }
+
+    public function testRenderSupportsNoDetailMarkers(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', false, ['ensurePayable']),
+            ],
+        );
+
+        $output = $this->renderer->render($definition, null, true, 'none');
+
+        $this->assertStringContainsString('|pay|', $output);
+        $this->assertStringNotContainsString('[G]', $output);
+        $this->assertStringNotContainsString('🛡️', $output);
+    }
 }

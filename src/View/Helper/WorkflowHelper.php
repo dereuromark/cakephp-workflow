@@ -273,7 +273,7 @@ class WorkflowHelper extends Helper
      *
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string, mixed> $options Supported keys: id, title, class, currentState, showDetails,
-     *  detailMarkers, focusCurrentState, fullscreen, code, export, exportFilename,
+     *  detailMarkers, focusCurrentState, fullscreen, code, export, exportScope,
      *  minWidth, maxHeight, modalMinWidth
      */
     public function widget(Definition $definition, array $options = []): string
@@ -286,7 +286,6 @@ class WorkflowHelper extends Helper
         $fullscreen = (bool)($options['fullscreen'] ?? true);
         $showCode = (bool)($options['code'] ?? true);
         $exportFormats = $this->normalizeExportFormats($options['export'] ?? 'svg');
-        $exportFilenameBase = $this->normalizeExportFilenameBase((string)($options['exportFilename'] ?? $widgetId));
         $minWidth = (string)($options['minWidth'] ?? '760px');
         $maxHeight = (string)($options['maxHeight'] ?? '320px');
         $modalMinWidth = (string)($options['modalMinWidth'] ?? '960px');
@@ -299,19 +298,22 @@ class WorkflowHelper extends Helper
                 h($widgetId),
             );
         }
-        if (in_array('svg', $exportFormats, true)) {
-            $buttons[] = sprintf(
-                '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-svg="%s" data-workflow-export-filename="%s">Export SVG</button>',
-                h($widgetId),
-                h($exportFilenameBase . '.svg'),
-            );
-        }
-        if (in_array('png', $exportFormats, true)) {
-            $buttons[] = sprintf(
-                '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-png="%s" data-workflow-export-png-filename="%s">Export PNG</button>',
-                h($widgetId),
-                h($exportFilenameBase . '.png'),
-            );
+        foreach ($exportFormats as $exportFormat) {
+            if ($exportFormat === 'svg' || $exportFormat === 'png' || $exportFormat === 'mmd') {
+                $label = match ($exportFormat) {
+                    'mmd' => 'Export Mermaid',
+                    default => 'Export ' . strtoupper($exportFormat),
+                };
+                $buttons[] = sprintf(
+                    '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-%s="%s" data-workflow-export-filename="%s">%s</button>',
+                    h($exportFormat),
+                    h($widgetId),
+                    h($widgetId . '.' . ($exportFormat === 'mmd' ? 'mmd' : $exportFormat)),
+                    h($label),
+                );
+
+                continue;
+            }
         }
         if ($fullscreen) {
             $buttons[] = sprintf(
@@ -397,23 +399,16 @@ class WorkflowHelper extends Helper
         $normalized = [];
         foreach ($formats as $format) {
             $value = strtolower(trim((string)$format));
-            if ($value === '' || !in_array($value, ['svg', 'png'], true) || in_array($value, $normalized, true)) {
+            if ($value === 'mermaid') {
+                $value = 'mmd';
+            }
+            if ($value === '' || !in_array($value, ['svg', 'png', 'mmd'], true) || in_array($value, $normalized, true)) {
                 continue;
             }
             $normalized[] = $value;
         }
 
         return $normalized;
-    }
-
-    private function normalizeExportFilenameBase(string $filename): string
-    {
-        $trimmed = trim($filename);
-        if ($trimmed === '') {
-            return 'workflow';
-        }
-
-        return preg_replace('/\.(svg|png)$/i', '', $trimmed) ?: 'workflow';
     }
 
     /**
@@ -494,7 +489,7 @@ class WorkflowHelper extends Helper
     }
 
     function pngExportSource(diagram) {
-        return '%%{init: {"flowchart": {"htmlLabels": false}} }%%\n' + diagram;
+        return '%%{init: {"securityLevel": "strict", "flowchart": {"htmlLabels": false}} }%%\n' + diagram;
     }
 
     function svgElementFromMarkup(markup) {
@@ -504,46 +499,27 @@ class WorkflowHelper extends Helper
         return doc.documentElement instanceof SVGElement ? doc.documentElement : null;
     }
 
-    function standaloneSvgMarkup(svg) {
+    function widgetSvgMarkup(widgetId) {
+        const svg = document.querySelector('#' + widgetId + ' svg');
+        if (!svg) {
+            throw new Error('Workflow graph is not rendered yet.');
+        }
+
+        return ensureStandaloneSvgMarkup(new XMLSerializer().serializeToString(svg));
+    }
+
+    function rawWidgetSvgMarkup(widgetId) {
+        const svg = document.querySelector('#' + widgetId + ' svg');
+        if (!svg) {
+            throw new Error('Workflow graph is not rendered yet.');
+        }
+
         const clone = svg.cloneNode(true);
         if (!clone.getAttribute('xmlns')) {
             clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         }
 
-        const dimensions = svgDimensions(clone);
-        const width = dimensions.width;
-        const height = dimensions.height;
-
-        if (width) {
-            clone.setAttribute('width', width);
-        }
-        if (height) {
-            clone.setAttribute('height', height);
-        }
-
-        clone.removeAttribute('style');
-        clone.style.background = '#ffffff';
-
-        return '<?xml version="1.0" encoding="UTF-8"?>\n' + clone.outerHTML;
-    }
-
-    function svgDimensions(svg) {
-        const viewBox = svg.getAttribute('viewBox');
-        let width = svg.getAttribute('width');
-        let height = svg.getAttribute('height');
-
-        if ((!width || width === '100%') && viewBox) {
-            const parts = viewBox.trim().split(/\s+/);
-            if (parts.length === 4) {
-                width = parts[2];
-                height = parts[3];
-            }
-        }
-
-        return {
-            width: width || '0',
-            height: height || '0'
-        };
+        return new XMLSerializer().serializeToString(clone);
     }
 
     function downloadBlob(blob, filename) {
@@ -555,6 +531,149 @@ class WorkflowHelper extends Helper
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
+    }
+
+    function parseSvgDimensions(svg) {
+        const widthAttr = svg.getAttribute('width') || '';
+        const heightAttr = svg.getAttribute('height') || '';
+        let width = widthAttr.includes('%') ? NaN : parseFloat(widthAttr);
+        let height = heightAttr.includes('%') ? NaN : parseFloat(heightAttr);
+        let minX = 0;
+        let minY = 0;
+        const viewBox = svg.getAttribute('viewBox');
+
+        if (viewBox) {
+            const parts = viewBox.trim().split(/\s+/);
+            if (parts.length === 4) {
+                minX = parseFloat(parts[0]) || 0;
+                minY = parseFloat(parts[1]) || 0;
+                if (!Number.isFinite(width) || width <= 0) {
+                    width = parseFloat(parts[2]);
+                }
+                if (!Number.isFinite(height) || height <= 0) {
+                    height = parseFloat(parts[3]);
+                }
+            }
+        }
+
+        if (!Number.isFinite(width) || width <= 0) {
+            width = 1200;
+        }
+        if (!Number.isFinite(height) || height <= 0) {
+            height = 800;
+        }
+
+        return {minX, minY, width, height};
+    }
+
+    function ensureStandaloneSvgMarkup(markup) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(markup, 'image/svg+xml');
+        const svg = doc.documentElement;
+        if (!(svg instanceof SVGElement)) {
+            throw new Error('Invalid SVG export payload.');
+        }
+
+        svg.querySelectorAll('foreignObject').forEach(function (foreignObject) {
+            const group = foreignObject.parentNode;
+            if (!(group instanceof SVGGElement)) {
+                foreignObject.remove();
+                return;
+            }
+
+            const width = parseFloat(foreignObject.getAttribute('width') || '0') || 0;
+            const height = parseFloat(foreignObject.getAttribute('height') || '0') || 0;
+            const textValue = (foreignObject.textContent || '').replace(/\s+/g, ' ').trim();
+            const text = doc.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', String(width / 2));
+            text.setAttribute('y', String(height / 2));
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('dominant-baseline', 'middle');
+            text.setAttribute('font-family', 'Trebuchet MS, Verdana, Arial, sans-serif');
+            text.setAttribute('font-size', '16');
+            text.setAttribute('fill', '#333333');
+            text.setAttribute('stroke', 'none');
+            text.setAttribute('stroke-width', '0');
+            text.setAttribute('paint-order', 'fill');
+            text.setAttribute('text-rendering', 'geometricPrecision');
+            text.textContent = textValue;
+            const wrapper = doc.createElementNS('http://www.w3.org/2000/svg', 'g');
+            wrapper.setAttribute('data-workflow-export-label', '1');
+            wrapper.appendChild(text);
+            group.replaceChild(wrapper, foreignObject);
+        });
+
+        if (!svg.getAttribute('xmlns')) {
+            svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        }
+
+        const dims = parseSvgDimensions(svg);
+        svg.setAttribute('width', String(dims.width));
+        svg.setAttribute('height', String(dims.height));
+        svg.style.backgroundColor = '#ffffff';
+
+        const hasBackground = svg.querySelector('[data-workflow-export-background="1"]');
+        if (!hasBackground) {
+            const rect = doc.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', String(dims.minX));
+            rect.setAttribute('y', String(dims.minY));
+            rect.setAttribute('width', String(dims.width));
+            rect.setAttribute('height', String(dims.height));
+            rect.setAttribute('fill', '#ffffff');
+            rect.setAttribute('data-workflow-export-background', '1');
+            svg.insertBefore(rect, svg.firstChild);
+        }
+
+        return {
+            markup: new XMLSerializer().serializeToString(svg),
+            width: dims.width,
+            height: dims.height
+        };
+    }
+
+    async function rasterizeSvgMarkupToPng(markup, filename) {
+        const payload = ensureStandaloneSvgMarkup(markup);
+        const blob = new Blob([payload.markup], {type: 'image/svg+xml;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
+
+        try {
+            const img = await new Promise(function (resolve, reject) {
+                const image = new Image();
+                image.onload = function () {
+                    resolve(image);
+                };
+                image.onerror = function () {
+                    reject(new Error('Failed to load workflow SVG for PNG export.'));
+                };
+                image.src = url;
+            });
+
+            const scale = 2;
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.ceil(payload.width * scale));
+            canvas.height = Math.max(1, Math.ceil(payload.height * scale));
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                throw new Error('Canvas context unavailable for PNG export.');
+            }
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            const pngBlob = await new Promise(function (resolve, reject) {
+                canvas.toBlob(function (result) {
+                    if (!result) {
+                        reject(new Error('PNG export produced no image data.'));
+                        return;
+                    }
+                    resolve(result);
+                }, 'image/png');
+            });
+            downloadBlob(pngBlob, filename);
+        } finally {
+            URL.revokeObjectURL(url);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -571,78 +690,50 @@ class WorkflowHelper extends Helper
 
         document.querySelectorAll('[data-workflow-export-svg]').forEach(function (button) {
             button.addEventListener('click', function () {
-                const widgetId = button.getAttribute('data-workflow-export-svg');
-                const svg = document.querySelector('#' + widgetId + ' svg');
-                if (!svg) {
-                    return;
+                try {
+                    const widgetId = button.getAttribute('data-workflow-export-svg');
+                    const filename = button.getAttribute('data-workflow-export-filename') || (widgetId + '.svg');
+                    const blob = new Blob([rawWidgetSvgMarkup(widgetId)], {type: 'image/svg+xml;charset=utf-8'});
+                    downloadBlob(blob, filename);
+                } catch (error) {
+                    console.error(error);
+                    window.alert('Workflow SVG export failed: ' + (error && error.message ? error.message : error));
                 }
-
-                const filename = button.getAttribute('data-workflow-export-filename') || (widgetId + '.svg');
-                const blob = new Blob([standaloneSvgMarkup(svg)], {type: 'image/svg+xml;charset=utf-8'});
-                downloadBlob(blob, filename);
             });
         });
 
         document.querySelectorAll('[data-workflow-export-png]').forEach(function (button) {
             button.addEventListener('click', function () {
-                const widgetId = button.getAttribute('data-workflow-export-png');
-                const svg = document.querySelector('#' + widgetId + ' svg');
-                const source = document.querySelector('#' + widgetId + ' [data-workflow-mermaid-source]');
-                if (!svg) {
+                const widgetId = button.getAttribute('data-workflow-export-png') || 'workflow';
+                const filename = button.getAttribute('data-workflow-export-filename') || (widgetId + '.png');
+                let payload;
+                try {
+                    payload = widgetSvgMarkup(widgetId);
+                } catch (error) {
+                    console.error(error);
+                    window.alert('Workflow PNG export failed: ' + (error && error.message ? error.message : error));
                     return;
                 }
 
-                const filename = button.getAttribute('data-workflow-export-png-filename') || (widgetId + '.png');
-                const exportGraphId = 'workflow-export-png-' + (++renderCount);
-                const exportDiagram = pngExportSource(source ? (source.textContent || '') : '');
-
-                mermaid.render(exportGraphId, exportDiagram).then(function (result) {
-                    const safeSvg = svgElementFromMarkup(result.svg);
-                    if (!safeSvg) {
-                        return;
-                    }
-
-                    const svgMarkup = standaloneSvgMarkup(safeSvg);
-                    const svgBlob = new Blob([svgMarkup], {type: 'image/svg+xml;charset=utf-8'});
-                    const svgUrl = URL.createObjectURL(svgBlob);
-                    const img = new Image();
-
-                    img.onload = function () {
-                        const dimensions = svgDimensions(safeSvg);
-                        const width = Math.max(1, Math.ceil(parseFloat(dimensions.width) || img.width || 1));
-                        const height = Math.max(1, Math.ceil(parseFloat(dimensions.height) || img.height || 1));
-                        const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        if (!context) {
-                            URL.revokeObjectURL(svgUrl);
-                            return;
-                        }
-
-                        canvas.width = width;
-                        canvas.height = height;
-                        context.fillStyle = '#ffffff';
-                        context.fillRect(0, 0, width, height);
-                        context.drawImage(img, 0, 0, width, height);
-
-                        canvas.toBlob(function (pngBlob) {
-                            if (!pngBlob) {
-                                URL.revokeObjectURL(svgUrl);
-                                return;
-                            }
-
-                            downloadBlob(pngBlob, filename);
-                            URL.revokeObjectURL(svgUrl);
-                        }, 'image/png');
-                    };
-
-                    img.onerror = function () {
-                        URL.revokeObjectURL(svgUrl);
-                    };
-
-                    img.src = svgUrl;
-                }).catch(function () {
-                    // Keep the UI quiet on failed PNG export until a dedicated callback API exists.
+                rasterizeSvgMarkupToPng(payload.markup, filename).catch(function (error) {
+                    console.error(error);
+                    window.alert('Workflow PNG export failed: ' + (error && error.message ? error.message : error));
                 });
+            });
+        });
+
+        document.querySelectorAll('[data-workflow-export-mmd]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const widgetId = button.getAttribute('data-workflow-export-mmd');
+                const root = document.getElementById(widgetId);
+                const source = root ? root.querySelector('[data-workflow-mermaid-source]') : null;
+                if (!source) {
+                    return;
+                }
+
+                const filename = button.getAttribute('data-workflow-export-filename') || (widgetId + '.mmd');
+                const blob = new Blob([source.textContent || ''], {type: 'text/plain;charset=utf-8'});
+                downloadBlob(blob, filename);
             });
         });
 

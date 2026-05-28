@@ -61,8 +61,14 @@ With options:
 <?= $this->Workflow->diagram($definition, [
     'id' => 'order-workflow-diagram',
     'class' => 'mermaid workflow-diagram',
+    'currentState' => $order->state,
+    'showDetails' => true,
+    'detailMarkers' => 'ascii',
 ]) ?>
 ```
+
+`currentState` is what highlights the active node. Pass the entity state value
+directly when you want the current step emphasized.
 
 To get raw Mermaid code (useful for custom rendering):
 
@@ -139,17 +145,44 @@ public function transition($id)
 
 Use `postTransitionButtons()` if you only want the buttons without the badge wrapper.
 
-For compact embedded diagrams, `widget()` also supports a dedicated export
-filename so downloaded SVG artifacts are easier to identify:
+For compact embedded diagrams, `widget()` includes browser-side export controls
+for the rendered graph:
 
 ```php
 <?= $this->Workflow->widget($definition, [
     'title' => 'Order workflow',
     'currentState' => $order->state,
-    'export' => ['svg', 'png'],
-    'exportFilename' => 'order-workflow',
+    'export' => ['svg', 'png', 'mmd'],
 ]) ?>
 ```
+
+- `svg` exports the original rendered Mermaid SVG.
+- `png` sanitizes the rendered graph before rasterizing it in-browser.
+- `mmd` downloads the Mermaid source used by the widget.
+
+If you need canonical server-side exports instead, use the workflow draw action:
+
+```text
+/workflow/workflows/draw/{workflow}?format=svg|png|mmd
+```
+
+Server-side `svg` / `png` rendering requires GraphViz (`dot`) and is separate
+from the widget export path.
+
+To highlight a specific state in the server-side export:
+
+```text
+/workflow/workflows/draw/order?format=svg&currentState=paid
+```
+
+Or let the controller resolve the state from a workflow entity id:
+
+```text
+/workflow/workflows/draw/order?format=png&id=42
+```
+
+When `id` is present, the export endpoint loads the configured workflow table
+and highlights the current value from the workflow field automatically.
 
 ## Getting State Color
 

@@ -24,6 +24,10 @@ State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON c
 composer require dereuromark/cakephp-workflow
 ```
 
+For server-side diagram exports via `/workflow/workflows/draw` in `svg` / `png`
+formats, install GraphViz and make sure the `dot` binary is available on the
+host. Widget exports in app pages do not require GraphViz.
+
 Load the plugin:
 
 ```bash
@@ -215,52 +219,22 @@ Render a compact workflow widget with:
 - optional current-state centering
 - code toggle
 - fullscreen modal
-- SVG export
-- optional PNG export
+- client-side SVG export of the rendered Mermaid graph
+- client-side PNG export derived from the rendered Mermaid graph
+- Mermaid source export
 
 ```php
 <?= $this->Workflow->widget($definition, [
     'title' => 'Order workflow',
     'currentState' => $order->state,
     'showDetails' => true,
-    'detailMarkers' => 'ascii', // emoji | ascii | none
-    'focusCurrentState' => true,
-    'export' => ['svg', 'png'],
-    'exportFilename' => 'order-workflow',
+    'detailMarkers' => 'ascii',
+    'export' => ['svg', 'png', 'mmd'],
 ]) ?>
 ```
 
-If you only need the raw Mermaid source plus metadata for a custom frontend wrapper:
-
-```php
-<?php $diagram = $this->Workflow->diagramData($definition, [
-    'currentState' => $order->state,
-    'showDetails' => true,
-]); ?>
-```
-
-Supported helper options:
-
-- `WorkflowHelper::diagram()`
-  - `currentState`
-  - `showDetails`
-  - `detailMarkers` (`emoji`, `ascii`, `none`)
-  - `mode` (`diagram`, `code`)
-- `WorkflowHelper::includeMermaid()`
-  - `src`
-  - `startOnLoad`
-  - `config`
-  - `guardKey`
-  - `toolkit`
-- `WorkflowHelper::widget()`
-  - `title`
-  - `currentState`
-  - `showDetails`
-  - `detailMarkers`
-  - `focusCurrentState`
-  - `fullscreen`
-  - `code`
-  - `export`
+For detailed helper options and canonical server-side `draw` exports, see the
+[View Helper integration docs](https://dereuromark.github.io/cakephp-workflow/integration/view-helper).
   - `exportFilename`
   - `minWidth`
   - `maxHeight`

@@ -170,7 +170,7 @@ class WorkflowBatchService
     {
         if (!$table->hasBehavior('Workflow')) {
             throw new InvalidArgumentException(
-                sprintf('Table "%s" must have WorkflowBehavior attached', $table->getAlias()),
+                sprintf('Table `%s` must have WorkflowBehavior attached', $table->getAlias()),
             );
         }
     }

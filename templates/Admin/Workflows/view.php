@@ -552,7 +552,7 @@ foreach ($terminalStateIssues as $issue) {
 
         // Serialize and download SVG
         const serializer = new XMLSerializer();
-        const svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(svgClone);
+        const svgString = '<' + '?xml version="1.0" encoding="UTF-8"?>\n' + serializer.serializeToString(svgClone);
         const svgBlob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
 
         const link = document.createElement('a');

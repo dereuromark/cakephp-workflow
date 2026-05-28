@@ -139,6 +139,17 @@ public function transition($id)
 
 Use `postTransitionButtons()` if you only want the buttons without the badge wrapper.
 
+For compact embedded diagrams, `widget()` also supports a dedicated export
+filename so downloaded SVG artifacts are easier to identify:
+
+```php
+<?= $this->Workflow->widget($definition, [
+    'title' => 'Order workflow',
+    'currentState' => $order->state,
+    'exportFilename' => 'order-workflow.svg',
+]) ?>
+```
+
 ## Getting State Color
 
 Get the color configured for a state:

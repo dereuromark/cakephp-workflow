@@ -150,11 +150,13 @@ class WorkflowHelperTest extends TestCase
             'id' => 'order-workflow',
             'title' => 'Order workflow',
             'currentState' => 'paid',
+            'exportFilename' => 'order-workflow-diagram.svg',
         ]);
 
         $this->assertStringContainsString('data-workflow-render-root="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-toggle-code="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-export-svg="order-workflow"', $widget);
+        $this->assertStringContainsString('data-workflow-export-filename="order-workflow-diagram.svg"', $widget);
         $this->assertStringContainsString('data-bs-target="#order-workflow-modal"', $widget);
         $this->assertStringContainsString('Current state: <strong>Paid</strong>', $widget);
     }

@@ -11,9 +11,8 @@ use Workflow\Engine\TransitionResult;
 /**
  * Interface for tables with WorkflowBehavior attached.
  *
- * This interface documents the methods that WorkflowBehavior adds to tables.
- * Tables using WorkflowBehavior effectively implement this interface through
- * the behavior's __call magic.
+ * This interface documents the table-level workflow operations that services
+ * can safely call on workflow-enabled tables.
  *
  * This interface enables proper static analysis of code that operates on
  * workflow-enabled tables.
@@ -60,20 +59,4 @@ interface WorkflowTableInterface
      * @param array<string, mixed> $context
      */
     public function canTransition(EntityInterface $entity, string $transition, array $context = []): bool;
-
-    /**
-     * Get available transitions for the entity.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity
-     *
-     * @return array<string>
-     */
-    public function getAvailableTransitions(EntityInterface $entity): array;
-
-    /**
-     * Get the current state of the entity.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity
-     */
-    public function getCurrentState(EntityInterface $entity): string;
 }

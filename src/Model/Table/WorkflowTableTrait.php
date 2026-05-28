@@ -95,37 +95,11 @@ trait WorkflowTableTrait
     }
 
     /**
-     * Transition names currently available from the entity's state.
-     *
-     * Interface-mandated alias of {@see availableTransitions()}.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity
-     *
-     * @return array<string>
-     */
-    public function getAvailableTransitions(EntityInterface $entity): array
-    {
-        return $this->workflowBehavior()->getAvailableTransitions($entity);
-    }
-
-    /**
      * The entity's current workflow state.
      *
      * @param \Cake\Datasource\EntityInterface $entity
      */
     public function currentState(EntityInterface $entity): string
-    {
-        return $this->workflowBehavior()->getCurrentState($entity);
-    }
-
-    /**
-     * The entity's current workflow state.
-     *
-     * Interface-mandated alias of {@see currentState()}.
-     *
-     * @param \Cake\Datasource\EntityInterface $entity
-     */
-    public function getCurrentState(EntityInterface $entity): string
     {
         return $this->workflowBehavior()->getCurrentState($entity);
     }

@@ -29,6 +29,15 @@ State name helpers:
 - `getStateNamesWithoutFlag(string $flag): array`
 - `getFinalStateNames(): array`
 
+## `WorkflowTableInterface`
+
+Table-level contract for services that operate on workflow-enabled tables:
+
+- `getWorkflowDefinition(): Definition`
+- `canTransition(EntityInterface $entity, string $transition, array $context = []): bool`
+- `applyTransition(EntityInterface $entity, string $transition, array $context = []): TransitionResult`
+- `transition(EntityInterface $entity, string $transition, array $context = [], array $options = []): TransitionResult`
+
 ## `StateMachineEngine`
 
 Core responsibilities:
@@ -70,4 +79,3 @@ Useful template helpers:
 - Mermaid diagram rendering
 - state badge rendering
 - transition button rendering
-

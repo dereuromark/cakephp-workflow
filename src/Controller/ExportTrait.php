@@ -29,7 +29,7 @@ trait ExportTrait
         }
 
         $currentState = $this->resolveRequestedState($definition);
-        $showDetails = filter_var($this->request->getQuery('showDetails', true), FILTER_VALIDATE_BOOL);
+        $showDetails = filter_var($this->request->getQuery('showDetails', true), FILTER_VALIDATE_BOOLEAN);
         $detailMarkers = (string)$this->request->getQuery('detailMarkers', 'ascii');
         if (!in_array($detailMarkers, ['emoji', 'ascii', 'none'], true)) {
             $detailMarkers = 'ascii';

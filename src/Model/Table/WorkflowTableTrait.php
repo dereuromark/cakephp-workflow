@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Model\Table;
 
 use Cake\Datasource\EntityInterface;
+use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\TransitionResult;
 use Workflow\Model\Behavior\WorkflowBehavior;
 
@@ -29,6 +30,14 @@ trait WorkflowTableTrait
         $behavior = $this->getBehavior('Workflow');
 
         return $behavior;
+    }
+
+    /**
+     * Get the workflow definition for this table.
+     */
+    public function getWorkflowDefinition(): Definition
+    {
+        return $this->workflowBehavior()->getWorkflowDefinition();
     }
 
     /**
@@ -86,11 +95,37 @@ trait WorkflowTableTrait
     }
 
     /**
+     * Transition names currently available from the entity's state.
+     *
+     * Interface-mandated alias of {@see availableTransitions()}.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     *
+     * @return array<string>
+     */
+    public function getAvailableTransitions(EntityInterface $entity): array
+    {
+        return $this->workflowBehavior()->getAvailableTransitions($entity);
+    }
+
+    /**
      * The entity's current workflow state.
      *
      * @param \Cake\Datasource\EntityInterface $entity
      */
     public function currentState(EntityInterface $entity): string
+    {
+        return $this->workflowBehavior()->getCurrentState($entity);
+    }
+
+    /**
+     * The entity's current workflow state.
+     *
+     * Interface-mandated alias of {@see currentState()}.
+     *
+     * @param \Cake\Datasource\EntityInterface $entity
+     */
+    public function getCurrentState(EntityInterface $entity): string
     {
         return $this->workflowBehavior()->getCurrentState($entity);
     }

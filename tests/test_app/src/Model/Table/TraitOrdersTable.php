@@ -7,8 +7,9 @@ namespace TestApp\Model\Table;
 use Cake\ORM\Table;
 use TestApp\Model\Entity\TraitOrder;
 use Workflow\Model\Table\WorkflowTableTrait;
+use Workflow\Model\WorkflowTableInterface;
 
-class TraitOrdersTable extends Table
+class TraitOrdersTable extends Table implements WorkflowTableInterface
 {
     use WorkflowTableTrait;
 

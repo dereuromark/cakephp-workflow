@@ -197,6 +197,71 @@ if ($behavior->canTransition($order, 'pay')) {
 
 See the [documentation](https://dereuromark.github.io/cakephp-workflow/) for the full API.
 
+## Embedding Workflow Diagrams In App Pages
+
+For app-facing pages you often want a compact diagram preview, not the full admin screen.
+
+Load Mermaid with the helper toolkit:
+
+```php
+<?= $this->Workflow->includeMermaid([
+    'startOnLoad' => false,
+    'toolkit' => true,
+]) ?>
+```
+
+Render a compact workflow widget with:
+- current-state highlighting
+- optional current-state centering
+- code toggle
+- fullscreen modal
+- SVG export
+
+```php
+<?= $this->Workflow->widget($definition, [
+    'title' => 'Order workflow',
+    'currentState' => $order->state,
+    'showDetails' => true,
+    'detailMarkers' => 'ascii', // emoji | ascii | none
+    'focusCurrentState' => true,
+]) ?>
+```
+
+If you only need the raw Mermaid source plus metadata for a custom frontend wrapper:
+
+```php
+<?php $diagram = $this->Workflow->diagramData($definition, [
+    'currentState' => $order->state,
+    'showDetails' => true,
+]); ?>
+```
+
+Supported helper options:
+
+- `WorkflowHelper::diagram()`
+  - `currentState`
+  - `showDetails`
+  - `detailMarkers` (`emoji`, `ascii`, `none`)
+  - `mode` (`diagram`, `code`)
+- `WorkflowHelper::includeMermaid()`
+  - `src`
+  - `startOnLoad`
+  - `config`
+  - `guardKey`
+  - `toolkit`
+- `WorkflowHelper::widget()`
+  - `title`
+  - `currentState`
+  - `showDetails`
+  - `detailMarkers`
+  - `focusCurrentState`
+  - `fullscreen`
+  - `code`
+  - `exportSvg`
+  - `minWidth`
+  - `maxHeight`
+  - `modalMinWidth`
+
 ## Drift Safety
 
 Changing a workflow while records exist can leave records in a state that no

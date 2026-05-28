@@ -10,6 +10,27 @@ use Workflow\Engine\Definition\Transition;
 
 class MermaidRenderer implements RendererInterface
 {
+    /**
+     * @var array<string, array<string, string>>
+     */
+    private const DETAIL_MARKERS = [
+        'emoji' => [
+            'guards' => '🛡️',
+            'commands' => '⚙️',
+            'condition' => '❓',
+        ],
+        'ascii' => [
+            'guards' => '[G]',
+            'commands' => '[C]',
+            'condition' => '[?]',
+        ],
+        'none' => [
+            'guards' => '',
+            'commands' => '',
+            'condition' => '',
+        ],
+    ];
+
     // Default colors for state types (can be overridden via config)
     /**
      * @var array
@@ -40,9 +61,14 @@ class MermaidRenderer implements RendererInterface
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param string|null $currentState Current state to highlight
      * @param bool $showDetails Show guards/commands/conditions on labels
+     * @param string $detailMarkers Marker set: emoji, ascii, none
      */
-    public function render(Definition $definition, ?string $currentState = null, bool $showDetails = false): string
-    {
+    public function render(
+        Definition $definition,
+        ?string $currentState = null,
+        bool $showDetails = false,
+        string $detailMarkers = 'emoji',
+    ): string {
         $lines = ['flowchart TD'];
         $linkIndex = 0;
         $happyLinkIndices = [];
@@ -61,7 +87,7 @@ class MermaidRenderer implements RendererInterface
             $isAutomatic = $transition->isAutomatic();
 
             // Build transition label
-            $label = $this->buildTransitionLabel($transition, $showDetails);
+            $label = $this->buildTransitionLabel($transition, $showDetails, $detailMarkers);
 
             // Use dashed arrow for automatic transitions
             $arrow = $isAutomatic ? '-.->' : '-->';
@@ -102,8 +128,9 @@ class MermaidRenderer implements RendererInterface
      *
      * @param \Workflow\Engine\Definition\Transition $transition
      * @param bool $showDetails
+     * @param string $detailMarkers Marker set: emoji, ascii, none
      */
-    private function buildTransitionLabel(Transition $transition, bool $showDetails): string
+    private function buildTransitionLabel(Transition $transition, bool $showDetails, string $detailMarkers): string
     {
         $name = $transition->getName();
 
@@ -113,19 +140,20 @@ class MermaidRenderer implements RendererInterface
 
         $parts = [$name];
 
-        // Add icons/markers for guards, commands, conditions
+        $markerSet = self::DETAIL_MARKERS[$detailMarkers] ?? self::DETAIL_MARKERS['emoji'];
         $markers = [];
         if ($transition->getGuards()) {
-            $markers[] = '🛡️'; // Shield for guards
+            $markers[] = $markerSet['guards'];
         }
         if ($transition->getCommands()) {
-            $markers[] = '⚙️'; // Gear for commands
+            $markers[] = $markerSet['commands'];
         }
         if ($transition->getCondition()) {
-            $markers[] = '❓'; // Question for conditions
+            $markers[] = $markerSet['condition'];
         }
 
-        if ($markers) {
+        $markers = array_filter($markers, static fn (string $value): bool => $value !== '');
+        if ($markers !== []) {
             $parts[] = implode('', $markers);
         }
 
@@ -186,9 +214,14 @@ class MermaidRenderer implements RendererInterface
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string> $unreachableStates
      * @param bool $showDetails Show guards/commands/conditions on labels
+     * @param string $detailMarkers Marker set: emoji, ascii, none
      */
-    public function renderWithAnalysis(Definition $definition, array $unreachableStates = [], bool $showDetails = false): string
-    {
+    public function renderWithAnalysis(
+        Definition $definition,
+        array $unreachableStates = [],
+        bool $showDetails = false,
+        string $detailMarkers = 'emoji',
+    ): string {
         $lines = ['flowchart TD'];
         $linkIndex = 0;
         $happyLinkIndices = [];
@@ -206,7 +239,7 @@ class MermaidRenderer implements RendererInterface
             $isAutomatic = $transition->isAutomatic();
 
             // Build transition label
-            $label = $this->buildTransitionLabel($transition, $showDetails);
+            $label = $this->buildTransitionLabel($transition, $showDetails, $detailMarkers);
 
             // Use dashed arrow for automatic transitions
             $arrow = $isAutomatic ? '-.->' : '-->';

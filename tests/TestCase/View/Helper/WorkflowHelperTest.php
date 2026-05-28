@@ -116,6 +116,14 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('|pay|', $diagram);
     }
 
+    public function testDiagramSupportsCodeMode(): void
+    {
+        $diagram = $this->helper->diagram($this->definition, ['mode' => 'code']);
+
+        $this->assertStringContainsString('<pre', $diagram);
+        $this->assertStringContainsString('flowchart TD', $diagram);
+    }
+
     public function testGetMermaidCodeSupportsOptions(): void
     {
         $diagram = $this->helper->getMermaidCode($this->definition, [
@@ -125,6 +133,39 @@ class WorkflowHelperTest extends TestCase
 
         $this->assertStringContainsString('class paid current', $diagram);
         $this->assertStringContainsString('|pay|', $diagram);
+    }
+
+    public function testDiagramDataReturnsEmbeddingMetadata(): void
+    {
+        $data = $this->helper->diagramData($this->definition, ['currentState' => 'paid']);
+
+        $this->assertSame('paid', $data['currentState']);
+        $this->assertSame('Paid', $data['currentStateLabel']);
+        $this->assertStringContainsString('flowchart TD', $data['mermaid']);
+    }
+
+    public function testWidgetRendersPreviewControlsAndModal(): void
+    {
+        $widget = $this->helper->widget($this->definition, [
+            'id' => 'order-workflow',
+            'title' => 'Order workflow',
+            'currentState' => 'paid',
+        ]);
+
+        $this->assertStringContainsString('data-workflow-render-root="order-workflow"', $widget);
+        $this->assertStringContainsString('data-workflow-toggle-code="order-workflow"', $widget);
+        $this->assertStringContainsString('data-workflow-export-svg="order-workflow"', $widget);
+        $this->assertStringContainsString('data-bs-target="#order-workflow-modal"', $widget);
+        $this->assertStringContainsString('Current state: <strong>Paid</strong>', $widget);
+    }
+
+    public function testIncludeMermaidToolkitCanBeEnabled(): void
+    {
+        $script = $this->helper->includeMermaid(['toolkit' => true]);
+
+        $this->assertStringContainsString('__workflowMermaidToolkitInitialized', $script);
+        $this->assertStringContainsString('data-workflow-render-root', $script);
+        $this->assertStringContainsString('renderRoot', $script);
     }
 
     public function testPanelWithoutTransitionsRendersBadgeOnly(): void

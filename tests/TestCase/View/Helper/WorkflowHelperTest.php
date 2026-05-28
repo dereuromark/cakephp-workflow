@@ -82,6 +82,29 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('/Orders/transition/7/pay', $panel);
     }
 
+    public function testIncludeMermaidCanBeConfigured(): void
+    {
+        $script = $this->helper->includeMermaid([
+            'src' => 'https://example.com/mermaid.js',
+            'startOnLoad' => false,
+            'config' => ['theme' => 'neutral'],
+            'guardKey' => '__customMermaidGuard',
+        ]);
+
+        $this->assertStringContainsString('https://example.com/mermaid.js', $script);
+        $this->assertStringContainsString('__customMermaidGuard', $script);
+        $this->assertStringContainsString('"startOnLoad":false', $script);
+        $this->assertStringContainsString('"theme":"neutral"', $script);
+    }
+
+    public function testIncludeMermaidUsesIdempotentGuardByDefault(): void
+    {
+        $script = $this->helper->includeMermaid();
+
+        $this->assertStringContainsString('__workflowMermaidInitialized', $script);
+        $this->assertStringContainsString('mermaid.initialize', $script);
+    }
+
     public function testPanelWithoutTransitionsRendersBadgeOnly(): void
     {
         $entity = new Entity(['id' => 7, 'state' => 'pending']);

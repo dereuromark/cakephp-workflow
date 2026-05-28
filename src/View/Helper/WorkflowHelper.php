@@ -203,11 +203,27 @@ class WorkflowHelper extends Helper
 
     /**
      * Include Mermaid.js library.
+     *
+     * @param array<string, mixed> $options Supported keys: src, startOnLoad, config, guardKey
      */
-    public function includeMermaid(): string
+    public function includeMermaid(array $options = []): string
     {
-        return '<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>'
-            . '<script>mermaid.initialize({startOnLoad:true});</script>';
+        $src = (string)($options['src'] ?? 'https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js');
+        $startOnLoad = (bool)($options['startOnLoad'] ?? true);
+        $config = (array)($options['config'] ?? []);
+        $guardKey = (string)($options['guardKey'] ?? '__workflowMermaidInitialized');
+        $config = ['startOnLoad' => $startOnLoad] + $config;
+        $configJson = json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+
+        return sprintf(
+            '<script src="%s"></script><script>(function(){window.%s=window.%s||false;if(window.%s||typeof mermaid==="undefined"){return;}mermaid.initialize(%s);window.%s=true;})();</script>',
+            h($src),
+            h($guardKey),
+            h($guardKey),
+            h($guardKey),
+            $configJson,
+            h($guardKey),
+        );
     }
 
     private function getMermaidRenderer(): MermaidRenderer

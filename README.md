@@ -216,6 +216,7 @@ Render a compact workflow widget with:
 - code toggle
 - fullscreen modal
 - SVG export
+- optional PNG export
 
 ```php
 <?= $this->Workflow->widget($definition, [
@@ -224,7 +225,8 @@ Render a compact workflow widget with:
     'showDetails' => true,
     'detailMarkers' => 'ascii', // emoji | ascii | none
     'focusCurrentState' => true,
-    'exportFilename' => 'order-workflow.svg',
+    'export' => ['svg', 'png'],
+    'exportFilename' => 'order-workflow',
 ]) ?>
 ```
 
@@ -258,7 +260,7 @@ Supported helper options:
   - `focusCurrentState`
   - `fullscreen`
   - `code`
-  - `exportSvg`
+  - `export`
   - `exportFilename`
   - `minWidth`
   - `maxHeight`
@@ -267,6 +269,10 @@ Supported helper options:
 SVG export uses a standalone serializer, so downloaded files get explicit
 dimensions from the rendered `viewBox` instead of keeping Mermaid's responsive
 `width="100%"` markup. This makes saved SVGs much more usable in external tools.
+
+PNG export rasterizes that same standalone SVG into a canvas with a white
+background, which is useful for docs, tickets, and tools that do not render SVG
+cleanly.
 
 ## Drift Safety
 

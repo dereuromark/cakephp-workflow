@@ -146,7 +146,8 @@ filename so downloaded SVG artifacts are easier to identify:
 <?= $this->Workflow->widget($definition, [
     'title' => 'Order workflow',
     'currentState' => $order->state,
-    'exportFilename' => 'order-workflow.svg',
+    'export' => ['svg', 'png'],
+    'exportFilename' => 'order-workflow',
 ]) ?>
 ```
 

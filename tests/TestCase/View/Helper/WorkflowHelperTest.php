@@ -82,7 +82,6 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('/Orders/transition/7/pay', $panel);
     }
 
-
     public function testIncludeMermaidCanBeConfigured(): void
     {
         $script = $this->helper->includeMermaid([

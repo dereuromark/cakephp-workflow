@@ -273,7 +273,8 @@ class WorkflowHelper extends Helper
      *
      * @param \Workflow\Engine\Definition\Definition $definition
      * @param array<string, mixed> $options Supported keys: id, title, class, currentState, showDetails,
-     *  detailMarkers, focusCurrentState, fullscreen, code, exportSvg, exportFilename, minWidth, maxHeight, modalMinWidth
+     *  detailMarkers, focusCurrentState, fullscreen, code, export, exportFilename,
+     *  minWidth, maxHeight, modalMinWidth
      */
     public function widget(Definition $definition, array $options = []): string
     {
@@ -284,8 +285,8 @@ class WorkflowHelper extends Helper
         $focusCurrentState = (bool)($options['focusCurrentState'] ?? true);
         $fullscreen = (bool)($options['fullscreen'] ?? true);
         $showCode = (bool)($options['code'] ?? true);
-        $exportSvg = (bool)($options['exportSvg'] ?? true);
-        $exportFilename = (string)($options['exportFilename'] ?? $widgetId . '.svg');
+        $exportFormats = $this->normalizeExportFormats($options['export'] ?? 'svg');
+        $exportFilenameBase = $this->normalizeExportFilenameBase((string)($options['exportFilename'] ?? $widgetId));
         $minWidth = (string)($options['minWidth'] ?? '760px');
         $maxHeight = (string)($options['maxHeight'] ?? '320px');
         $modalMinWidth = (string)($options['modalMinWidth'] ?? '960px');
@@ -298,11 +299,18 @@ class WorkflowHelper extends Helper
                 h($widgetId),
             );
         }
-        if ($exportSvg) {
+        if (in_array('svg', $exportFormats, true)) {
             $buttons[] = sprintf(
                 '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-svg="%s" data-workflow-export-filename="%s">Export SVG</button>',
                 h($widgetId),
-                h($exportFilename),
+                h($exportFilenameBase . '.svg'),
+            );
+        }
+        if (in_array('png', $exportFormats, true)) {
+            $buttons[] = sprintf(
+                '<button type="button" class="btn btn-sm btn-outline-secondary" data-workflow-export-png="%s" data-workflow-export-png-filename="%s">Export PNG</button>',
+                h($widgetId),
+                h($exportFilenameBase . '.png'),
             );
         }
         if ($fullscreen) {
@@ -372,6 +380,40 @@ class WorkflowHelper extends Helper
         }
 
         return $this->mermaidRenderer;
+    }
+
+    /**
+     * @param mixed $export
+     *
+     * @return array<int, string>
+     */
+    private function normalizeExportFormats(mixed $export): array
+    {
+        if ($export === false || $export === null) {
+            return [];
+        }
+
+        $formats = is_array($export) ? $export : [$export];
+        $normalized = [];
+        foreach ($formats as $format) {
+            $value = strtolower(trim((string)$format));
+            if ($value === '' || !in_array($value, ['svg', 'png'], true) || in_array($value, $normalized, true)) {
+                continue;
+            }
+            $normalized[] = $value;
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeExportFilenameBase(string $filename): string
+    {
+        $trimmed = trim($filename);
+        if ($trimmed === '') {
+            return 'workflow';
+        }
+
+        return preg_replace('/\.(svg|png)$/i', '', $trimmed) ?: 'workflow';
     }
 
     /**
@@ -453,20 +495,13 @@ class WorkflowHelper extends Helper
 
     function standaloneSvgMarkup(svg) {
         const clone = svg.cloneNode(true);
-        const viewBox = clone.getAttribute('viewBox');
         if (!clone.getAttribute('xmlns')) {
             clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
         }
 
-        let width = clone.getAttribute('width');
-        let height = clone.getAttribute('height');
-        if ((!width || width === '100%') && viewBox) {
-            const parts = viewBox.trim().split(/\s+/);
-            if (parts.length === 4) {
-                width = parts[2];
-                height = parts[3];
-            }
-        }
+        const dimensions = svgDimensions(clone);
+        const width = dimensions.width;
+        const height = dimensions.height;
 
         if (width) {
             clone.setAttribute('width', width);
@@ -479,6 +514,36 @@ class WorkflowHelper extends Helper
         clone.style.background = '#ffffff';
 
         return '<?xml version="1.0" encoding="UTF-8"?>\n' + clone.outerHTML;
+    }
+
+    function svgDimensions(svg) {
+        const viewBox = svg.getAttribute('viewBox');
+        let width = svg.getAttribute('width');
+        let height = svg.getAttribute('height');
+
+        if ((!width || width === '100%') && viewBox) {
+            const parts = viewBox.trim().split(/\s+/);
+            if (parts.length === 4) {
+                width = parts[2];
+                height = parts[3];
+            }
+        }
+
+        return {
+            width: width || '0',
+            height: height || '0'
+        };
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -503,14 +568,57 @@ class WorkflowHelper extends Helper
 
                 const filename = button.getAttribute('data-workflow-export-filename') || (widgetId + '.svg');
                 const blob = new Blob([standaloneSvgMarkup(svg)], {type: 'image/svg+xml;charset=utf-8'});
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+                downloadBlob(blob, filename);
+            });
+        });
+
+        document.querySelectorAll('[data-workflow-export-png]').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const widgetId = button.getAttribute('data-workflow-export-png');
+                const svg = document.querySelector('#' + widgetId + ' svg');
+                if (!svg) {
+                    return;
+                }
+
+                const filename = button.getAttribute('data-workflow-export-png-filename') || (widgetId + '.png');
+                const svgMarkup = standaloneSvgMarkup(svg);
+                const svgBlob = new Blob([svgMarkup], {type: 'image/svg+xml;charset=utf-8'});
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const img = new Image();
+
+                img.onload = function () {
+                    const dimensions = svgDimensions(svg);
+                    const width = Math.max(1, Math.ceil(parseFloat(dimensions.width) || img.width || 1));
+                    const height = Math.max(1, Math.ceil(parseFloat(dimensions.height) || img.height || 1));
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    if (!context) {
+                        URL.revokeObjectURL(svgUrl);
+                        return;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    context.fillStyle = '#ffffff';
+                    context.fillRect(0, 0, width, height);
+                    context.drawImage(img, 0, 0, width, height);
+
+                    canvas.toBlob(function (pngBlob) {
+                        if (!pngBlob) {
+                            URL.revokeObjectURL(svgUrl);
+                            return;
+                        }
+
+                        downloadBlob(pngBlob, filename);
+                        URL.revokeObjectURL(svgUrl);
+                    }, 'image/png');
+                };
+
+                img.onerror = function () {
+                    URL.revokeObjectURL(svgUrl);
+                };
+
+                img.src = svgUrl;
             });
         });
 

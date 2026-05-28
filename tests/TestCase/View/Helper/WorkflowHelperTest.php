@@ -150,13 +150,16 @@ class WorkflowHelperTest extends TestCase
             'id' => 'order-workflow',
             'title' => 'Order workflow',
             'currentState' => 'paid',
-            'exportFilename' => 'order-workflow-diagram.svg',
+            'export' => ['svg', 'png'],
+            'exportFilename' => 'order-workflow-diagram',
         ]);
 
         $this->assertStringContainsString('data-workflow-render-root="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-toggle-code="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-export-svg="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-export-filename="order-workflow-diagram.svg"', $widget);
+        $this->assertStringContainsString('data-workflow-export-png="order-workflow"', $widget);
+        $this->assertStringContainsString('data-workflow-export-png-filename="order-workflow-diagram.png"', $widget);
         $this->assertStringContainsString('data-bs-target="#order-workflow-modal"', $widget);
         $this->assertStringContainsString('Current state: <strong>Paid</strong>', $widget);
     }
@@ -168,6 +171,20 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('__workflowMermaidToolkitInitialized', $script);
         $this->assertStringContainsString('data-workflow-render-root', $script);
         $this->assertStringContainsString('renderRoot', $script);
+        $this->assertStringContainsString('data-workflow-export-png', $script);
+        $this->assertStringContainsString('canvas.toBlob', $script);
+    }
+
+    public function testWidgetNormalizesExportFilenameBase(): void
+    {
+        $widget = $this->helper->widget($this->definition, [
+            'id' => 'order-workflow',
+            'export' => ['svg', 'png'],
+            'exportFilename' => 'order-workflow-diagram.svg',
+        ]);
+
+        $this->assertStringContainsString('data-workflow-export-filename="order-workflow-diagram.svg"', $widget);
+        $this->assertStringContainsString('data-workflow-export-png-filename="order-workflow-diagram.png"', $widget);
     }
 
     public function testPanelWithoutTransitionsRendersBadgeOnly(): void

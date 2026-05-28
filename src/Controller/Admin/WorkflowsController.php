@@ -10,6 +10,7 @@ use Nette\Neon\Neon;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Throwable;
+use Workflow\Controller\ExportTrait;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\WorkflowAnalyzer;
 use Workflow\Service\TransitionLogger;
@@ -17,6 +18,8 @@ use Workflow\Service\WorkflowRegistry;
 
 class WorkflowsController extends WorkflowAppController
 {
+    use ExportTrait;
+
     /**
      * List all workflows.
      *

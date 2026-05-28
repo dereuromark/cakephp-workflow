@@ -158,6 +158,19 @@ return [
         'maxEventRepeats' => 10,
 
         /**
+         * Optional GraphViz binary path for server-side workflow exports.
+         *
+         * The non-admin/admin `/workflow/workflows/draw/{workflow}` endpoints
+         * render `svg` and `png` through GraphViz `dot`. When omitted, the
+         * plugin tries `command -v dot`. Widget exports in normal app pages do
+         * not use this path and work without GraphViz.
+         *
+         * Example:
+         * 'graphvizBinary' => '/usr/bin/dot',
+         */
+        // 'graphvizBinary' => '/usr/bin/dot',
+
+        /**
          * Workflow registry instance.
          *
          * Normally auto-resolved: the plugin builds a WorkflowRegistry from the

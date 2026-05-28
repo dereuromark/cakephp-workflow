@@ -22,7 +22,16 @@ class WorkflowHelperTest extends TestCase
     protected function setUp(): void
     {
         Router::reload();
-        Router::createRouteBuilder('/')->connect('/{controller}/{action}/*');
+        $routes = Router::createRouteBuilder('/');
+        $routes->connect('/{controller}/{action}/*');
+        $routes->plugin('Workflow', function ($routes): void {
+            $routes->fallbacks();
+        });
+        $routes->prefix('Admin', function ($routes): void {
+            $routes->plugin('Workflow', function ($routes): void {
+                $routes->fallbacks();
+            });
+        });
         $this->helper = new WorkflowHelper(new View());
         $this->definition = new Definition(
             name: 'order',
@@ -150,16 +159,17 @@ class WorkflowHelperTest extends TestCase
             'id' => 'order-workflow',
             'title' => 'Order workflow',
             'currentState' => 'paid',
-            'export' => ['svg', 'png'],
-            'exportFilename' => 'order-workflow-diagram',
+            'export' => ['svg', 'png', 'mmd'],
+            'showDetails' => true,
+            'detailMarkers' => 'ascii',
         ]);
 
         $this->assertStringContainsString('data-workflow-render-root="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-toggle-code="order-workflow"', $widget);
         $this->assertStringContainsString('data-workflow-export-svg="order-workflow"', $widget);
-        $this->assertStringContainsString('data-workflow-export-filename="order-workflow-diagram.svg"', $widget);
         $this->assertStringContainsString('data-workflow-export-png="order-workflow"', $widget);
-        $this->assertStringContainsString('data-workflow-export-png-filename="order-workflow-diagram.png"', $widget);
+        $this->assertStringContainsString('data-workflow-export-mmd="order-workflow"', $widget);
+        $this->assertStringContainsString('Export Mermaid', $widget);
         $this->assertStringContainsString('data-bs-target="#order-workflow-modal"', $widget);
         $this->assertStringContainsString('Current state: <strong>Paid</strong>', $widget);
     }
@@ -173,18 +183,30 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('renderRoot', $script);
         $this->assertStringContainsString('data-workflow-export-png', $script);
         $this->assertStringContainsString('canvas.toBlob', $script);
+        $this->assertStringContainsString('foreignObject', $script);
+        $this->assertStringContainsString('DOMParser', $script);
     }
 
-    public function testWidgetNormalizesExportFilenameBase(): void
+    public function testWidgetCanExportByEntityId(): void
     {
         $widget = $this->helper->widget($this->definition, [
             'id' => 'order-workflow',
-            'export' => ['svg', 'png'],
-            'exportFilename' => 'order-workflow-diagram.svg',
+            'export' => 'svg',
+            'entityId' => 42,
         ]);
 
-        $this->assertStringContainsString('data-workflow-export-filename="order-workflow-diagram.svg"', $widget);
-        $this->assertStringContainsString('data-workflow-export-png-filename="order-workflow-diagram.png"', $widget);
+        $this->assertStringContainsString('data-workflow-export-svg="order-workflow"', $widget);
+    }
+
+    public function testWidgetCanTargetAdminExportScope(): void
+    {
+        $widget = $this->helper->widget($this->definition, [
+            'id' => 'order-workflow',
+            'export' => 'svg',
+            'exportScope' => 'admin',
+        ]);
+
+        $this->assertStringContainsString('data-workflow-export-svg="order-workflow"', $widget);
     }
 
     public function testPanelWithoutTransitionsRendersBadgeOnly(): void

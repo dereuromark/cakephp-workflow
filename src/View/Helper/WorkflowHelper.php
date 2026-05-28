@@ -493,6 +493,17 @@ class WorkflowHelper extends Helper
         });
     }
 
+    function pngExportSource(diagram) {
+        return '%%{init: {"flowchart": {"htmlLabels": false}} }%%\n' + diagram;
+    }
+
+    function svgElementFromMarkup(markup) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(markup, 'image/svg+xml');
+
+        return doc.documentElement instanceof SVGElement ? doc.documentElement : null;
+    }
+
     function standaloneSvgMarkup(svg) {
         const clone = svg.cloneNode(true);
         if (!clone.getAttribute('xmlns')) {
@@ -576,49 +587,62 @@ class WorkflowHelper extends Helper
             button.addEventListener('click', function () {
                 const widgetId = button.getAttribute('data-workflow-export-png');
                 const svg = document.querySelector('#' + widgetId + ' svg');
+                const source = document.querySelector('#' + widgetId + ' [data-workflow-mermaid-source]');
                 if (!svg) {
                     return;
                 }
 
                 const filename = button.getAttribute('data-workflow-export-png-filename') || (widgetId + '.png');
-                const svgMarkup = standaloneSvgMarkup(svg);
-                const svgBlob = new Blob([svgMarkup], {type: 'image/svg+xml;charset=utf-8'});
-                const svgUrl = URL.createObjectURL(svgBlob);
-                const img = new Image();
+                const exportGraphId = 'workflow-export-png-' + (++renderCount);
+                const exportDiagram = pngExportSource(source ? (source.textContent || '') : '');
 
-                img.onload = function () {
-                    const dimensions = svgDimensions(svg);
-                    const width = Math.max(1, Math.ceil(parseFloat(dimensions.width) || img.width || 1));
-                    const height = Math.max(1, Math.ceil(parseFloat(dimensions.height) || img.height || 1));
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    if (!context) {
-                        URL.revokeObjectURL(svgUrl);
+                mermaid.render(exportGraphId, exportDiagram).then(function (result) {
+                    const safeSvg = svgElementFromMarkup(result.svg);
+                    if (!safeSvg) {
                         return;
                     }
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    context.fillStyle = '#ffffff';
-                    context.fillRect(0, 0, width, height);
-                    context.drawImage(img, 0, 0, width, height);
+                    const svgMarkup = standaloneSvgMarkup(safeSvg);
+                    const svgBlob = new Blob([svgMarkup], {type: 'image/svg+xml;charset=utf-8'});
+                    const svgUrl = URL.createObjectURL(svgBlob);
+                    const img = new Image();
 
-                    canvas.toBlob(function (pngBlob) {
-                        if (!pngBlob) {
+                    img.onload = function () {
+                        const dimensions = svgDimensions(safeSvg);
+                        const width = Math.max(1, Math.ceil(parseFloat(dimensions.width) || img.width || 1));
+                        const height = Math.max(1, Math.ceil(parseFloat(dimensions.height) || img.height || 1));
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        if (!context) {
                             URL.revokeObjectURL(svgUrl);
                             return;
                         }
 
-                        downloadBlob(pngBlob, filename);
+                        canvas.width = width;
+                        canvas.height = height;
+                        context.fillStyle = '#ffffff';
+                        context.fillRect(0, 0, width, height);
+                        context.drawImage(img, 0, 0, width, height);
+
+                        canvas.toBlob(function (pngBlob) {
+                            if (!pngBlob) {
+                                URL.revokeObjectURL(svgUrl);
+                                return;
+                            }
+
+                            downloadBlob(pngBlob, filename);
+                            URL.revokeObjectURL(svgUrl);
+                        }, 'image/png');
+                    };
+
+                    img.onerror = function () {
                         URL.revokeObjectURL(svgUrl);
-                    }, 'image/png');
-                };
+                    };
 
-                img.onerror = function () {
-                    URL.revokeObjectURL(svgUrl);
-                };
-
-                img.src = svgUrl;
+                    img.src = svgUrl;
+                }).catch(function () {
+                    // Keep the UI quiet on failed PNG export until a dedicated callback API exists.
+                });
             });
         });
 

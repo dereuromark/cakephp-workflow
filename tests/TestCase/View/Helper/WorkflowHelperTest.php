@@ -173,6 +173,8 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('renderRoot', $script);
         $this->assertStringContainsString('data-workflow-export-png', $script);
         $this->assertStringContainsString('canvas.toBlob', $script);
+        $this->assertStringContainsString('htmlLabels": false', $script);
+        $this->assertStringContainsString('DOMParser', $script);
     }
 
     public function testWidgetNormalizesExportFilenameBase(): void

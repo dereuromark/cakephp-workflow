@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Workflow\Model\Table;
 
 use Cake\Datasource\EntityInterface;
+use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\TransitionResult;
 use Workflow\Model\Behavior\WorkflowBehavior;
 
@@ -29,6 +30,14 @@ trait WorkflowTableTrait
         $behavior = $this->getBehavior('Workflow');
 
         return $behavior;
+    }
+
+    /**
+     * Get the workflow definition for this table.
+     */
+    public function getWorkflowDefinition(): Definition
+    {
+        return $this->workflowBehavior()->getWorkflowDefinition();
     }
 
     /**

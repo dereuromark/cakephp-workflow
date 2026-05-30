@@ -172,7 +172,10 @@ $this->assign('title', $definition->getName() . ' - Designer');
                         <div class="accordion-item">
                             <h2 class="accordion-header">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#transition-<?= $index ?>">
-                                    <code class="me-2"><?= h($transition['name']) ?></code>
+                                    <span class="me-2"><?= h($transition['label'] ?? ucfirst(str_replace('_', ' ', (string)$transition['name']))) ?></span>
+                                    <?php if (!empty($transition['label'])) { ?>
+                                        <code class="me-2"><?= h($transition['name']) ?></code>
+                                    <?php } ?>
                                     <?php if ($transition['isHappy']) { ?>
                                         <i class="bi bi-star-fill text-success me-1" title="Happy path"></i>
                                     <?php } ?>
@@ -187,6 +190,10 @@ $this->assign('title', $definition->getName() . ' - Designer');
                             <div id="transition-<?= $index ?>" class="accordion-collapse collapse" data-bs-parent="#transitionsAccordion">
                                 <div class="accordion-body">
                                     <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label text-muted small">Label</label>
+                                            <input type="text" class="form-control form-control-sm" value="<?= h($transition['label'] ?? ucfirst(str_replace('_', ' ', (string)$transition['name']))) ?>" readonly>
+                                        </div>
                                         <div class="col-md-6">
                                             <label class="form-label text-muted small">Name</label>
                                             <input type="text" class="form-control form-control-sm" value="<?= h($transition['name']) ?>" readonly>

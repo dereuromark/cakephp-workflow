@@ -134,7 +134,12 @@ $this->assign('title', 'Force Transition');
                         }
                     ?>
                         <tr>
-                            <td><strong><?= h($t->getName()) ?></strong></td>
+                            <td>
+                                <strong><?= h($t->getDisplayName()) ?></strong>
+                                <?php if ($t->getLabel() !== null) { ?>
+                                    <code class="small"><?= h($t->getName()) ?></code>
+                                <?php } ?>
+                            </td>
                             <td><span class="badge bg-dark"><?= h($t->getTo()) ?></span></td>
                             <td>
                                 <?php if ($t->getGuards()) { ?>

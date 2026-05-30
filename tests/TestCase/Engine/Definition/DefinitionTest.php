@@ -162,6 +162,19 @@ class DefinitionTest extends TestCase
         $this->definition->getTransition('nonexistent');
     }
 
+    public function testFindTransitionReturnsNullForMissing(): void
+    {
+        $this->assertNull($this->definition->findTransition('nonexistent'));
+    }
+
+    public function testFindTransitionReturnsTransition(): void
+    {
+        $transition = $this->definition->findTransition('pay');
+
+        $this->assertNotNull($transition);
+        $this->assertSame('pay', $transition->getName());
+    }
+
     public function testGetVersionHash(): void
     {
         $hash = $this->definition->getVersionHash();

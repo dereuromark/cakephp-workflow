@@ -225,7 +225,10 @@ foreach ($terminalStateIssues as $issue) {
                             <?php $transitionIssue = $terminalStateIssueMap[$transition->getName()] ?? null; ?>
                             <tr<?= $transitionIssue ? ' class="table-danger"' : '' ?>>
                                 <td>
-                                    <code><?= h($transition->getName()) ?></code>
+                                    <div><?= h($transition->getDisplayName()) ?></div>
+                                    <?php if ($transition->getLabel() !== null) { ?>
+                                        <code class="small"><?= h($transition->getName()) ?></code>
+                                    <?php } ?>
                                     <?php if ($transition->isHappy()) { ?>
                                         <i class="bi bi-star-fill happy-path" title="Happy path"></i>
                                     <?php } ?>

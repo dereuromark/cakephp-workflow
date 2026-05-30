@@ -55,7 +55,7 @@ $this->assign('title', 'Simulate Transitions');
                     <dd class="col-sm-7">
                         <?php if ($availableTransitions) { ?>
                             <?php foreach ($availableTransitions as $t) { ?>
-                                <span class="badge bg-success"><?= h($t) ?></span>
+                                <span class="badge bg-success"><?= h($definition->getTransition($t)->getDisplayName()) ?></span>
                             <?php } ?>
                         <?php } else { ?>
                             <span class="text-muted">None</span>
@@ -96,7 +96,7 @@ $this->assign('title', 'Simulate Transitions');
 <div class="card">
     <div class="card-header">
         <?php if ($transition) { ?>
-            Simulation for "<?= h($transition) ?>"
+            Simulation for "<?= h($definition->getTransition($transition)->getDisplayName()) ?>"
         <?php } else { ?>
             All Transitions Simulation
         <?php } ?>
@@ -117,7 +117,10 @@ $this->assign('title', 'Simulate Transitions');
                 <?php foreach ($simulationResults as $result) { ?>
                     <tr class="<?= $result['can_apply'] ? 'table-success' : ($result['is_from_state_valid'] ? 'table-warning' : 'table-secondary') ?>">
                         <td>
-                            <strong><?= h($result['name']) ?></strong>
+                            <strong><?= h($definition->getTransition($result['name'])->getDisplayName()) ?></strong>
+                            <?php if ($definition->getTransition($result['name'])->getLabel() !== null) { ?>
+                                <code class="small"><?= h($result['name']) ?></code>
+                            <?php } ?>
                             <?php if ($result['is_automatic']) { ?>
                                 <span class="badge bg-info">auto</span>
                             <?php } ?>

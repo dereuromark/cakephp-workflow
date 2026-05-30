@@ -47,7 +47,7 @@ class WorkflowHelper extends Helper
     ): string {
         $state = (string)$entity->get($definition->getField());
         $badge = $this->stateBadge($definition, $state, $options['badge'] ?? []);
-        $buttons = $this->postTransitionButtons($entity, $transitions, $options);
+        $buttons = $this->postTransitionButtons($entity, $transitions, ['definition' => $definition] + $options);
         $class = $options['class'] ?? 'workflow-panel';
 
         return sprintf(
@@ -66,7 +66,7 @@ class WorkflowHelper extends Helper
      *
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string> $transitions
-     * @param array<string, mixed> $options 'url', 'buttonClass'
+     * @param array<string, mixed> $options 'url', 'buttonClass', 'definition'
      */
     public function postTransitionButtons(
         EntityInterface $entity,
@@ -79,12 +79,13 @@ class WorkflowHelper extends Helper
 
         $urlBase = $options['url'] ?? [];
         $buttonClass = $options['buttonClass'] ?? 'btn btn-sm btn-outline-primary';
+        $definition = $options['definition'] instanceof Definition ? $options['definition'] : null;
 
         $buttons = [];
         foreach ($transitions as $transition) {
             $url = $urlBase + ['action' => 'transition', $entity->get('id'), $transition];
             $buttons[] = $this->Form->postButton(
-                ucfirst(str_replace('_', ' ', $transition)),
+                $definition instanceof Definition ? $this->transitionLabel($definition, $transition) : ucfirst(str_replace('_', ' ', $transition)),
                 $url,
                 [
                     'class' => $buttonClass,
@@ -159,7 +160,7 @@ class WorkflowHelper extends Helper
      *
      * @param \Cake\Datasource\EntityInterface $entity
      * @param array<string> $transitions
-     * @param array<string, mixed> $options
+     * @param array<string, mixed> $options 'url', 'buttonClass', 'definition'
      */
     public function transitionButtons(
         EntityInterface $entity,
@@ -172,12 +173,13 @@ class WorkflowHelper extends Helper
 
         $urlBase = $options['url'] ?? [];
         $buttonClass = $options['buttonClass'] ?? 'btn btn-sm btn-outline-primary';
+        $definition = $options['definition'] instanceof Definition ? $options['definition'] : null;
 
         $buttons = [];
         foreach ($transitions as $transition) {
             $url = $urlBase + ['action' => 'transition', $entity->get('id'), $transition];
             $buttons[] = $this->Html->link(
-                ucfirst($transition),
+                $definition instanceof Definition ? $this->transitionLabel($definition, $transition) : ucfirst(str_replace('_', ' ', $transition)),
                 $url,
                 [
                     'class' => $buttonClass,
@@ -235,6 +237,32 @@ class WorkflowHelper extends Helper
     public function getMermaidCode(Definition $definition, array $options = []): string
     {
         return $this->diagramData($definition, $options)['mermaid'];
+    }
+
+    public function transitionLabel(Definition $definition, string $transition): string
+    {
+        $transitionObj = $definition->findTransition($transition);
+        if ($transitionObj === null) {
+            return ucfirst(str_replace('_', ' ', $transition));
+        }
+
+        return $transitionObj->getDisplayName();
+    }
+
+    /**
+     * @param \Workflow\Engine\Definition\Definition $definition
+     * @param array<string> $transitions
+     *
+     * @return array<string, string>
+     */
+    public function transitionLabels(Definition $definition, array $transitions): array
+    {
+        $result = [];
+        foreach ($transitions as $transition) {
+            $result[$transition] = $this->transitionLabel($definition, $transition);
+        }
+
+        return $result;
     }
 
     /**

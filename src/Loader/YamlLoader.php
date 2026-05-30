@@ -225,6 +225,7 @@ class YamlLoader implements LoaderInterface
             name: $name,
             from: $from,
             to: $to,
+            label: isset($data['label']) ? (string)$data['label'] : null,
             happy: (bool)($data['happy'] ?? false),
             guards: $guards,
             commands: $commands,

@@ -295,6 +295,7 @@ class WorkflowsController extends WorkflowAppController
         foreach ($definition->getTransitions() as $transition) {
             $transitions[] = [
                 'name' => $transition->getName(),
+                'label' => $transition->getLabel(),
                 'from' => $transition->getFrom(),
                 'to' => $transition->getTo(),
                 'isHappy' => $transition->isHappy(),
@@ -718,7 +719,7 @@ class WorkflowsController extends WorkflowAppController
             if (in_array($currentState, $t->getFrom(), true)) {
                 $applicableTransitions[$t->getName()] = sprintf(
                     '%s → %s',
-                    $t->getName(),
+                    $t->getDisplayName(),
                     $t->getTo(),
                 );
             }

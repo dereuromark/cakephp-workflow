@@ -12,11 +12,11 @@ use Workflow\Attribute\Transition;
 
 #[InitialState]
 #[Timeout('PT1H', 'pay')]
-#[Transition(to: PaidState::class, name: 'pay')]
+#[Transition(to: PaidState::class, name: 'pay', label: 'Capture payment')]
 class PendingState extends BaseOrderState
 {
     #[Guard('pay')]
-    public function ensurePayable(): bool|string
+    public function ensurePayable(): string|bool
     {
         if ((float)$this->getEntity()?->get('total') <= 0.0) {
             return 'Total must be positive';

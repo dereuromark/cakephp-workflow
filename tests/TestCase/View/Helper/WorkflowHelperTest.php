@@ -42,7 +42,7 @@ class WorkflowHelperTest extends TestCase
                 new State('paid', label: 'Paid'),
             ],
             transitions: [
-                new Transition('pay', ['pending'], 'paid'),
+                new Transition('pay', ['pending'], 'paid', label: 'Capture payment'),
             ],
         );
     }
@@ -84,7 +84,7 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('workflow-panel', $panel);
         $this->assertStringContainsString('pending', $panel);
         $this->assertStringContainsString('<form', $panel);
-        $this->assertStringContainsString('Pay', $panel);
+        $this->assertStringContainsString('Capture payment', $panel);
         $this->assertStringContainsString('data-transition="pay"', $panel);
         // The POST carries the transition name and targets the entity id.
         $this->assertMatchesRegularExpression('/name="transition"[^>]*value="pay"/', $panel);
@@ -122,7 +122,7 @@ class WorkflowHelperTest extends TestCase
         ]);
 
         $this->assertStringContainsString('class paid current', $diagram);
-        $this->assertStringContainsString('|pay|', $diagram);
+        $this->assertStringContainsString('|Capture payment|', $diagram);
     }
 
     public function testDiagramSupportsCodeMode(): void
@@ -141,7 +141,7 @@ class WorkflowHelperTest extends TestCase
         ]);
 
         $this->assertStringContainsString('class paid current', $diagram);
-        $this->assertStringContainsString('|pay|', $diagram);
+        $this->assertStringContainsString('|Capture payment|', $diagram);
     }
 
     public function testDiagramDataReturnsEmbeddingMetadata(): void
@@ -151,6 +151,20 @@ class WorkflowHelperTest extends TestCase
         $this->assertSame('paid', $data['currentState']);
         $this->assertSame('Paid', $data['currentStateLabel']);
         $this->assertStringContainsString('flowchart TD', $data['mermaid']);
+    }
+
+    public function testTransitionLabelReturnsDisplayLabel(): void
+    {
+        $label = $this->helper->transitionLabel($this->definition, 'pay');
+
+        $this->assertSame('Capture payment', $label);
+    }
+
+    public function testTransitionLabelsReturnsMappedDisplayLabels(): void
+    {
+        $labels = $this->helper->transitionLabels($this->definition, ['pay']);
+
+        $this->assertSame(['pay' => 'Capture payment'], $labels);
     }
 
     public function testWidgetRendersPreviewControlsAndModal(): void

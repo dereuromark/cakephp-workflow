@@ -94,11 +94,14 @@ class WorkflowShowCommand extends Command
             $happy = $transition->isHappy() ? ' <success>★</success>' : '';
             $io->out(sprintf(
                 '  %s%s: %s → %s',
-                $transition->getName(),
+                $transition->getDisplayName(),
                 $happy,
                 implode('|', $transition->getFrom()),
                 $transition->getTo(),
             ));
+            if ($transition->getLabel() !== null) {
+                $io->out(sprintf('    Name: %s', $transition->getName()));
+            }
 
             if ($transition->getGuards()) {
                 $io->out(sprintf('    Guards: %s', implode(', ', $transition->getGuards())));

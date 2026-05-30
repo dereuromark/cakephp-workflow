@@ -99,19 +99,54 @@ With custom class:
 Render buttons for available transitions:
 
 ```php
-<?= $this->Workflow->transitionButtons($entity, $availableTransitions) ?>
+<?= $this->Workflow->transitionButtons($entity, $availableTransitions, [
+    'definition' => $definition,
+]) ?>
 ```
 
 With custom URL and styling:
 
 ```php
 <?= $this->Workflow->transitionButtons($entity, $availableTransitions, [
+    'definition' => $definition,
     'url' => ['controller' => 'Orders', 'action' => 'transition'],
     'buttonClass' => 'btn btn-primary btn-sm',
 ]) ?>
 ```
 
 Each button includes a `data-transition` attribute for JavaScript handling.
+When you pass the workflow `definition`, button labels use each transition's
+display label automatically instead of the raw transition name.
+
+## Transition Labels
+
+Transitions keep their stable internal names (such as `queue_ai_draft`) for
+code, routing, and storage, but you can also define human-readable labels for
+UI rendering:
+
+```php
+'transitions' => [
+    'queue_ai_draft' => [
+        'from' => 'extracted',
+        'to' => 'ai_drafting',
+        'label' => 'Apply AI draft',
+    ],
+],
+```
+
+The helper and renderers use these labels automatically:
+
+- `diagram()` / `getMermaidCode()`
+- `transitionButtons()`
+- `postTransitionButtons()`
+- `panel()`
+
+For custom app UIs, you can resolve labels directly:
+
+```php
+$label = $this->Workflow->transitionLabel($definition, 'queue_ai_draft');
+$labels = $this->Workflow->transitionLabels($definition, $availableTransitions);
+```
 
 ::: warning
 `transitionButtons()` renders **GET links**. For state changes prefer `panel()` /

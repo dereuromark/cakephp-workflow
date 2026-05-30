@@ -272,6 +272,17 @@ final class Definition
         throw new WorkflowException("Transition '{$name}' not found in workflow '{$this->name}'");
     }
 
+    public function findTransition(string $name): ?Transition
+    {
+        foreach ($this->transitions as $transition) {
+            if ($transition->getName() === $name) {
+                return $transition;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * @return array<\Workflow\Engine\Definition\State>
      */

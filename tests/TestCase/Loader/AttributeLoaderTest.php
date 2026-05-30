@@ -63,4 +63,13 @@ class AttributeLoaderTest extends TestCase
         $this->assertSame('PT1H', $pending->getTimeouts()[0]->getAfter());
         $this->assertSame('pay', $pending->getTimeouts()[0]->getTransition());
     }
+
+    public function testLoadAttributeWorkflowIncludesTransitionLabel(): void
+    {
+        $definition = $this->loader->load('attribute_order');
+
+        $transition = $definition->getTransition('pay');
+
+        $this->assertSame('Capture payment', $transition->getDisplayName());
+    }
 }

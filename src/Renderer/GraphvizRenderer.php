@@ -191,7 +191,7 @@ class GraphvizRenderer
 
     protected function buildTransitionLabel(Transition $transition, bool $showDetails, string $detailMarkers): string
     {
-        $lines = [$transition->getName()];
+        $lines = [$transition->getDisplayName()];
         if (!$showDetails) {
             return implode('\n', $lines);
         }

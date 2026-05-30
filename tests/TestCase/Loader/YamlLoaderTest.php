@@ -109,6 +109,7 @@ class YamlLoaderTest extends TestCase
         $pay = $definition->getTransition('pay');
         $this->assertSame(['pending'], $pay->getFrom());
         $this->assertSame('paid', $pay->getTo());
+        $this->assertSame('Capture payment', $pay->getDisplayName());
     }
 
     public function testLoadThrowsForNonexistentWorkflow(): void
@@ -436,6 +437,7 @@ order:
     pay:
       from: pending
       to: paid
+      label: Capture payment
     ship:
       from: paid
       to: shipped

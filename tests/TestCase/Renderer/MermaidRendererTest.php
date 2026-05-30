@@ -42,8 +42,8 @@ class MermaidRendererTest extends TestCase
         $this->assertStringContainsString('pending([pending])', $output);
         $this->assertStringContainsString('paid([paid])', $output);
         $this->assertStringContainsString('completed([completed])', $output);
-        $this->assertStringContainsString('pending -->|pay| paid', $output);
-        $this->assertStringContainsString('paid -->|complete| completed', $output);
+        $this->assertStringContainsString('pending -->|Pay| paid', $output);
+        $this->assertStringContainsString('paid -->|Complete| completed', $output);
         $this->assertStringContainsString('class pending initial', $output);
         $this->assertStringContainsString('class completed final', $output);
     }
@@ -91,8 +91,8 @@ class MermaidRendererTest extends TestCase
         $output = $this->renderer->render($definition);
 
         // Happy path transitions get linkStyle with green stroke
-        $this->assertStringContainsString('pending -->|pay| paid', $output);
-        $this->assertStringContainsString('pending -->|cancel| cancelled', $output);
+        $this->assertStringContainsString('pending -->|Pay| paid', $output);
+        $this->assertStringContainsString('pending -->|Cancel| cancelled', $output);
         $this->assertStringContainsString('linkStyle 0 stroke:#2e7d32,stroke-width:2px', $output);
     }
 
@@ -182,8 +182,8 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition);
 
-        $this->assertStringContainsString('pending -->|cancel| cancelled', $output);
-        $this->assertStringContainsString('paid -->|cancel| cancelled', $output);
+        $this->assertStringContainsString('pending -->|Cancel| cancelled', $output);
+        $this->assertStringContainsString('paid -->|Cancel| cancelled', $output);
     }
 
     public function testRenderSupportsAsciiDetailMarkers(): void
@@ -203,7 +203,7 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition, null, true, 'ascii');
 
-        $this->assertStringContainsString('|pay [G][C][?]|', $output);
+        $this->assertStringContainsString('|Pay [G][C][?]|', $output);
     }
 
     public function testRenderSupportsNoDetailMarkers(): void
@@ -223,8 +223,29 @@ class MermaidRendererTest extends TestCase
 
         $output = $this->renderer->render($definition, null, true, 'none');
 
-        $this->assertStringContainsString('|pay|', $output);
+        $this->assertStringContainsString('|Pay|', $output);
         $this->assertStringNotContainsString('[G]', $output);
         $this->assertStringNotContainsString('🛡️', $output);
+    }
+
+    public function testRenderUsesTransitionDisplayLabel(): void
+    {
+        $definition = new Definition(
+            name: 'order',
+            table: 'Orders',
+            field: 'state',
+            states: [
+                new State('pending', initial: true),
+                new State('paid'),
+            ],
+            transitions: [
+                new Transition('pay', ['pending'], 'paid', label: 'Capture payment'),
+            ],
+        );
+
+        $output = $this->renderer->render($definition);
+
+        $this->assertStringContainsString('pending -->|Capture payment| paid', $output);
+        $this->assertStringNotContainsString('pending -->|pay| paid', $output);
     }
 }

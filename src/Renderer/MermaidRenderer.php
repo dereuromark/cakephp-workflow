@@ -132,7 +132,7 @@ class MermaidRenderer implements RendererInterface
      */
     private function buildTransitionLabel(Transition $transition, bool $showDetails, string $detailMarkers): string
     {
-        $name = $transition->getName();
+        $name = $transition->getDisplayName();
 
         if (!$showDetails) {
             return $name;

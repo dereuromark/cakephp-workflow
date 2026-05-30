@@ -15,6 +15,7 @@ final readonly class Transition
      * @param array<string> $commands Command method names
      * @param string|null $condition Condition name for automatic branching (evaluated without event trigger)
      * @param bool $automatic Whether this transition happens automatically without an event
+     * @param string|null $label Human-readable display label
      */
     public function __construct(
         private string $name,
@@ -25,6 +26,7 @@ final readonly class Transition
         private array $commands = [],
         private ?string $condition = null,
         private bool $automatic = false,
+        private ?string $label = null,
     ) {
     }
 
@@ -44,6 +46,20 @@ final readonly class Transition
     public function getTo(): string
     {
         return $this->to;
+    }
+
+    public function getLabel(): ?string
+    {
+        return $this->label;
+    }
+
+    public function getDisplayName(): string
+    {
+        if ($this->label !== null && $this->label !== '') {
+            return $this->label;
+        }
+
+        return ucfirst(str_replace('_', ' ', $this->name));
     }
 
     public function isHappy(): bool

@@ -30,7 +30,7 @@ return [
             'paid' => ['final' => true, 'color' => '#00AA00'],
         ],
         'transitions' => [
-            'pay' => ['from' => 'pending', 'to' => 'paid', 'happy' => true, 'guard' => 'App\Foo::bar'],
+            'pay' => ['from' => 'pending', 'to' => 'paid', 'label' => 'Capture payment', 'happy' => true, 'guard' => 'App\Foo::bar'],
         ],
     ],
 ];
@@ -69,6 +69,7 @@ PHP);
         $pay = $definition->getTransition('pay');
         $this->assertSame(['pending'], $pay->getFrom());
         $this->assertSame('paid', $pay->getTo());
+        $this->assertSame('Capture payment', $pay->getDisplayName());
         $this->assertSame(['App\Foo::bar'], $pay->getGuards());
 
         $timeouts = $definition->getState('pending')->getTimeouts();

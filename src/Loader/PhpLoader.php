@@ -215,6 +215,7 @@ class PhpLoader implements LoaderInterface
             name: $name,
             from: $from,
             to: (string)$to,
+            label: isset($data['label']) ? (string)$data['label'] : null,
             happy: (bool)($data['happy'] ?? false),
             guards: isset($data['guard']) ? [(string)$data['guard']] : $this->toStringList($data['guards'] ?? []),
             commands: isset($data['command']) ? [(string)$data['command']] : $this->toStringList($data['commands'] ?? []),

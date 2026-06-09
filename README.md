@@ -13,6 +13,8 @@ State machine and workflow engine for CakePHP with PHP 8 Attributes, YAML/NEON c
 
 > [!TIP]
 > Try the live demo: <https://sandbox.dereuromark.de/workflow-sandbox>
+>
+> There is also a [demo app](https://github.com/dereuromark/cakephp-workflow-demo) with more details to experiment with
 
 ## Requirements
 

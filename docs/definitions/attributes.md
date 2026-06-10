@@ -92,6 +92,8 @@ public function ensureNotAlreadyPaid(): bool|string
 
 Multiple guards for the same transition run in sequence. Any blocking message stops the transition.
 
+Guards gate **manual** transitions. For **automatic** transitions use `#[Condition]` instead - see [Automatic Transitions](./automatic-transitions).
+
 ## Commands
 
 Command methods run when a transition succeeds:
@@ -142,7 +144,8 @@ public function cleanupResources(): void
 
 | Attribute | Description |
 |-----------|-------------|
-| `#[Guard('transition')]` | Conditional check (return `bool\|string`) |
+| `#[Guard('transition')]` | Gate a **manual** transition (return `bool\|string`) |
+| `#[Condition('transition')]` | Gate an **automatic** transition (return `bool`) |
 | `#[Command('transition')]` | Action on successful transition |
 | `#[OnEnter]` | Callback when entering this state |
 | `#[OnExit]` | Callback when leaving this state |

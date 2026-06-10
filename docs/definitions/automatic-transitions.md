@@ -54,6 +54,10 @@ When the entity enters `review`, the engine evaluates `auto_approve` and advance
 unconditional fallback branch. This matches the `automatic`/`condition` keys in the
 NEON/YAML formats.
 
+The rule of thumb: guards gate **manual** transitions, conditions gate **automatic**
+ones - only the gate differs. A guard may return a `bool` or a blocking message string;
+a condition returns `bool` only.
+
 ## How Selection Works
 
 The engine evaluates automatic transitions in order:

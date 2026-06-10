@@ -98,6 +98,22 @@ A guard returns:
 
 Multiple guards can protect the same transition. All must pass.
 
+Guards gate **manual** transitions. The automatic equivalent is a condition (see below).
+
+## Conditions
+
+Conditions gate **automatic** transitions, mirroring how guards gate manual ones.
+
+```php
+#[Condition('auto_approve')]
+public function isTrusted(): bool
+{
+    return (bool)$this->getEntity()?->get('trusted');
+}
+```
+
+A condition returns `bool`: the automatic transition is taken only when it returns `true`. The rule of thumb: a guard for manual, a condition for automatic - only the gate differs. See [Automatic Transitions](/definitions/automatic-transitions) for branching and fallbacks.
+
 ## Commands
 
 Commands run when a transition succeeds.

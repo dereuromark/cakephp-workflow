@@ -26,7 +26,7 @@ use Workflow\Model\Behavior\WorkflowBehavior;
 class WorkflowComponent extends Component
 {
     /**
-     * @var array
+     * @var array<int|string, array<string, mixed>|string>
      */
     protected array $components = ['Flash'];
 

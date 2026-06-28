@@ -51,11 +51,14 @@ class TimeoutScheduler
     {
         $base = DateTime::now();
         $interval = $this->parseInterval($after);
+        if ($interval === false) {
+            throw new WorkflowException(sprintf('Invalid timeout duration `%s`', $after));
+        }
 
         return $base->add($interval);
     }
 
-    protected function parseInterval(string $after): DateInterval
+    protected function parseInterval(string $after): DateInterval|false
     {
         try {
             if (str_starts_with($after, 'P')) {
@@ -63,11 +66,7 @@ class TimeoutScheduler
             }
             $interval = @DateInterval::createFromDateString($after);
         } catch (Throwable $exception) {
-            throw new WorkflowException(sprintf('Invalid timeout duration "%s": %s', $after, $exception->getMessage()), (int)$exception->getCode(), previous: $exception);
-        }
-
-        if (!$interval instanceof DateInterval) {
-            throw new WorkflowException(sprintf('Invalid timeout duration "%s"', $after));
+            throw new WorkflowException(sprintf('Invalid timeout duration `%s`: %s', $after, $exception->getMessage()), (int)$exception->getCode(), previous: $exception);
         }
 
         return $interval;

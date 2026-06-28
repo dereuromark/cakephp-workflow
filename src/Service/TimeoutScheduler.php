@@ -66,10 +66,6 @@ class TimeoutScheduler
             throw new WorkflowException(sprintf('Invalid timeout duration "%s": %s', $after, $exception->getMessage()), (int)$exception->getCode(), previous: $exception);
         }
 
-        if (!$interval instanceof DateInterval) {
-            throw new WorkflowException(sprintf('Invalid timeout duration "%s"', $after));
-        }
-
         return $interval;
     }
 

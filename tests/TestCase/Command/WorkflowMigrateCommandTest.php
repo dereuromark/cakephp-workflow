@@ -144,27 +144,7 @@ class WorkflowMigrateCommandTest extends DatabaseTestCase
 
     private function recreateTransitionsTable(): void
     {
-        // Must mirror DatabaseTestCase::createSchema()'s workflow_transitions table exactly:
-        // this recreates the shared in-memory table after the rollback test drops it, so a
-        // missing column would corrupt the schema for every later test in the suite.
-        ConnectionManager::get('test')->execute('
-            CREATE TABLE workflow_transitions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                workflow_name VARCHAR(64) NOT NULL,
-                model VARCHAR(128) NOT NULL,
-                foreign_key BIGINT NOT NULL,
-                transition_name VARCHAR(64) NOT NULL,
-                from_state VARCHAR(64) NOT NULL,
-                to_state VARCHAR(64) NOT NULL,
-                status VARCHAR(16) NOT NULL DEFAULT \'success\',
-                user_id VARCHAR(36),
-                reason TEXT,
-                context TEXT,
-                idempotency_key VARCHAR(128),
-                workflow_version VARCHAR(16),
-                created DATETIME NOT NULL
-            )
-        ');
+        $this->createTransitionsTable();
     }
 
     private function createDefinition(): Definition

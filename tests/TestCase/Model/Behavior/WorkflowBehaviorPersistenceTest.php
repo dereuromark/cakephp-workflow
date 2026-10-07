@@ -61,14 +61,11 @@ class WorkflowBehaviorPersistenceTest extends DatabaseTestCase
             return;
         }
 
-        $connection->execute('
-            CREATE TABLE orders (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                state VARCHAR(64) NOT NULL,
-                created DATETIME,
-                modified DATETIME
-            )
-        ');
+        $this->createTable('orders', [
+            'state' => ['type' => 'string', 'length' => 64, 'null' => false],
+            'created' => ['type' => 'datetime', 'null' => true],
+            'modified' => ['type' => 'datetime', 'null' => true],
+        ]);
     }
 
     private function truncateOrders(): void

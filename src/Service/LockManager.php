@@ -132,21 +132,23 @@ class LockManager
     }
 
     /**
-     * Whether the given exception is a deadlock / serialization failure
-     * (SQLSTATE 40001), raised under transient contention on the lock table.
+     * Whether the given exception is a deadlock / serialization failure,
+     * raised under transient contention on the lock table. SQLSTATE 40001
+     * everywhere, plus 40P01 for a deadlock PostgreSQL detected itself.
      */
     protected function isDeadlock(Throwable $e): bool
     {
-        return $this->matchesSqlState($e, '40001');
+        return $this->matchesSqlState($e, '40001') || $this->matchesSqlState($e, '40P01');
     }
 
     /**
-     * Whether the given exception is a unique/integrity constraint violation
-     * (SQLSTATE 23000), raised when two processes race to insert the same lock.
+     * Whether the given exception is a unique/integrity constraint violation,
+     * raised when two processes race to insert the same lock. MySQL and SQLite
+     * report the class code 23000, PostgreSQL the specific 23505.
      */
     protected function isUniqueViolation(Throwable $e): bool
     {
-        return $this->matchesSqlState($e, '23000');
+        return $this->matchesSqlState($e, '23000') || $this->matchesSqlState($e, '23505');
     }
 
     /**

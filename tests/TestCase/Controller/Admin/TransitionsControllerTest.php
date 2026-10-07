@@ -310,9 +310,11 @@ class TransitionsControllerTest extends IntegrationTestCase
                 'created' => DateTime::now()->subDays(5),
             ]),
         ]);
-        $savedDate = $transitionsTable->getConnection()
-            ->execute('SELECT substr(created, 1, 10) AS created_date FROM workflow_transitions WHERE foreign_key = :id', ['id' => '123'])
-            ->fetch('assoc')['created_date'];
+        $savedDate = $transitionsTable->find()
+            ->where(['foreign_key' => '123'])
+            ->firstOrFail()
+            ->get('created')
+            ->format('Y-m-d');
 
         $this->get([
             'prefix' => 'Admin',

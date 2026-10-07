@@ -35,14 +35,11 @@ class WorkflowBehaviorIdempotencyTest extends DatabaseTestCase
 
         $connection = ConnectionManager::get('test');
         if (!in_array('tickets', $connection->getSchemaCollection()->listTables(), true)) {
-            $connection->execute('
-                CREATE TABLE tickets (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    state VARCHAR(64) NOT NULL,
-                    created DATETIME,
-                    modified DATETIME
-                )
-            ');
+            $this->createTable('tickets', [
+                'state' => ['type' => 'string', 'length' => 64, 'null' => false],
+                'created' => ['type' => 'datetime', 'null' => true],
+                'modified' => ['type' => 'datetime', 'null' => true],
+            ]);
         }
         $connection->execute('DELETE FROM tickets');
 

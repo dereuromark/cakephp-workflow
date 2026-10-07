@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\Service;
 
+use Cake\Database\Driver\Sqlite;
 use Cake\ORM\Entity;
 use RuntimeException;
 use Workflow\Engine\TransitionResult;
@@ -323,6 +324,11 @@ class TransitionLoggerTest extends DatabaseTestCase
 
     public function testLogSuccessfulTransitionWithUuidForeignKey(): void
     {
+        // A UUID only fits a string key column. SQLite does not enforce the
+        // column type, so this runs there against the integer test schema.
+        if (!$this->fetchTable('Workflow.WorkflowTransitions')->getConnection()->getDriver() instanceof Sqlite) {
+            $this->markTestSkipped('Needs a string foreign_key column; the test schema uses an integer one.');
+        }
         $uuid = '550e8400-e29b-41d4-a716-446655440000';
         $entity = new Entity(['id' => $uuid]);
         $result = TransitionResult::success('pending', 'paid');

@@ -28,7 +28,7 @@ $this->assign('title', 'Dashboard');
         <?= $this->Html->link(
             '<i class="bi bi-plus-lg me-1"></i>New Workflow',
             ['controller' => 'Workflows', 'action' => 'create'],
-            ['class' => 'btn btn-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>
@@ -198,7 +198,7 @@ $this->assign('title', 'Dashboard');
                         <?= $this->Html->link(
                             'View all transitions &rarr;',
                             ['controller' => 'Transitions', 'action' => 'index'],
-                            ['escapeTitle' => false, 'class' => 'text-decoration-none'],
+                            ['escape' => false, 'escapeAttributes' => true, 'class' => 'text-decoration-none'],
                         ) ?>
                     </div>
                 </div>

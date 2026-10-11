@@ -32,7 +32,7 @@ $now = DateTime::now();
             [
                 'class' => 'btn btn-outline-warning',
                 'confirm' => 'Remove all expired locks?',
-                'escapeTitle' => false,
+                'escape' => false, 'escapeAttributes' => true,
                 'block' => true,
             ],
         ) ?>
@@ -130,7 +130,7 @@ $now = DateTime::now();
                                 [
                                     'class' => 'btn btn-sm btn-outline-danger',
                                     'confirm' => 'Release this lock?',
-                                    'escapeTitle' => false,
+                                    'escape' => false, 'escapeAttributes' => true,
                                     'block' => true,
                                 ],
                             ) ?>

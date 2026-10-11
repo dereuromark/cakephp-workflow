@@ -128,7 +128,7 @@ $this->assign('title', 'Orphaned Items');
                             <?= $this->Html->link(
                                 '<i class="bi bi-wrench"></i> Fix',
                                 ['action' => 'fix', $orphan['workflow'], $orphan['entity']->get('id')],
-                                ['class' => 'btn btn-sm btn-warning', 'escapeTitle' => false],
+                                ['class' => 'btn btn-sm btn-warning', 'escape' => false, 'escapeAttributes' => true],
                             ) ?>
                         </td>
                     </tr>

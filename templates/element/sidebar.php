@@ -32,7 +32,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Workflow', 'action' => 'index', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Workflow' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -46,7 +46,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Workflows', 'action' => 'index', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Workflows' && $currentAction === 'index' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -58,7 +58,7 @@ $currentAction = $this->request->getParam('action');
                     ['plugin' => 'Workflow', 'controller' => 'Workflows', 'action' => 'view', $workflow['name'], 'prefix' => 'Admin'],
                     [
                         'class' => 'nav-link',
-                        'escapeTitle' => false,
+                        'escape' => false, 'escapeAttributes' => true,
                     ],
                 ) ?>
             </li>
@@ -73,7 +73,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Transitions', 'action' => 'index', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Transitions' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -84,7 +84,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Timeouts', 'action' => 'index', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Timeouts' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -94,7 +94,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Locks', 'action' => 'index', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Locks' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -105,7 +105,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Orphans', 'action' => 'index', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Orphans' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -119,7 +119,7 @@ $currentAction = $this->request->getParam('action');
                 ['plugin' => 'Workflow', 'controller' => 'Workflows', 'action' => 'create', 'prefix' => 'Admin'],
                 [
                     'class' => 'nav-link' . ($currentController === 'Workflows' && $currentAction === 'create' ? ' active' : ''),
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                 ],
             ) ?>
         </li>
@@ -135,7 +135,7 @@ $currentAction = $this->request->getParam('action');
             <?= $this->Html->link(
                 '<i class="bi bi-arrow-left"></i> ' . h($adminBackLabel),
                 $adminBackUrl,
-                ['class' => 'nav-link', 'escapeTitle' => false],
+                ['class' => 'nav-link', 'escape' => false, 'escapeAttributes' => true],
             ) ?>
         </li>
     </ul>

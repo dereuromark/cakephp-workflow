@@ -32,7 +32,7 @@ $isValid = $errorCount === 0;
         <?= $this->Html->link(
             '<i class="bi bi-diagram-2 me-1"></i>View Diagram',
             ['action' => 'view', $definition->getName()],
-            ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-outline-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>

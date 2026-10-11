@@ -36,6 +36,8 @@ class WorkflowsControllerTest extends IntegrationTestCase
         $this->assertResponseOk();
         $this->assertResponseContains('order');
         $this->assertResponseContains('payment');
+        $this->assertResponseContains('<i class="bi bi-plus-lg me-1"></i>New Workflow');
+        $this->assertResponseNotContains('&lt;i class=');
     }
 
     /**

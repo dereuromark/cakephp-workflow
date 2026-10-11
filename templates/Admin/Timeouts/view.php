@@ -30,7 +30,7 @@ $this->assign('title', 'Timeout Details');
                 [
                     'class' => 'btn btn-success',
                     'confirm' => 'Execute this timeout now?',
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                     'block' => true,
                 ],
             ) ?>
@@ -40,7 +40,7 @@ $this->assign('title', 'Timeout Details');
                 [
                     'class' => 'btn btn-outline-danger',
                     'confirm' => 'Cancel this timeout?',
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                     'block' => true,
                 ],
             ) ?>
@@ -51,7 +51,7 @@ $this->assign('title', 'Timeout Details');
                 [
                     'class' => 'btn btn-warning',
                     'confirm' => 'Create a new timeout to retry?',
-                    'escapeTitle' => false,
+                    'escape' => false, 'escapeAttributes' => true,
                     'block' => true,
                 ],
             ) ?>

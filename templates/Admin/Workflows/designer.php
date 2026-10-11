@@ -26,12 +26,12 @@ $this->assign('title', $definition->getName() . ' - Designer');
         <?= $this->Html->link(
             '<i class="bi bi-diagram-2 me-1"></i>View Diagram',
             ['action' => 'view', $definition->getName()],
-            ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-outline-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
         <?= $this->Html->link(
             '<i class="bi bi-check2-circle me-1"></i>Validate',
             ['action' => 'validate', $definition->getName()],
-            ['class' => 'btn btn-outline-secondary', 'escapeTitle' => false],
+            ['class' => 'btn btn-outline-secondary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>

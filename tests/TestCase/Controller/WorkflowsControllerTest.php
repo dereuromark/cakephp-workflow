@@ -63,6 +63,7 @@ class WorkflowsControllerTest extends IntegrationTestCase
         $this->assertResponseContains('flowchart TD');
         $this->assertResponseContains('class paid current');
     }
+
     public function testDrawRejectsArrayFormat(): void
     {
         $this->get([
@@ -98,5 +99,4 @@ class WorkflowsControllerTest extends IntegrationTestCase
         ]);
         $this->assertResponseCode(400);
     }
-
 }

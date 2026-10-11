@@ -1,17 +1,21 @@
 # Installation
 
+This development branch requires PHP 8.5 and CakePHP 6. The application must allow development stability for unreleased framework and companion packages. Keep stable packages preferred.
+
 ## Composer
 
 Install Workflow and Migrations for the persisted beginner example. Composer checks compatibility with the application:
 
 ```bash
-composer require dereuromark/cakephp-workflow cakephp/migrations
+composer config minimum-stability dev
+composer config prefer-stable true
+composer require dereuromark/cakephp-workflow:dev-cake6 cakephp/migrations:dev-fix/6.x-cakephp-compatibility
 ```
 
 If you want the Bake-powered scaffolding command:
 
 ```bash
-composer require --dev cakephp/bake
+composer require --dev 'cakephp/bake:^4.0@dev'
 ```
 
 ## Load the plugin

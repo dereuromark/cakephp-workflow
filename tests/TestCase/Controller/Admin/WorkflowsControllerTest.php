@@ -40,6 +40,24 @@ class WorkflowsControllerTest extends IntegrationTestCase
         $this->assertResponseNotContains('&lt;i class=');
     }
 
+    public function testAdminBackLinkEscapesConfiguredUrlAndLabel(): void
+    {
+        $previousUrl = Configure::read('Workflow.adminBackUrl');
+        $previousLabel = Configure::read('Workflow.adminBackLabel');
+        Configure::write('Workflow.adminBackUrl', '/dashboard?name="quoted"&mode=1');
+        Configure::write('Workflow.adminBackLabel', '<b>Dashboard</b>');
+        try {
+            $this->get(['prefix' => 'Admin', 'plugin' => 'Workflow', 'controller' => 'Workflows', 'action' => 'index']);
+            $this->assertResponseOk();
+            $this->assertResponseContains('href="/dashboard?name=&quot;quoted&quot;&amp;mode=1"');
+            $this->assertResponseContains('<i class="bi bi-arrow-left"></i> &lt;b&gt;Dashboard&lt;/b&gt;');
+            $this->assertResponseNotContains('href="/dashboard?name="quoted"');
+        } finally {
+            Configure::write('Workflow.adminBackUrl', $previousUrl);
+            Configure::write('Workflow.adminBackLabel', $previousLabel);
+        }
+    }
+
     /**
      * Test index action sets correct view variables.
      */

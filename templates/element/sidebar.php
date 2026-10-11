@@ -134,7 +134,7 @@ $currentAction = $this->request->getParam('action');
         <li>
             <?= $this->Html->link(
                 '<i class="bi bi-arrow-left"></i> ' . h($adminBackLabel),
-                $adminBackUrl,
+                $this->Url->build($adminBackUrl),
                 ['class' => 'nav-link', 'escape' => false, 'escapeAttributes' => true],
             ) ?>
         </li>

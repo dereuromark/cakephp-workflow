@@ -28,6 +28,23 @@ $this->loadComponent('Workflow.Workflow', [
 ]);
 ```
 
+## Saving changes
+
+The component calls the behavior's `applyTransition()` method. With the default
+`autoSave => false`, a successful result changes the entity in memory. For the
+form examples below, enable `autoSave` when adding the behavior to your table:
+
+```php
+$this->addBehavior('Workflow.Workflow', [
+    'workflow' => 'order',
+    'autoSave' => true,
+]);
+```
+
+Keep the behavior's other configuration. For a persisted transition with
+logging, locking and a transaction in one call, use the behavior's `transition()`
+method shown in [Getting started](../guide/quick-start).
+
 ## Basic Usage
 
 ### Apply a transition with flash messages
@@ -133,8 +150,8 @@ Typical form for triggering a transition:
 If you prefer more control, use the workflow directly:
 
 ```php
-$workflow = $this->workflowRegistry->get($order);
-$result = $workflow->apply('pay', [
+$orders = $this->fetchTable('Orders');
+$result = $orders->getBehavior('Workflow')->transition($order, 'pay', [
     'reason' => 'Payment captured',
 ]);
 

@@ -11,7 +11,10 @@ The `Workflow` class provides a Symfony-style API for working with entities:
 
 ```php
 // In your controller, inject or fetch the registry
-$registry = $this->getService(WorkflowRegistry::class);
+use Workflow\Service\WorkflowRegistryLocator;
+
+$registry = WorkflowRegistryLocator::get()
+    ?? throw new \RuntimeException('Workflow registry is not configured');
 
 // Get a workflow for an entity (auto-detects workflow from table)
 $workflow = $registry->get($order);
@@ -22,9 +25,7 @@ $workflow = $registry->get($order, 'order');
 // Check if transition is allowed
 if ($workflow->can('pay')) {
     $result = $workflow->apply('pay', ['user_id' => $userId]);
-    if ($result->isSuccess()) {
-        $this->Orders->saveOrFail($order);
-    }
+    // Inspect the result; this API changes only the in-memory entity.
 }
 
 // Query state
@@ -45,7 +46,7 @@ $workflow->getName();                // 'order'
 ```
 
 ::: tip Transaction Safety
-The `apply()` method only changes the entity in memory. You must call `save()` to persist. For atomic operations where apply + save must succeed or fail together, use the behavior's `transition()` method instead. See [Persisted Transitions](/integration/persisted-transitions).
+The workflow object's `apply()` only changes the entity in memory. A table with `WorkflowBehavior` rejects saving a direct state change by default. For that table, use the behavior's `applyTransition()` followed by a save, or its `transition()` method for coordinated persistence. See [Persisted Transitions](/integration/persisted-transitions).
 :::
 
 ## ORM Behavior API

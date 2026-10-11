@@ -55,7 +55,10 @@ flowchart TD
 A transition moves an entity from one state to another.
 
 ```php
-$workflow = $this->workflowRegistry->get($order);
+use Workflow\Service\WorkflowRegistryLocator;
+
+$registry = WorkflowRegistryLocator::get() ?? throw new \RuntimeException('Workflow registry unavailable');
+$workflow = $registry->get($order);
 $workflow->apply('pay');
 // order.state: pending → paid
 ```
@@ -182,20 +185,20 @@ A minimal workflow has:
 3. **Guards** (optional) - protect transitions
 4. **Commands** (optional) - side effects on transitions
 
-### Using the Workflow Object (Recommended)
+### Using the workflow object
 
-The `Workflow` class provides a clean, entity-centric API:
+The `Workflow` class operates on an entity in memory. Use the behavior's `transition()` method to persist a transition:
 
 ```php
 // Get a workflow for an entity
-$workflow = $this->workflowRegistry->get($order);
+use Workflow\Service\WorkflowRegistryLocator;
+
+$registry = WorkflowRegistryLocator::get() ?? throw new \RuntimeException('Workflow registry unavailable');
+$workflow = $registry->get($order);
 
 // Check and apply
 if ($workflow->can('pay')) {
     $result = $workflow->apply('pay', ['user_id' => $userId]);
-    if ($result->isSuccess()) {
-        $this->Orders->save($order);
-    }
 }
 
 // Query state
@@ -213,10 +216,7 @@ The behavior provides table-level methods via explicit access:
 $behavior = $this->Orders->getBehavior('Workflow');
 
 if ($behavior->canTransition($order, 'pay')) {
-    $result = $behavior->applyTransition($order, 'pay');
-    if ($result->isSuccess()) {
-        $this->Orders->save($order);
-    }
+    $result = $behavior->transition($order, 'pay');
 }
 ```
 
@@ -224,6 +224,6 @@ Both approaches use the same underlying engine, guards, and commands.
 
 ## Next Steps
 
-- [Quick Start](./quick-start) - Build your first workflow
+- [Getting started](./quick-start) - Build your first workflow
 - [Behavior Integration](./behavior) - Full API reference
 - [Attributes](/definitions/attributes) - Define states with PHP attributes

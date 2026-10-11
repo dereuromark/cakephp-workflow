@@ -14,6 +14,9 @@ export default withMermaid(defineConfig({
   description: 'State machine and workflow engine for CakePHP with attributes, YAML/NEON support, and admin tooling.',
   base: '/cakephp-workflow/',
   cleanUrls: true,
+  vite: {
+    optimizeDeps: { include: ['mermaid', 'fastdom'] },
+  },
   head: [
     ['link', { rel: 'icon', href: '/cakephp-workflow/favicon.svg', type: 'image/svg+xml' }],
   ],
@@ -29,7 +32,9 @@ export default withMermaid(defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     nav: [
-      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Installation', link: '/guide/installation' },
+      { text: 'Getting started', link: '/guide/quick-start' },
+      { text: 'Guide', link: '/guide/', activeMatch: '^/guide/(?!installation$|quick-start$)' },
       { text: 'Definitions', link: '/definitions/', activeMatch: '/definitions/' },
       { text: 'Integration', link: '/integration/', activeMatch: '/integration/' },
       { text: 'Admin', link: '/admin/', activeMatch: '/admin/' },
@@ -50,10 +55,10 @@ export default withMermaid(defineConfig({
         {
           text: 'Guide',
           items: [
-            { text: 'Getting Started', link: '/guide/' },
+            { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'Getting started', link: '/guide/quick-start' },
             { text: 'Concepts', link: '/guide/concepts' },
-            { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Behavior Integration', link: '/guide/behavior' },
             { text: 'Drift Safety', link: '/guide/versioning' },
           ],

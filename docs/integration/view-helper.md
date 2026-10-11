@@ -219,6 +219,12 @@ Or let the controller resolve the state from a workflow entity id:
 When `id` is present, the export endpoint loads the configured workflow table
 and highlights the current value from the workflow field automatically.
 
+The frontend export controller extends CakePHP's base controller rather than the
+application's `AppController`. Its routes have no `Workflow.adminAccess` gate.
+Protect exports through application middleware when definitions or entity states
+are private, or disable plugin routes and expose an authorized application action.
+The admin export path uses the admin access gate.
+
 ## Getting State Color
 
 Get the color configured for a state:
@@ -234,7 +240,8 @@ Returns the hex color (e.g., `#00AA00`) or a default gray if none is configured.
 ```php
 <?php
 // In your controller: pass definition and availableTransitions to view
-// $workflow = $this->workflowRegistry->get($order);
+// $registry = \Workflow\Service\WorkflowRegistryLocator::get() ?? throw new \RuntimeException('Workflow registry unavailable');
+// $workflow = $registry->get($order);
 // $this->set('definition', $workflow->getDefinition());
 // $this->set('availableTransitions', $workflow->getAvailableTransitions());
 ?>

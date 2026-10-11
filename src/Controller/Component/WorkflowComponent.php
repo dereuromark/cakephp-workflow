@@ -98,8 +98,10 @@ class WorkflowComponent extends Component
         array $options = [],
     ): Response {
         $request = $this->getController()->getRequest();
-        $transition = trim((string)$request->getData('transition'));
-        $reason = $request->getData('reason');
+        $value = $request->getData('transition');
+        $transition = is_string($value) ? trim($value) : '';
+        $requestedReason = $request->getData('reason');
+        $reason = is_string($requestedReason) ? trim($requestedReason) : null;
 
         if ($transition === '') {
             $message = (string)($options['missingTransitionMessage'] ?? 'Transition request is missing the required "transition" field.');

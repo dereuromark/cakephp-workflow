@@ -36,7 +36,7 @@ class WorkflowBehavior extends Behavior
      */
     private const TRANSITION_MARKER = '_workflow_transition_applied';
 
-    protected array $_defaultConfig = [
+    protected array $defaultConfig = [
         'workflow' => null,
         'registry' => null,
         'field' => null,
@@ -81,7 +81,7 @@ class WorkflowBehavior extends Behavior
 
         // Auto-detect the polymorphic model (registry alias) if not set
         if ($this->getConfig('model') === null) {
-            $this->setConfig('model', $this->_table->getRegistryAlias());
+            $this->setConfig('model', $this->table->getRegistryAlias());
         }
     }
 
@@ -292,7 +292,7 @@ class WorkflowBehavior extends Behavior
         array $context,
         bool $usedLock,
     ): TransitionResult {
-        $connection = $this->_table->getConnection();
+        $connection = $this->table->getConnection();
 
         $captured = null;
         $connection->transactional(function () use ($entity, $transition, $context, $usedLock, &$captured): bool {
@@ -308,7 +308,7 @@ class WorkflowBehavior extends Behavior
 
             // Auto-save if enabled - within transaction
             if ($this->getConfig('autoSave')) {
-                $this->_table->saveOrFail($entity);
+                $this->table->saveOrFail($entity);
             }
 
             // Auto-log successful transitions within same transaction
@@ -391,7 +391,7 @@ class WorkflowBehavior extends Behavior
             // If not using transaction, handle save/log here
             if (!$this->getConfig('useTransaction')) {
                 if ($this->getConfig('autoSave')) {
-                    $this->_table->saveOrFail($entity);
+                    $this->table->saveOrFail($entity);
                 }
 
                 if ($this->getConfig('autoLog')) {
@@ -424,7 +424,7 @@ class WorkflowBehavior extends Behavior
      */
     private function claimOptimisticTransition(EntityInterface $entity, string $from, string $to): bool
     {
-        $primaryKey = (array)$this->_table->getPrimaryKey();
+        $primaryKey = (array)$this->table->getPrimaryKey();
         if (count($primaryKey) !== 1) {
             throw new WorkflowException('Optimistic locking requires a single-column primary key.');
         }
@@ -432,7 +432,7 @@ class WorkflowBehavior extends Behavior
         $field = $this->getWorkflowDefinition()->getField();
         $primaryKeyField = (string)$primaryKey[0];
 
-        $affected = $this->_table->updateAll(
+        $affected = $this->table->updateAll(
             [$field => $to],
             [
                 $primaryKeyField => $entity->get($primaryKeyField),
@@ -457,7 +457,7 @@ class WorkflowBehavior extends Behavior
             return;
         }
 
-        if (!$this->_table->getSchema()->hasColumn($field)) {
+        if (!$this->table->getSchema()->hasColumn($field)) {
             return;
         }
 
@@ -623,7 +623,7 @@ class WorkflowBehavior extends Behavior
         }
 
         try {
-            $connection = $this->_table->getConnection();
+            $connection = $this->table->getConnection();
             $schemaCollection = $connection->getSchemaCollection();
             $tables = $schemaCollection->listTables();
             $this->lockTableExists = in_array('workflow_locks', $tables, true);
@@ -642,7 +642,7 @@ class WorkflowBehavior extends Behavior
         }
 
         try {
-            $connection = $this->_table->getConnection();
+            $connection = $this->table->getConnection();
             $schemaCollection = $connection->getSchemaCollection();
             $tables = $schemaCollection->listTables();
             $this->timeoutsTableExists = in_array('workflow_timeouts', $tables, true);
@@ -752,23 +752,23 @@ class WorkflowBehavior extends Behavior
             return;
         }
 
-        $primaryKey = (array)$this->_table->getPrimaryKey();
+        $primaryKey = (array)$this->table->getPrimaryKey();
         $conditions = [];
         foreach ($primaryKey as $column) {
             $value = $entity->get($column);
             if ($value === null) {
                 return;
             }
-            $conditions[$this->_table->aliasField($column)] = $value;
+            $conditions[$this->table->aliasField($column)] = $value;
         }
 
         $field = $this->getWorkflowDefinition()->getField();
 
         /** @var array<string, mixed>|null $row */
-        $row = $this->_table->find()
+        $row = $this->table->find()
             ->select([$field])
             ->where($conditions)
-            ->disableHydration()
+            ->enableHydration(false)
             ->first();
 
         if ($row === null) {
@@ -840,7 +840,7 @@ class WorkflowBehavior extends Behavior
         $field = $this->getWorkflowDefinition()->getField();
 
         return $query->where([
-            $this->_table->aliasField($field) . ' IN' => $stateNames,
+            $this->table->aliasField($field) . ' IN' => $stateNames,
         ]);
     }
 
@@ -873,7 +873,7 @@ class WorkflowBehavior extends Behavior
         $field = $this->getWorkflowDefinition()->getField();
 
         return $query->where([
-            $this->_table->aliasField($field) . ' NOT IN' => $stateNames,
+            $this->table->aliasField($field) . ' NOT IN' => $stateNames,
         ]);
     }
 
@@ -902,7 +902,7 @@ class WorkflowBehavior extends Behavior
         $field = $this->getWorkflowDefinition()->getField();
 
         return $query->where([
-            $this->_table->aliasField($field) . ' IN' => $stateNames,
+            $this->table->aliasField($field) . ' IN' => $stateNames,
         ]);
     }
 
@@ -930,7 +930,7 @@ class WorkflowBehavior extends Behavior
         $field = $this->getWorkflowDefinition()->getField();
 
         return $query->where([
-            $this->_table->aliasField($field) . ' NOT IN' => $stateNames,
+            $this->table->aliasField($field) . ' NOT IN' => $stateNames,
         ]);
     }
 
@@ -952,7 +952,7 @@ class WorkflowBehavior extends Behavior
         $field = $this->getWorkflowDefinition()->getField();
 
         return $query->where([
-            $this->_table->aliasField($field) => $state,
+            $this->table->aliasField($field) => $state,
         ]);
     }
 

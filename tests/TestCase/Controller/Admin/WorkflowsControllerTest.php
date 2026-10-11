@@ -139,7 +139,7 @@ class WorkflowsControllerTest extends IntegrationTestCase
 
         $this->assertResponseOk();
         $this->assertContentType('image/png');
-        $this->assertSame("\x89PNG", substr((string)$this->_response->getBody(), 0, 4));
+        $this->assertSame("\x89PNG", substr((string)$this->response->getBody(), 0, 4));
     }
 
     /**

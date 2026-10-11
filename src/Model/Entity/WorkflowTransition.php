@@ -28,7 +28,7 @@ use Workflow\Service\TransitionLogger;
  */
 class WorkflowTransition extends Entity
 {
-    protected array $_accessible = [
+    protected array $patchable = [
         'workflow_name' => true,
         'model' => true,
         'foreign_key' => true,

@@ -46,7 +46,7 @@ flowchart TD
 ```
 
 ::: tip
-This is exactly what `bin/cake workflow show order --mermaid` outputs, and what the [View Helper](/integration/view-helper)'s `diagram()` renders in your app, initial states are gray, final states green, failed states red, and happy-path transitions are highlighted. You never have to draw these by hand.
+After defining these states and transitions, `bin/cake workflow show order --mermaid` and the [View Helper](/integration/view-helper)'s `diagram()` generate a diagram from the definition. Initial, final and failed states receive distinct styling, and happy-path transitions are highlighted.
 :::
 
 ## Good Practices

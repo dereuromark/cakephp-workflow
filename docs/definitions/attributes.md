@@ -68,6 +68,19 @@ class PaidState extends BaseOrderState
 }
 ```
 
+The cancellation target used above also needs a state class:
+
+```php [src/Workflow/Order/CancelledState.php]
+namespace App\Workflow\Order;
+
+use Workflow\Attribute\FailedState;
+
+#[FailedState]
+class CancelledState extends BaseOrderState
+{
+}
+```
+
 ## Guards
 
 Guard methods validate transitions. Return `true` to allow, or a message string to block:
@@ -103,7 +116,7 @@ Command methods run when a transition succeeds:
 public function markPaymentCaptured(): void
 {
     $this->getEntity()?->set('payment_captured', true);
-    $this->getEntity()?->set('paid_at', new DateTime());
+    $this->getEntity()?->set('paid_at', new \Cake\I18n\DateTime());
 }
 ```
 

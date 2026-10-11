@@ -52,7 +52,7 @@ order:
 
 ## Native PHP (no dependency)
 
-You can also define a whole workflow in a single native-PHP file — no extra package
+You can also define a whole workflow in a single native-PHP file, no extra package
 required. Each file in the config path returns `[$workflowName => [...]]`:
 
 ```php [config/workflows/order.php]
@@ -66,7 +66,7 @@ return [
             'paid' => ['final' => true, 'color' => '#00AA00'],
         ],
         'transitions' => [
-            'pay' => ['from' => 'pending', 'to' => 'paid', 'happy' => true, 'guard' => 'App\\Workflow\\Order::ensurePayable'],
+            'pay' => ['from' => 'pending', 'to' => 'paid', 'happy' => true],
         ],
     ],
 ];

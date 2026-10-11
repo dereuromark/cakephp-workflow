@@ -68,7 +68,7 @@ The `RenamePolymorphicColumns` migration renames the polymorphic columns to the 
 ### Schema reference
 
 A merged snapshot of the full schema (all migrations combined) is shipped as DBML at
-[`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/master/resources/schema/schema.dbml).
+[`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/cake6/resources/schema/schema.dbml).
 Paste it into [dbdiagram.io](https://dbdiagram.io) (or any [DBML](https://dbml.dbdiagram.io/docs) tool)
 to view the tables, columns, and indexes as a diagram. It is hand-maintained. Keep it in
 sync when a migration changes these tables.

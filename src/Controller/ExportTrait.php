@@ -23,14 +23,16 @@ trait ExportTrait
         }
 
         $definition = $this->workflowRegistry->getWorkflow($name);
-        $format = strtolower(trim((string)$this->request->getQuery('format', 'svg')));
+        $requestedFormat = $this->request->getQuery('format', 'svg');
+        $format = is_string($requestedFormat) ? strtolower(trim($requestedFormat)) : '';
         if (!in_array($format, ['svg', 'png', 'mmd'], true)) {
             throw new BadRequestException('Unsupported workflow export format.');
         }
 
         $currentState = $this->resolveRequestedState($definition);
         $showDetails = filter_var($this->request->getQuery('showDetails', true), FILTER_VALIDATE_BOOLEAN);
-        $detailMarkers = (string)$this->request->getQuery('detailMarkers', 'ascii');
+        $requestedMarkers = $this->request->getQuery('detailMarkers', 'ascii');
+        $detailMarkers = is_string($requestedMarkers) ? $requestedMarkers : 'ascii';
         if (!in_array($detailMarkers, ['emoji', 'ascii', 'none'], true)) {
             $detailMarkers = 'ascii';
         }
@@ -54,6 +56,9 @@ trait ExportTrait
     protected function resolveRequestedState(Definition $definition): ?string
     {
         $id = $this->request->getQuery('id');
+        if ($id !== null && !is_string($id) && !is_int($id)) {
+            throw new BadRequestException('Invalid workflow entity id.');
+        }
         if ($id !== null && $id !== '') {
             $entity = $this->fetchTable($definition->getTable())->get($id);
             $state = $entity->get($definition->getField());
@@ -61,7 +66,10 @@ trait ExportTrait
             return $state !== null && $state !== '' ? (string)$state : null;
         }
 
-        $currentState = (string)$this->request->getQuery('currentState', (string)$this->request->getQuery('state', ''));
+        $currentState = $this->request->getQuery('currentState', $this->request->getQuery('state', ''));
+        if (!is_string($currentState)) {
+            throw new BadRequestException('Invalid workflow state.');
+        }
 
         return $currentState !== '' ? $currentState : null;
     }

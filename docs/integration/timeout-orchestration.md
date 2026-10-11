@@ -25,7 +25,7 @@ Timeout orchestration currently runs in these persisted paths:
 - the timeout processing command
 - manual timeout execution in the admin UI
 
-`applyTransition()` stays in-memory only. It does not schedule or cancel timeouts.
+`applyTransition()` uses the behavior's configured persistence options. With the default `autoSave => false`, it does not schedule or cancel timeouts. When `autoSave` is enabled, it can synchronize timeouts through the same runtime path.
 
 ## Behavior Options
 

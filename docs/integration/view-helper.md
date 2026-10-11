@@ -219,6 +219,12 @@ Or let the controller resolve the state from a workflow entity id:
 When `id` is present, the export endpoint loads the configured workflow table
 and highlights the current value from the workflow field automatically.
 
+The frontend export controller extends CakePHP's base controller rather than the
+application's `AppController`. Its routes have no `Workflow.adminAccess` gate.
+Protect exports through application middleware when definitions or entity states
+are private, or disable plugin routes and expose an authorized application action.
+The admin export path uses the admin access gate.
+
 ## Getting State Color
 
 Get the color configured for a state:

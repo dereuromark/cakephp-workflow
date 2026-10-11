@@ -63,4 +63,40 @@ class WorkflowsControllerTest extends IntegrationTestCase
         $this->assertResponseContains('flowchart TD');
         $this->assertResponseContains('class paid current');
     }
+    public function testDrawRejectsArrayFormat(): void
+    {
+        $this->get([
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'draw',
+            'order',
+            '?' => ['format' => ['mmd']],
+        ]);
+        $this->assertResponseCode(400);
+    }
+
+    public function testDrawRejectsArrayEntityId(): void
+    {
+        $this->get([
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'draw',
+            'order',
+            '?' => ['format' => 'mmd', 'id' => [1]],
+        ]);
+        $this->assertResponseCode(400);
+    }
+
+    public function testDrawRejectsArrayState(): void
+    {
+        $this->get([
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'draw',
+            'order',
+            '?' => ['format' => 'mmd', 'currentState' => ['paid']],
+        ]);
+        $this->assertResponseCode(400);
+    }
+
 }

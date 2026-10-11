@@ -14,6 +14,9 @@ export default withMermaid(defineConfig({
   description: 'State machine and workflow engine for CakePHP with attributes, YAML/NEON support, and admin tooling.',
   base: '/cakephp-workflow/',
   cleanUrls: true,
+  vite: {
+    optimizeDeps: { include: ['mermaid', 'fastdom'] },
+  },
   head: [
     ['link', { rel: 'icon', href: '/cakephp-workflow/favicon.svg', type: 'image/svg+xml' }],
   ],

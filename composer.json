@@ -34,6 +34,7 @@
     "require-dev": {
         "cakephp/bake": "^3.0",
         "cakephp/migrations": "^5.0.0",
+        "dereuromark/cakephp-i18n-lint": "^0.1.1",
         "nette/neon": "^3.0",
         "php-collective/code-sniffer": "^0.6.0",
         "phpunit/phpunit": "^11.5 || ^12.5 || ^13.0",
@@ -61,7 +62,10 @@
         "stan": "phpstan analyze",
         "stan-setup": "cp composer.json composer.backup && composer require --dev phpstan/phpstan:^2.0.0 && mv composer.backup composer.json",
         "test": "phpunit",
-        "coverage-test": "phpunit --stderr --coverage-clover=clover.xml"
+        "coverage-test": "phpunit --stderr --coverage-clover=clover.xml",
+        "i18n-check": "i18n-lint check",
+        "i18n-extract": "i18n-lint extract",
+        "i18n-lint": "i18n-lint lint"
     },
     "config": {
         "sort-packages": true,

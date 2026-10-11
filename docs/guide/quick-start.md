@@ -50,7 +50,7 @@ Add this inside the existing `OrdersTable::initialize()` method, after `parent::
 $this->addBehavior('Workflow.Workflow', ['workflow' => 'order']);
 ```
 
-Create new orders in the initial `pending` state. Existing rows need a deliberate initial-state assignment before transitions; do not overwrite an established order status without mapping it to the new workflow.
+Create new orders in the initial `pending` state. The engine treats a `null` or empty state as the initial state. Assign `pending` explicitly to existing rows when using state finders or optimistic locking, which compare stored values. Map established order statuses deliberately rather than overwriting them.
 
 ## Persist a transition
 

@@ -14,6 +14,7 @@ use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use TestApp\Model\Table\TraitOrdersTable;
 use Workflow\Controller\Component\WorkflowComponent;
+use Workflow\Engine\TransitionResult;
 
 class WorkflowComponentTest extends TestCase
 {
@@ -123,6 +124,26 @@ class WorkflowComponentTest extends TestCase
         $this->assertSame(302, $response->getStatusCode());
         $this->assertSame('pending', $entity->get('state'));
         $this->assertSame('error', $this->flashRecorder->calls[0]['method']);
+    }
+
+    public function testHandleTransitionDoesNotPassArrayReason(): void
+    {
+        $this->controller->setRequest($this->controller->getRequest()->withParsedBody([
+            'transition' => 'pay',
+            'reason' => ['Invalid reason'],
+        ]));
+        $component = $this->getMockBuilder(WorkflowComponent::class)
+            ->setConstructorArgs([new ComponentRegistry($this->controller)])
+            ->onlyMethods(['applyTransition'])
+            ->getMock();
+        $table = $this->createWorkflowTable();
+        $entity = new Entity(['state' => 'pending']);
+        $component->expects($this->once())->method('applyTransition')
+            ->with($table, $entity, 'pay', [], [])
+            ->willReturn(TransitionResult::blocked('pending', ['Reason required']));
+
+        $response = $component->handleTransition($table, $entity, '/orders/view/1');
+        $this->assertSame(302, $response->getStatusCode());
     }
 
     private function createWorkflowTable(): TraitOrdersTable

@@ -14,12 +14,16 @@ If you want the Bake-powered scaffolding command:
 composer require --dev cakephp/bake
 ```
 
-## Load the Plugin
+## Load the plugin
+
+Load Workflow:
 
 ```bash
-bin/cake plugin load Migrations
 bin/cake plugin load Workflow
 ```
+
+If Migrations is not already loaded, also run `bin/cake plugin load Migrations`.
+Keep an existing Migrations entry and its options in `config/plugins.php`.
 
 The plugin auto-loads Bake if installed, so `bin/cake bake workflow_state` works without additional configuration.
 
@@ -39,8 +43,7 @@ This creates three tables: `workflow_transitions`, `workflow_locks`, and
 The `RenamePolymorphicColumns` migration renames the polymorphic columns to the CakePHP convention:
 `entity_table` → `model` and `entity_id` → `foreign_key`.
 
-1. Run `bin/cake migrations migrate --plugin Workflow`. the `RenamePolymorphicColumns`
-   migration renames the columns in place, **preserving existing data**.
+1. Run `bin/cake migrations migrate --plugin Workflow`. The migration preserves existing data.
 2. If you passed the **`entityTable`** option when attaching the behavior, rename that
    key to **`model`**:
 
@@ -63,14 +66,14 @@ The `RenamePolymorphicColumns` migration renames the polymorphic columns to the 
 A merged snapshot of the full schema (all migrations combined) is shipped as DBML at
 [`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/master/resources/schema/schema.dbml).
 Paste it into [dbdiagram.io](https://dbdiagram.io) (or any [DBML](https://dbml.dbdiagram.io/docs) tool)
-to view the tables, columns, and indexes as a diagram. It's hand-maintained. keep it in
+to view the tables, columns, and indexes as a diagram. It is hand-maintained. Keep it in
 sync when a migration changes these tables.
 
 ### Entity id type (integer or UUID primary keys)
 
 The workflow tables (`workflow_transitions`, `workflow_locks`, `workflow_timeouts`)
 reference your entities through a generic `foreign_key` column. It is **not** a real
-foreign key. each row can point at a different table. so it cannot be constrained.
+foreign key. Each row can point at a different table, so the database cannot enforce an entity reference.
 
 `foreign_key` is **polymorphic** (paired with `model`). Its column type follows the
 shared `Polymorphic.type` config key (the same convention used across the plugin family),
@@ -88,10 +91,10 @@ primary keys are defined (signed by default; unsigned only takes effect on MySQL
 
 #### Using UUID / char primary keys
 
-::: tip Fully supported
+::: tip Match the entity identifier type
 UUID primary keys work with a matching column type. Other string keys need a column wide enough for the application's identifiers. The behavior always
-passes the id through as a string, so **no application code changes are needed**. only
-the `foreign_key` column type.
+passes the id through as a string, so **no application code changes are needed**. Choose
+the matching `foreign_key` column type.
 :::
 
 The simplest way is to set the column type **before** running the migration:
@@ -106,8 +109,7 @@ The simplest way is to set the column type **before** running the migration:
 bin/cake migrations migrate --plugin Workflow
 ```
 
-That's it. transitions, locks, and timeouts now store and look up your UUID ids
-unchanged.
+Transitions, locks and timeouts then store and look up your UUID identifiers unchanged.
 
 If you already ran the migration with an integer type, widen `foreign_key` afterwards with
 a migration in your app instead:

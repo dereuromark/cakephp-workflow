@@ -187,7 +187,7 @@ A minimal workflow has:
 
 ### Using the workflow object
 
-The `Workflow` class operates on an entity in memory. Use the table's `transition()` method to persist a transition:
+The `Workflow` class operates on an entity in memory. Use the behavior's `transition()` method to persist a transition:
 
 ```php
 // Get a workflow for an entity
@@ -216,7 +216,7 @@ The behavior provides table-level methods via explicit access:
 $behavior = $this->Orders->getBehavior('Workflow');
 
 if ($behavior->canTransition($order, 'pay')) {
-    $result = $behavior->applyTransition($order, 'pay');
+    $result = $behavior->transition($order, 'pay');
 }
 ```
 
@@ -224,6 +224,6 @@ Both approaches use the same underlying engine, guards, and commands.
 
 ## Next Steps
 
-- [Quick Start](./quick-start) - Build your first workflow
+- [Getting started](./quick-start) - Build your first workflow
 - [Behavior Integration](./behavior) - Full API reference
 - [Attributes](/definitions/attributes) - Define states with PHP attributes

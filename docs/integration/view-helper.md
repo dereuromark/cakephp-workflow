@@ -240,7 +240,7 @@ Returns the hex color (e.g., `#00AA00`) or a default gray if none is configured.
 ```php
 <?php
 // In your controller: pass definition and availableTransitions to view
-// $registry = \Workflow\Service\WorkflowRegistryLocator::get();
+// $registry = \Workflow\Service\WorkflowRegistryLocator::get() ?? throw new \RuntimeException('Workflow registry unavailable');
 // $workflow = $registry->get($order);
 // $this->set('definition', $workflow->getDefinition());
 // $this->set('availableTransitions', $workflow->getAvailableTransitions());

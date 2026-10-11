@@ -31,7 +31,7 @@ export default withMermaid(defineConfig({
     nav: [
       { text: 'Installation', link: '/guide/installation' },
       { text: 'Getting started', link: '/guide/quick-start' },
-      { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+      { text: 'Guide', link: '/guide/', activeMatch: '^/guide/(?!installation$|quick-start$)' },
       { text: 'Definitions', link: '/definitions/', activeMatch: '/definitions/' },
       { text: 'Integration', link: '/integration/', activeMatch: '/integration/' },
       { text: 'Admin', link: '/admin/', activeMatch: '/admin/' },

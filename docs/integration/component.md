@@ -42,7 +42,7 @@ $this->addBehavior('Workflow.Workflow', [
 ```
 
 Keep the behavior's other configuration. For a persisted transition with
-logging, locking and a transaction in one call, use the table's `transition()`
+logging, locking and a transaction in one call, use the behavior's `transition()`
 method shown in [Getting started](../guide/quick-start).
 
 ## Basic Usage

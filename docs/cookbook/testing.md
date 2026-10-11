@@ -62,30 +62,44 @@ services that the test can replace.
 ## Verify persisted transitions
 
 After completing [Getting started](../guide/quick-start), create an application
-`OrdersFixture` with a pending order. Load the Workflow plugin and its configuration
-in the application's test bootstrap. Tests that use transition logging, locks or
+`OrdersFixture` with a pending order. The example injects a registry directly into the behavior, so it does not depend on a previously built application container. Tests that use transition logging, locks or
 timeouts also need fixtures for the corresponding plugin tables.
 
 ```php
-public function testCompletesOrder(): void
+use Cake\Event\EventManager;
+use Cake\TestSuite\TestCase;
+use Workflow\Loader\AttributeLoader;
+use Workflow\Service\WorkflowRegistry;
+
+class OrdersTableWorkflowTest extends TestCase
 {
-    $orders = $this->getTableLocator()->get('Orders');
-    $order = $orders->get(1);
+    protected array $fixtures = ['app.Orders'];
 
-    $result = $orders->getBehavior('Workflow')->transition($order, 'completed', [], [
-        'log' => false,
-        'lock' => false,
-        'timeouts' => false,
-    ]);
+    public function testCompletesOrder(): void
+    {
+        $registry = new WorkflowRegistry(
+            new AttributeLoader(['App\\Workflow']),
+            new EventManager(),
+        );
+        $orders = $this->getTableLocator()->get('Orders');
+        $behavior = $orders->getBehavior('Workflow');
+        $behavior->setConfig('registry', $registry);
+        $order = $orders->get(1);
 
-    $this->assertTrue($result->isSuccess());
-    $this->assertSame('completed', $orders->get(1)->get('state'));
+        $result = $behavior->transition($order, 'completed', [], [
+            'log' => false,
+            'lock' => false,
+            'timeouts' => false,
+        ]);
+
+        $this->assertTrue($result->isSuccess());
+        $this->assertSame('completed', $orders->get(1)->get('state'));
+    }
 }
 ```
 
 The transition name `completed` matches the generated beginner definition. Replace
-it when testing another workflow. Declare `protected array $fixtures = ['app.Orders'];`
-in this test class and ensure fixture row `1` starts in `pending`.
+it when testing another workflow. Ensure fixture row `1` starts in `pending`.
 
 Add a blocked-transition test that reloads the row and confirms its state did not
 change. Test authorization separately through your application's controller tests.

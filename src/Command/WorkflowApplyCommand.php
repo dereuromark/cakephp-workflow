@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Workflow\Command;
 
 use Cake\Command\Command;
-use Cake\Console\Arguments;
-use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Datasource\Exception\RecordNotFoundException;
@@ -46,8 +44,10 @@ class WorkflowApplyCommand extends Command
         return $parser;
     }
 
-    public function execute(Arguments $args, ConsoleIo $io): int
+    public function execute(): int
     {
+        $args = $this->args;
+        $io = $this->io;
         $workflow = (string)$args->getArgument('workflow');
         $id = (string)$args->getArgument('id');
         $transition = (string)$args->getArgument('transition');

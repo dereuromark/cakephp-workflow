@@ -27,7 +27,7 @@ $this->assign('title', 'Force Transition');
         <?= $this->Html->link(
             '<i class="bi bi-play-circle"></i> Simulate',
             ['action' => 'simulate', $definition->getName(), $foreignKey],
-            ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-outline-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>
@@ -99,7 +99,7 @@ $this->assign('title', 'Force Transition');
                         <?= $this->Form->button('<i class="bi bi-lightning"></i> Force Transition', [
                             'class' => 'btn btn-warning',
                             'type' => 'submit',
-                            'escapeTitle' => false,
+                            'escape' => false, 'escapeAttributes' => true,
                             'onclick' => "return confirm('Are you sure you want to force this transition? This action bypasses all guards and validations.');",
                         ]) ?>
                         <?= $this->Html->link('Cancel', ['action' => 'view', $definition->getName()], [

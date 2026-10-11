@@ -22,7 +22,7 @@ $this->assign('title', 'Workflows');
         <?= $this->Html->link(
             '<i class="bi bi-plus-lg me-1"></i>New Workflow',
             ['action' => 'create'],
-            ['class' => 'btn btn-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>
@@ -68,7 +68,7 @@ $this->assign('title', 'Workflows');
                         <?= $this->Html->link(
                             '<i class="bi bi-eye me-1"></i>View Details',
                             ['action' => 'view', $workflow['name']],
-                            ['class' => 'btn btn-primary btn-sm', 'escapeTitle' => false],
+                            ['class' => 'btn btn-primary btn-sm', 'escape' => false, 'escapeAttributes' => true],
                         ) ?>
                     </div>
                 </div>

@@ -31,7 +31,7 @@ $this->assign('title', 'Timeouts');
             [
                 'class' => 'btn btn-outline-warning',
                 'confirm' => 'Execute all due pending timeouts now?',
-                'escapeTitle' => false,
+                'escape' => false, 'escapeAttributes' => true,
                 'block' => true,
             ],
         ) ?>
@@ -142,7 +142,7 @@ $this->assign('title', 'Timeouts');
                             <?= $this->Html->link(
                                 '<i class="bi bi-eye"></i>',
                                 ['action' => 'view', $timeout->id],
-                                ['class' => 'btn btn-sm btn-outline-info', 'escapeTitle' => false, 'title' => 'View Details'],
+                                ['class' => 'btn btn-sm btn-outline-info', 'escape' => false, 'escapeAttributes' => true, 'title' => 'View Details'],
                             ) ?>
                             <?php if (!$timeout->processed) { ?>
                                 <?= $this->Form->postLink(
@@ -151,7 +151,7 @@ $this->assign('title', 'Timeouts');
                                     [
                                         'class' => 'btn btn-sm btn-success',
                                         'confirm' => 'Execute this timeout now?',
-                                        'escapeTitle' => false,
+                                        'escape' => false, 'escapeAttributes' => true,
                                         'block' => true,
                                         'title' => 'Execute Now',
                                     ],
@@ -162,7 +162,7 @@ $this->assign('title', 'Timeouts');
                                     [
                                         'class' => 'btn btn-sm btn-outline-danger',
                                         'confirm' => 'Cancel this timeout?',
-                                        'escapeTitle' => false,
+                                        'escape' => false, 'escapeAttributes' => true,
                                         'block' => true,
                                         'title' => 'Cancel',
                                     ],
@@ -174,7 +174,7 @@ $this->assign('title', 'Timeouts');
                                     [
                                         'class' => 'btn btn-sm btn-outline-warning',
                                         'confirm' => 'Create a new timeout to retry this transition?',
-                                        'escapeTitle' => false,
+                                        'escape' => false, 'escapeAttributes' => true,
                                         'block' => true,
                                         'title' => 'Retry',
                                     ],
@@ -207,7 +207,7 @@ $this->assign('title', 'Timeouts');
                         'formaction' => $this->Url->build(['action' => 'bulkCancel']),
                         'formmethod' => 'post',
                         'class' => 'btn btn-sm btn-outline-danger',
-                        'escapeTitle' => false,
+                        'escape' => false, 'escapeAttributes' => true,
                     ],
                 ) ?>
             </div>

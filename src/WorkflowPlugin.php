@@ -6,9 +6,9 @@ namespace Workflow;
 
 use Bake\Command\SimpleBakeCommand;
 use Cake\Console\CommandCollection;
+use Cake\Container\ContainerInterface;
 use Cake\Core\BasePlugin;
 use Cake\Core\Configure;
-use Cake\Core\ContainerInterface;
 use Cake\Core\Plugin as CakePlugin;
 use Cake\Core\PluginApplicationInterface;
 use Cake\Event\EventManager;

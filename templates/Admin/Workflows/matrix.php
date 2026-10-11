@@ -30,7 +30,7 @@ $bucketNames = array_keys($timeBuckets);
         <?= $this->Html->link(
             '<i class="bi bi-diagram-2 me-1"></i>View Diagram',
             ['action' => 'view', $definition->getName()],
-            ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-outline-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>
@@ -151,12 +151,12 @@ $bucketNames = array_keys($timeBuckets);
                     <?= $this->Html->link(
                         '<i class="bi bi-arrow-left-right me-1"></i>View Transitions',
                         ['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
-                        ['class' => 'btn btn-outline-secondary btn-sm', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-secondary btn-sm', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                     <?= $this->Html->link(
                         '<i class="bi bi-clock-history me-1"></i>View Timeouts',
                         ['controller' => 'Timeouts', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
-                        ['class' => 'btn btn-outline-warning btn-sm', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-warning btn-sm', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                 </div>
             </div>

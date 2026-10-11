@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Workflow\Command;
 
 use Bake\Command\SimpleBakeCommand;
-use Cake\Console\Arguments;
-use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
 use Cake\Core\Configure;
 use Cake\Core\Plugin;
@@ -23,15 +21,17 @@ class BakeWorkflowStateCommand extends SimpleBakeCommand
         return 'bake workflow_state';
     }
 
-    public function bake(string $name, Arguments $args, ConsoleIo $io): void
+    public function bake(string $name): void
     {
         $this->_name = $name;
 
-        parent::bake($name, $args, $io);
+        parent::bake($name);
     }
 
-    public function bakeTest(string $name, Arguments $args, ConsoleIo $io): void
+    public function bakeTest(string $name): void
     {
+        $args = $this->args;
+        $io = $this->io;
         if ($args->getOption('no-test')) {
             return;
         }
@@ -55,13 +55,14 @@ class BakeWorkflowStateCommand extends SimpleBakeCommand
         return 'WorkflowState/state';
     }
 
-    public function templateData(Arguments $arguments): array
+    public function templateData(): array
     {
+        $arguments = $this->args;
         $name = $this->_name;
         $namespace = (string)Configure::read('App.namespace');
         $pluginPath = '';
         if ($this->plugin) {
-            $namespace = $this->_pluginNamespace($this->plugin);
+            $namespace = $this->pluginNamespace($this->plugin);
             $pluginPath = $this->plugin . '.';
         }
 
@@ -127,8 +128,10 @@ class BakeWorkflowStateCommand extends SimpleBakeCommand
         return $parser;
     }
 
-    public function execute(Arguments $args, ConsoleIo $io): ?int
+    public function execute(): ?int
     {
+        $args = $this->args;
+        $io = $this->io;
         $transitionTo = (string)$args->getOption('transition-to');
         $transitionName = (string)$args->getOption('transition-name');
         if (($transitionTo === '') !== ($transitionName === '')) {
@@ -148,10 +151,10 @@ class BakeWorkflowStateCommand extends SimpleBakeCommand
             $this->abort();
         }
 
-        $name = $this->_getName($name);
+        $name = $this->getNameWithoutPrefix($name);
         $name = Inflector::camelize($name);
-        $this->bake($name, $args, $io);
-        $this->bakeTest($name, $args, $io);
+        $this->bake($name);
+        $this->bakeTest($name);
 
         return static::CODE_SUCCESS;
     }
@@ -166,9 +169,9 @@ class BakeWorkflowStateCommand extends SimpleBakeCommand
         return $this->className($name) . '.php';
     }
 
-    public function getPath(Arguments $args): string
+    public function getPath(): string
     {
-        $path = parent::getPath($args);
+        $path = parent::getPath();
         $subPath = $this->subPath($this->_name);
         if ($subPath === '') {
             return $path;

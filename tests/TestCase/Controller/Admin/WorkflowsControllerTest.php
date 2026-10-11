@@ -36,6 +36,26 @@ class WorkflowsControllerTest extends IntegrationTestCase
         $this->assertResponseOk();
         $this->assertResponseContains('order');
         $this->assertResponseContains('payment');
+        $this->assertResponseContains('<i class="bi bi-plus-lg me-1"></i>New Workflow');
+        $this->assertResponseNotContains('&lt;i class=');
+    }
+
+    public function testAdminBackLinkEscapesConfiguredUrlAndLabel(): void
+    {
+        $previousUrl = Configure::read('Workflow.adminBackUrl');
+        $previousLabel = Configure::read('Workflow.adminBackLabel');
+        Configure::write('Workflow.adminBackUrl', '/dashboard?name="quoted"&mode=1');
+        Configure::write('Workflow.adminBackLabel', '<b>Dashboard</b>');
+        try {
+            $this->get(['prefix' => 'Admin', 'plugin' => 'Workflow', 'controller' => 'Workflows', 'action' => 'index']);
+            $this->assertResponseOk();
+            $this->assertResponseContains('href="/dashboard?name=&quot;quoted&quot;&amp;mode=1"');
+            $this->assertResponseContains('<i class="bi bi-arrow-left"></i> &lt;b&gt;Dashboard&lt;/b&gt;');
+            $this->assertResponseNotContains('href="/dashboard?name="quoted"');
+        } finally {
+            Configure::write('Workflow.adminBackUrl', $previousUrl);
+            Configure::write('Workflow.adminBackLabel', $previousLabel);
+        }
     }
 
     /**
@@ -139,7 +159,7 @@ class WorkflowsControllerTest extends IntegrationTestCase
 
         $this->assertResponseOk();
         $this->assertContentType('image/png');
-        $this->assertSame("\x89PNG", substr((string)$this->_response->getBody(), 0, 4));
+        $this->assertSame("\x89PNG", substr((string)$this->response->getBody(), 0, 4));
     }
 
     /**

@@ -35,7 +35,7 @@ class WorkflowComponent extends Component
      *
      * @var array<string, mixed>
      */
-    protected array $_defaultConfig = [
+    protected array $defaultConfig = [
         'messages' => [
             'success' => "Transition '{transition}' applied successfully.",
             'blocked' => 'Transition blocked: {reasons}',

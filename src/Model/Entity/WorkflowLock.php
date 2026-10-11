@@ -17,7 +17,7 @@ use Cake\ORM\Entity;
  */
 class WorkflowLock extends Entity
 {
-    protected array $_accessible = [
+    protected array $patchable = [
         'workflow_name' => true,
         'model' => true,
         'foreign_key' => true,

@@ -1,17 +1,21 @@
 # Installation
 
+This development branch requires PHP 8.5 and CakePHP 6. The application must allow development stability for unreleased framework and companion packages. Keep stable packages preferred.
+
 ## Composer
 
 Install Workflow and Migrations for the persisted beginner example. Composer checks compatibility with the application:
 
 ```bash
-composer require dereuromark/cakephp-workflow cakephp/migrations
+composer config minimum-stability dev
+composer config prefer-stable true
+composer require dereuromark/cakephp-workflow:dev-cake6 cakephp/migrations:dev-fix/6.x-cakephp-compatibility
 ```
 
 If you want the Bake-powered scaffolding command:
 
 ```bash
-composer require --dev cakephp/bake
+composer require --dev 'cakephp/bake:^4.0@dev'
 ```
 
 ## Load the plugin
@@ -64,7 +68,7 @@ The `RenamePolymorphicColumns` migration renames the polymorphic columns to the 
 ### Schema reference
 
 A merged snapshot of the full schema (all migrations combined) is shipped as DBML at
-[`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/master/resources/schema/schema.dbml).
+[`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/cake6/resources/schema/schema.dbml).
 Paste it into [dbdiagram.io](https://dbdiagram.io) (or any [DBML](https://dbml.dbdiagram.io/docs) tool)
 to view the tables, columns, and indexes as a diagram. It is hand-maintained. Keep it in
 sync when a migration changes these tables.

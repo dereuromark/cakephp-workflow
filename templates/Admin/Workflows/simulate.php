@@ -29,7 +29,7 @@ $this->assign('title', 'Simulate Transitions');
         <?= $this->Html->link(
             '<i class="bi bi-lightning"></i> Force Transition',
             ['action' => 'forceTransition', $definition->getName(), $foreignKey],
-            ['class' => 'btn btn-warning', 'escapeTitle' => false],
+            ['class' => 'btn btn-warning', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>

@@ -23,21 +23,21 @@
         }
     ],
     "require": {
-        "php": ">=8.2",
-        "cakephp/cakephp": "^5.2"
+        "php": ">=8.5",
+        "cakephp/cakephp": "^6.0@dev"
     },
     "suggest": {
-        "cakephp/bake": "Optional for bake workflow_state scaffolding (^3.0)",
+        "cakephp/bake": "Optional for bake workflow_state scaffolding (^4.0@dev)",
         "nette/neon": "Required for NEON workflow definitions (^3.0)",
         "symfony/yaml": "Required for YAML workflow definitions (^6.0 || ^7.0 || ^8.0)"
     },
     "require-dev": {
-        "cakephp/bake": "^3.0",
-        "cakephp/migrations": "^5.0.0",
-        "dereuromark/cakephp-i18n-lint": "^0.1.1",
+        "cakephp/bake": "^4.0@dev",
+        "cakephp/migrations": "dev-fix/6.x-cakephp-compatibility",
+        "dereuromark/cakephp-i18n-lint": "dev-cake6",
         "nette/neon": "^3.0",
         "php-collective/code-sniffer": "^0.6.0",
-        "phpunit/phpunit": "^11.5 || ^12.5 || ^13.0",
+        "phpunit/phpunit": "^13.0",
         "symfony/yaml": "^6.0 || ^7.0 || ^8.0"
     },
     "autoload": {
@@ -72,5 +72,7 @@
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

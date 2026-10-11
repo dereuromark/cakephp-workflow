@@ -52,7 +52,7 @@ foreach ($terminalStateIssues as $issue) {
             <?= $this->Html->link(
                 '<i class="bi bi-download me-1"></i>Export ' . $exportLabel,
                 ['action' => 'export', $definition->getName(), $exportFormat],
-                ['class' => 'btn btn-outline-secondary me-2', 'escapeTitle' => false],
+                ['class' => 'btn btn-outline-secondary me-2', 'escape' => false, 'escapeAttributes' => true],
             ) ?>
         <?php } ?>
         <button class="btn btn-outline-secondary me-2" id="export-svg">
@@ -61,7 +61,7 @@ foreach ($terminalStateIssues as $issue) {
         <?= $this->Html->link(
             '<i class="bi bi-grid-3x3 me-1"></i>Matrix',
             ['action' => 'matrix', $definition->getName()],
-            ['class' => 'btn btn-primary', 'escapeTitle' => false],
+            ['class' => 'btn btn-primary', 'escape' => false, 'escapeAttributes' => true],
         ) ?>
     </div>
 </div>
@@ -410,32 +410,32 @@ foreach ($terminalStateIssues as $issue) {
                     <?= $this->Html->link(
                         '<i class="bi bi-pencil-square me-2"></i>Designer',
                         ['action' => 'designer', $definition->getName()],
-                        ['class' => 'btn btn-outline-primary', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-primary', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                     <?= $this->Html->link(
                         '<i class="bi bi-arrow-left-right me-2"></i>View Transitions',
                         ['controller' => 'Transitions', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
-                        ['class' => 'btn btn-outline-secondary', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-secondary', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                     <?= $this->Html->link(
                         '<i class="bi bi-clock-history me-2"></i>View Timeouts',
                         ['controller' => 'Timeouts', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
-                        ['class' => 'btn btn-outline-warning', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-warning', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                     <?= $this->Html->link(
                         '<i class="bi bi-lock me-2"></i>View Locks',
                         ['controller' => 'Locks', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
-                        ['class' => 'btn btn-outline-info', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-info', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                     <?= $this->Html->link(
                         '<i class="bi bi-exclamation-triangle me-2"></i>Check Orphans',
                         ['controller' => 'Orphans', 'action' => 'index', '?' => ['workflow' => $definition->getName()]],
-                        ['class' => 'btn btn-outline-danger', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-danger', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                     <?= $this->Html->link(
                         '<i class="bi bi-check2-circle me-2"></i>Validate',
                         ['action' => 'validate', $definition->getName()],
-                        ['class' => 'btn btn-outline-success', 'escapeTitle' => false],
+                        ['class' => 'btn btn-outline-success', 'escape' => false, 'escapeAttributes' => true],
                     ) ?>
                 </div>
             </div>

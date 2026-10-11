@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Service;
 
-use Cake\Core\ContainerInterface;
+use Cake\Container\ContainerInterface;
 use Throwable;
 
 class WorkflowRegistryLocator

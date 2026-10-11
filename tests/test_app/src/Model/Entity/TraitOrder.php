@@ -11,7 +11,7 @@ class TraitOrder extends Entity
 {
     use WorkflowTrait;
 
-    protected array $_accessible = [
+    protected array $patchable = [
         '*' => true,
         'id' => false,
     ];

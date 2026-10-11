@@ -98,7 +98,8 @@ class WorkflowComponent extends Component
         array $options = [],
     ): Response {
         $request = $this->getController()->getRequest();
-        $transition = trim((string)$request->getData('transition'));
+        $value = $request->getData('transition');
+        $transition = is_string($value) ? trim($value) : '';
         $reason = $request->getData('reason');
 
         if ($transition === '') {

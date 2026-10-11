@@ -46,7 +46,7 @@ flowchart TD
 ```
 
 ::: tip
-This is exactly what `bin/cake workflow show order --mermaid` outputs, and what the [View Helper](/integration/view-helper)'s `diagram()` renders in your app — initial states are gray, final states green, failed states red, and happy-path transitions are highlighted. You never have to draw these by hand.
+This is exactly what `bin/cake workflow show order --mermaid` outputs, and what the [View Helper](/integration/view-helper)'s `diagram()` renders in your app, initial states are gray, final states green, failed states red, and happy-path transitions are highlighted. You never have to draw these by hand.
 :::
 
 ## Good Practices
@@ -73,53 +73,32 @@ class PendingState extends BaseOrderState
 }
 ```
 
-## Triggering UI Actions From Code
+## Triggering transitions from code
 
-If the page shows actions such as `Deliver` or `Refund`, those button labels map to transition names you can call through the workflow API.
-Instead of UI buttons, they can also be triggered programatically from anywhere within your code.
-Often in the business logic, sometimes also in the communication layer.
-
-Use `can()` to check first, then `apply()` to execute the transition and save the entity if it succeeds.
+Button labels should map to transition names defined by the workflow. For the
+example above, payment uses `pay`. Authorize the order in your application before
+running the transition:
 
 ```php [src/Controller/OrdersController.php]
-$order = $this->Orders->get(1);
-$workflow = $this->workflowRegistry->get($order);
-
-if ($workflow->can('deliver')) {
-    $result = $workflow->apply('deliver', [
-        'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
-        'reason' => 'Marked as delivered from controller action',
+public function pay(int $id): \Cake\Http\Response
+{
+    $this->getRequest()->allowMethod(['post']);
+    $orders = $this->fetchTable('Orders');
+    $order = $orders->get($id);
+    $result = $orders->getBehavior('Workflow')->transition($order, 'pay', [
+        'reason' => 'Payment captured',
     ]);
 
     if ($result->isSuccess()) {
-        $this->Orders->saveOrFail($order);
+        $this->Flash->success('Payment recorded.');
+    } else {
+        $this->Flash->error('Payment could not be recorded.');
     }
+
+    return $this->redirect(['action' => 'view', $id]);
 }
 ```
 
-```php [src/Controller/OrdersController.php]
-$order = $this->Orders->get(1);
-$workflow = $this->workflowRegistry->get($order);
-
-if ($workflow->can('refund')) {
-    $result = $workflow->apply('refund', [
-        'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
-        'reason' => 'Refund approved by support',
-    ]);
-
-    if ($result->isSuccess()) {
-        $this->Orders->saveOrFail($order);
-    }
-}
-```
-
-If you already fetched the available transitions for a view, the same names are the ones you pass in PHP:
-
-```php [src/Controller/OrdersController.php]
-$workflow = $this->workflowRegistry->get($order);
-$transitions = $workflow->getAvailableTransitions();
-
-if (in_array('deliver', $transitions, true)) {
-    $workflow->apply('deliver');
-}
-```
+`transition()` checks guards and persists the new state. A separate `can()` call
+can help render available actions, but execution must still check its result:
+another request may have changed the entity since the page was rendered.

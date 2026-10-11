@@ -101,7 +101,7 @@ abstract class IntegrationTestCase extends DatabaseTestCase
      */
     protected function createMockLoader(array $definitions): LoaderInterface
     {
-        $loader = $this->createMock(LoaderInterface::class);
+        $loader = $this->createStub(LoaderInterface::class);
 
         $loader->method('supports')->willReturnCallback(
             fn (string $name): bool => isset($definitions[$name]),

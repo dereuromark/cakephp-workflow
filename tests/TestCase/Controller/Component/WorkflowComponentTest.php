@@ -112,6 +112,19 @@ class WorkflowComponentTest extends TestCase
         ], $this->flashRecorder->calls);
     }
 
+    public function testHandleTransitionRejectsArrayInputWithoutChangingState(): void
+    {
+        $this->controller->setRequest($this->controller->getRequest()->withParsedBody([
+            'transition' => ['pay'],
+        ]));
+        $entity = new Entity(['state' => 'pending']);
+        $response = $this->component->handleTransition($this->createWorkflowTable(), $entity, '/orders/view/1');
+
+        $this->assertSame(302, $response->getStatusCode());
+        $this->assertSame('pending', $entity->get('state'));
+        $this->assertSame('error', $this->flashRecorder->calls[0]['method']);
+    }
+
     private function createWorkflowTable(): TraitOrdersTable
     {
         return new TraitOrdersTable();

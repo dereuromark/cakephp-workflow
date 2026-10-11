@@ -55,7 +55,10 @@ flowchart TD
 A transition moves an entity from one state to another.
 
 ```php
-$workflow = $this->workflowRegistry->get($order);
+use Workflow\Service\WorkflowRegistryLocator;
+
+$registry = WorkflowRegistryLocator::get() ?? throw new \RuntimeException('Workflow registry unavailable');
+$workflow = $registry->get($order);
 $workflow->apply('pay');
 // order.state: pending → paid
 ```
@@ -182,20 +185,20 @@ A minimal workflow has:
 3. **Guards** (optional) - protect transitions
 4. **Commands** (optional) - side effects on transitions
 
-### Using the Workflow Object (Recommended)
+### Using the workflow object
 
-The `Workflow` class provides a clean, entity-centric API:
+The `Workflow` class operates on an entity in memory. Use the table's `transition()` method to persist a transition:
 
 ```php
 // Get a workflow for an entity
-$workflow = $this->workflowRegistry->get($order);
+use Workflow\Service\WorkflowRegistryLocator;
+
+$registry = WorkflowRegistryLocator::get() ?? throw new \RuntimeException('Workflow registry unavailable');
+$workflow = $registry->get($order);
 
 // Check and apply
 if ($workflow->can('pay')) {
     $result = $workflow->apply('pay', ['user_id' => $userId]);
-    if ($result->isSuccess()) {
-        $this->Orders->save($order);
-    }
 }
 
 // Query state
@@ -214,9 +217,6 @@ $behavior = $this->Orders->getBehavior('Workflow');
 
 if ($behavior->canTransition($order, 'pay')) {
     $result = $behavior->applyTransition($order, 'pay');
-    if ($result->isSuccess()) {
-        $this->Orders->save($order);
-    }
 }
 ```
 

@@ -26,7 +26,7 @@ class WorkflowsControllerTest extends IntegrationTestCase
         $this->assertResponseOk();
         $this->assertContentType('image/svg+xml');
         $this->assertResponseContains('<svg');
-        $this->assertResponseContains('Paid');
+        $this->assertResponseContains('>paid</text>');
     }
 
     public function testDrawPng(): void

@@ -29,6 +29,8 @@ export default withMermaid(defineConfig({
   themeConfig: {
     logo: '/logo.svg',
     nav: [
+      { text: 'Installation', link: '/guide/installation' },
+      { text: 'Getting started', link: '/guide/quick-start' },
       { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
       { text: 'Definitions', link: '/definitions/', activeMatch: '/definitions/' },
       { text: 'Integration', link: '/integration/', activeMatch: '/integration/' },
@@ -50,10 +52,10 @@ export default withMermaid(defineConfig({
         {
           text: 'Guide',
           items: [
-            { text: 'Getting Started', link: '/guide/' },
+            { text: 'Overview', link: '/guide/' },
             { text: 'Installation', link: '/guide/installation' },
+            { text: 'Getting started', link: '/guide/quick-start' },
             { text: 'Concepts', link: '/guide/concepts' },
-            { text: 'Quick Start', link: '/guide/quick-start' },
             { text: 'Behavior Integration', link: '/guide/behavior' },
             { text: 'Drift Safety', link: '/guide/versioning' },
           ],

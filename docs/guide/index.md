@@ -53,15 +53,12 @@ For most application lifecycles, this is exactly the right level of complexity.
 ## Quick Example
 
 ```php
-// Get a workflow for an entity
-$workflow = $this->workflowRegistry->get($order);
+$orders = $this->fetchTable('Orders');
+$order = $orders->get($id);
+$result = $orders->getBehavior('Workflow')->transition($order, 'pay');
 
-// Check and apply a transition
-if ($workflow->can('pay')) {
-    $result = $workflow->apply('pay');
-    if ($result->isSuccess()) {
-        $this->Orders->save($order);
-    }
+if ($result->isSuccess()) {
+    $this->Flash->success('Payment recorded.');
 }
 ```
 
@@ -69,5 +66,5 @@ if ($workflow->can('pay')) {
 
 1. [Installation](./installation) - Get the plugin running
 2. [Concepts](./concepts) - Understand states, transitions, guards
-3. [Quick Start](./quick-start) - Build your first workflow
+3. [Getting started](./quick-start) - Build your first workflow
 4. [Behavior Integration](./behavior) - Full API reference

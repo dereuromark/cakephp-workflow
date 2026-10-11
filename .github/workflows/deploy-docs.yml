@@ -11,8 +11,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -25,17 +23,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: '24'
           cache: npm
           cache-dependency-path: docs/package-lock.json
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
 
       - name: Install dependencies
         run: npm ci
@@ -51,6 +46,9 @@ jobs:
           path: docs/.vitepress/dist
 
   deploy:
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

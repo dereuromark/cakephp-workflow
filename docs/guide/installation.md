@@ -1,16 +1,11 @@
 # Installation
 
-## Requirements
-
-- PHP 8.2+
-- CakePHP 5.2+
-
 ## Composer
 
-Install the plugin:
+Install Workflow and Migrations for the persisted beginner example. Composer checks compatibility with the application:
 
 ```bash
-composer require dereuromark/cakephp-workflow
+composer require dereuromark/cakephp-workflow cakephp/migrations
 ```
 
 If you want the Bake-powered scaffolding command:
@@ -22,6 +17,7 @@ composer require --dev cakephp/bake
 ## Load the Plugin
 
 ```bash
+bin/cake plugin load Migrations
 bin/cake plugin load Workflow
 ```
 
@@ -40,10 +36,10 @@ This creates three tables: `workflow_transitions`, `workflow_locks`, and
 
 ### Upgrading from 0.1.x
 
-0.2.0 renames the polymorphic columns to the CakePHP convention:
+The `RenamePolymorphicColumns` migration renames the polymorphic columns to the CakePHP convention:
 `entity_table` → `model` and `entity_id` → `foreign_key`.
 
-1. Run `bin/cake migrations migrate --plugin Workflow` — the `RenamePolymorphicColumns`
+1. Run `bin/cake migrations migrate --plugin Workflow`. the `RenamePolymorphicColumns`
    migration renames the columns in place, **preserving existing data**.
 2. If you passed the **`entityTable`** option when attaching the behavior, rename that
    key to **`model`**:
@@ -67,14 +63,14 @@ This creates three tables: `workflow_transitions`, `workflow_locks`, and
 A merged snapshot of the full schema (all migrations combined) is shipped as DBML at
 [`resources/schema/schema.dbml`](https://github.com/dereuromark/cakephp-workflow/blob/master/resources/schema/schema.dbml).
 Paste it into [dbdiagram.io](https://dbdiagram.io) (or any [DBML](https://dbml.dbdiagram.io/docs) tool)
-to view the tables, columns, and indexes as a diagram. It's hand-maintained — keep it in
+to view the tables, columns, and indexes as a diagram. It's hand-maintained. keep it in
 sync when a migration changes these tables.
 
 ### Entity id type (integer or UUID primary keys)
 
 The workflow tables (`workflow_transitions`, `workflow_locks`, `workflow_timeouts`)
 reference your entities through a generic `foreign_key` column. It is **not** a real
-foreign key — each row can point at a different table — so it cannot be constrained.
+foreign key. each row can point at a different table. so it cannot be constrained.
 
 `foreign_key` is **polymorphic** (paired with `model`). Its column type follows the
 shared `Polymorphic.type` config key (the same convention used across the plugin family),
@@ -93,8 +89,8 @@ primary keys are defined (signed by default; unsigned only takes effect on MySQL
 #### Using UUID / char primary keys
 
 ::: tip Fully supported
-UUID (or other string/char) primary keys work out of the box. The behavior always
-passes the id through as a string, so **no application code changes are needed** — only
+UUID primary keys work with a matching column type. Other string keys need a column wide enough for the application's identifiers. The behavior always
+passes the id through as a string, so **no application code changes are needed**. only
 the `foreign_key` column type.
 :::
 
@@ -110,7 +106,7 @@ The simplest way is to set the column type **before** running the migration:
 bin/cake migrations migrate --plugin Workflow
 ```
 
-That's it — transitions, locks, and timeouts now store and look up your UUID ids
+That's it. transitions, locks, and timeouts now store and look up your UUID ids
 unchanged.
 
 If you already ran the migration with an integer type, widen `foreign_key` afterwards with
@@ -165,3 +161,19 @@ You can enable one or more definition sources:
 - YAML: install `symfony/yaml`
 
 When multiple loaders are enabled, the plugin combines them through a chain loader.
+
+## Optional parsers
+
+For NEON definitions:
+
+```bash
+composer require nette/neon
+```
+
+For YAML definitions:
+
+```bash
+composer require symfony/yaml
+```
+
+PHP and attribute definitions need neither package.

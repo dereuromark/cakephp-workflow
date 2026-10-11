@@ -1,22 +1,21 @@
-# Quick Start
+# Getting started
 
-This example uses attribute-based definitions.
+Complete [Installation](/guide/installation), including the loader configuration and plugin migrations. This example adds a workflow to an existing `Orders` table with an integer primary key.
 
-::: tip Try it live
-A working sandbox app is available at <https://sandbox.dereuromark.de/workflow-sandbox> - explore the admin UI, transitions, and diagrams without installing anything.
-:::
+## Generate states and a column migration
 
-## 1. Generate a Workflow Skeleton
+From the application root:
 
 ```bash
-bin/cake workflow init order Orders
+bin/cake workflow init order Orders --migration
+bin/cake migrations migrate
 ```
 
-This creates a workflow directory in `src/Workflow/Order/` with three files:
+The command creates `BaseOrderState.php`, `PendingState.php`, and `CompletedState.php` under `src/Workflow/Order/`, plus an application migration for the nullable `state` column. If the column already exists, omit `--migration` and keep its schema. The generated transition is named `completed`.
 
-::: code-group
+The base class identifies the table and field:
 
-```php [BaseOrderState.php]
+```php
 namespace App\Workflow\Order;
 
 use Workflow\Attribute\StateMachine;
@@ -28,78 +27,54 @@ abstract class BaseOrderState extends AbstractState
 }
 ```
 
-```php [PendingState.php]
+The generated pending state declares its transition:
+
+```php
 namespace App\Workflow\Order;
 
 use Workflow\Attribute\InitialState;
 use Workflow\Attribute\Transition;
 
 #[InitialState]
-#[Transition(to: CompletedState::class, name: 'complete', happy: true)]
+#[Transition(to: CompletedState::class, name: 'completed', happy: true)]
 class PendingState extends BaseOrderState
 {
 }
 ```
 
-```php [CompletedState.php]
-namespace App\Workflow\Order;
+## Attach the behavior
 
-use Workflow\Attribute\FinalState;
+Add this inside the existing `OrdersTable::initialize()` method, after `parent::initialize($config)`. Preserve other table setup:
 
-#[FinalState]
-class CompletedState extends BaseOrderState
-{
+```php
+$this->addBehavior('Workflow.Workflow', ['workflow' => 'order']);
+```
+
+Create new orders in the initial `pending` state. Existing rows need a deliberate initial-state assignment before transitions; do not overwrite an established order status without mapping it to the new workflow.
+
+## Persist a transition
+
+In an existing authorized controller action, load the order through the table and use the behavior's persisted transition method:
+
+```php
+$orders = $this->fetchTable('Orders');
+$order = $orders->get($id);
+$result = $orders->getBehavior('Workflow')->transition($order, 'completed', [
+    'reason' => 'Fulfillment finished',
+]);
+
+if ($result->isSuccess()) {
+    $this->Flash->success('Order completed');
+    return $this->redirect(['action' => 'view', $order->id]);
 }
+$this->Flash->error('The order could not be completed');
 ```
 
-:::
+Use this code in a POST action after checking access to the selected order. `transition()` saves the new state and can coordinate logging, locks, and timeouts. It returns a result for blocked or failed transitions. A plain workflow object's `apply()` changes the entity in memory and needs separate persistence; see [Persisted transitions](/integration/persisted-transitions).
 
-If Bake is installed, you can add more states later:
+Reload the order and confirm that its `state` is now `completed`. Repeating the same transition is blocked because no transition leaves the final state.
 
-```bash
-bin/cake bake workflow_state Order/Shipped --transition-to Delivered --transition-name deliver
-```
-
-See [Attributes](/definitions/attributes) for adding guards, commands, and lifecycle callbacks.
-
-## 2. Attach the Behavior
-
-In your table class:
-
-```php [src/Model/Table/OrdersTable.php]
-public function initialize(array $config): void
-{
-    parent::initialize($config);
-
-    $this->addBehavior('Workflow.Workflow', [
-        'workflow' => 'order',
-    ]);
-}
-```
-
-## 3. Apply Transitions
-
-```php [src/Controller/OrdersController.php]
-$order = $this->Orders->get($id);
-$workflow = $this->workflowRegistry->get($order);
-
-if ($workflow->can('complete')) {
-    $result = $workflow->apply('complete', [
-        'user_id' => $this->Authentication->getIdentity()->getIdentifier(),
-        'reason' => 'Fulfillment finished',
-    ]);
-
-    if ($result->isSuccess()) {
-        $this->Orders->saveOrFail($order);
-    }
-}
-```
-
-See [Behavior Integration](./behavior) for the full API.
-
-## 4. Inspect the Workflow
-
-CLI:
+## Inspect the definition
 
 ```bash
 bin/cake workflow list
@@ -107,13 +82,6 @@ bin/cake workflow show order
 bin/cake workflow validate
 ```
 
-Admin UI:
+The [admin interface](/admin/) is optional and requires an explicit `Workflow.adminAccess` callback. Loading the plugin alone does not grant backend access.
 
-- `/admin/workflow/workflows`
-- `/admin/workflow/workflows/view/order`
-
-## Next Steps
-
-- [Behavior Integration](./behavior) - Full behavior API reference
-- [Definitions](/definitions/) - Explore definition formats in depth
-- [View Helper](/integration/view-helper) - Render diagrams, badges, and buttons in templates
+Continue with [attributes](/definitions/attributes), [behavior configuration](/guide/behavior), or the [view helper](/integration/view-helper).

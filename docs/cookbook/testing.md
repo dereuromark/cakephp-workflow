@@ -1,210 +1,93 @@
-# Testing Workflows
+# Testing workflows
 
-Testing workflows involves validating definitions, engine behavior, and ORM integration.
+Test definitions and guards without a database, then test persistence against your
+application's fixtures. The plugin's `WorkflowTestTrait` provides a definition
+factory and assertions for state changes.
 
-## Definition Tests
+## Engine test without fixtures
 
-Validate that your workflow definitions are correct:
+```php [tests/TestCase/Workflow/TransitionTest.php]
+namespace App\Test\TestCase\Workflow;
 
-```php
+use Cake\ORM\Entity;
 use Cake\TestSuite\TestCase;
-use Workflow\Engine\WorkflowRegistry;
+use Workflow\Test\WorkflowTestTrait;
 
-class OrderWorkflowDefinitionTest extends TestCase
+class TransitionTest extends TestCase
 {
-    public function testDefinitionLoads(): void
+    use WorkflowTestTrait;
+
+    public function testApproval(): void
     {
-        $registry = new WorkflowRegistry();
-        $definition = $registry->get('order');
+        $definition = $this->createTestWorkflow();
+        $entity = new Entity(['state' => 'pending']);
+        $registry = $this->createTestRegistry($definition);
+        $workflow = $registry->get($entity, 'test');
 
-        $this->assertSame('order', $definition->getName());
-        $this->assertSame('Orders', $definition->getTable());
-        $this->assertSame('state', $definition->getField());
-    }
-
-    public function testHasExpectedStates(): void
-    {
-        $registry = new WorkflowRegistry();
-        $definition = $registry->get('order');
-
-        $stateNames = array_map(
-            fn($s) => $s->getName(),
-            $definition->getStates(),
-        );
-
-        $this->assertContains('pending', $stateNames);
-        $this->assertContains('paid', $stateNames);
-        $this->assertContains('completed', $stateNames);
-    }
-
-    public function testHasValidInitialState(): void
-    {
-        $registry = new WorkflowRegistry();
-        $definition = $registry->get('order');
-
-        $initial = $definition->getInitialState();
-
-        $this->assertNotNull($initial);
-        $this->assertSame('pending', $initial->getName());
+        $this->assertCanTransition($definition, $entity, 'approve');
+        $this->assertTrue($workflow->apply('approve')->isSuccess());
+        $this->assertSame('approved', $entity->get('state'));
+        $this->assertCannotTransition($definition, $entity, 'approve');
     }
 }
 ```
 
-## Engine Tests
+The factory's default states are `pending`, `approved` and final `completed`.
+Its transitions are `approve` and `complete`. Pass your own `State` and
+`Transition` objects to `createTestWorkflow()` for a different definition.
+This test checks an in-memory entity; it does not verify database writes.
 
-Test transition logic directly:
+## Load an application definition
+
+Use the same namespace as the application configuration:
 
 ```php
-use Cake\TestSuite\TestCase;
-use Workflow\Engine\StateMachineEngine;
-use Workflow\Engine\WorkflowRegistry;
+use Cake\Event\EventManager;
+use Workflow\Loader\AttributeLoader;
+use Workflow\Service\WorkflowRegistry;
 
-class OrderTransitionTest extends TestCase
-{
-    protected array $fixtures = ['app.Orders'];
-
-    public function testCanTransitionFromPending(): void
-    {
-        $order = $this->getTableLocator()->get('Orders')->get(1);
-        $order->state = 'pending';
-        $order->total = 100.00;
-
-        $registry = new WorkflowRegistry();
-        $engine = $registry->getEngine('order');
-
-        $this->assertTrue($engine->canTransition($order, 'pay'));
-        $this->assertTrue($engine->canTransition($order, 'cancel'));
-        $this->assertFalse($engine->canTransition($order, 'ship'));
-    }
-
-    public function testPayGuardBlocksZeroTotal(): void
-    {
-        $order = $this->getTableLocator()->get('Orders')->get(1);
-        $order->state = 'pending';
-        $order->total = 0;
-
-        $registry = new WorkflowRegistry();
-        $engine = $registry->getEngine('order');
-
-        $this->assertFalse($engine->canTransition($order, 'pay'));
-    }
-
-    public function testApplyTransitionChangesState(): void
-    {
-        $order = $this->getTableLocator()->get('Orders')->get(1);
-        $order->state = 'pending';
-        $order->total = 100.00;
-
-        $registry = new WorkflowRegistry();
-        $engine = $registry->getEngine('order');
-
-        $result = $engine->applyTransition($order, 'pay');
-
-        $this->assertTrue($result->isSuccess());
-        $this->assertSame('paid', $order->state);
-    }
-}
+$registry = new WorkflowRegistry(
+    new AttributeLoader(['App\\Workflow']),
+    new EventManager(),
+);
+$definition = $registry->getWorkflow('order');
+$this->assertSame('Orders', $definition->getTable());
+$this->assertSame('state', $definition->getField());
 ```
 
-## Behavior Tests
+This loads the definition classes rather than creating a test substitute. Add
+cases for each guard's permitted and blocked inputs. Keep external effects behind
+services that the test can replace.
 
-Test through the ORM behavior:
+## Verify persisted transitions
 
-```php
-use Cake\TestSuite\TestCase;
-
-class OrdersTableWorkflowTest extends TestCase
-{
-    protected array $fixtures = ['app.Orders'];
-
-    public function testCanTransition(): void
-    {
-        $orders = $this->getTableLocator()->get('Orders');
-        $order = $orders->get(1);
-        $order->state = 'pending';
-        $order->total = 100.00;
-
-        $this->assertTrue($orders->canTransition($order, 'pay'));
-    }
-
-    public function testApplyTransitionSucceeds(): void
-    {
-        $orders = $this->getTableLocator()->get('Orders');
-        $order = $orders->get(1);
-        $order->state = 'pending';
-        $order->total = 100.00;
-
-        $result = $orders->applyTransition($order, 'pay', [
-            'user_id' => 1,
-            'reason' => 'Test payment',
-        ]);
-
-        $this->assertTrue($result->isSuccess());
-        $this->assertSame('paid', $order->state);
-    }
-
-    public function testApplyTransitionBlockedByGuard(): void
-    {
-        $orders = $this->getTableLocator()->get('Orders');
-        $order = $orders->get(1);
-        $order->state = 'pending';
-        $order->total = 0;
-
-        $result = $orders->applyTransition($order, 'pay');
-
-        $this->assertTrue($result->isBlocked());
-        $this->assertNotEmpty($result->getBlockedBy());
-    }
-
-    public function testSaveProtectionRejectsDirect(): void
-    {
-        $orders = $this->getTableLocator()->get('Orders');
-        $order = $orders->get(1);
-        $order->state = 'pending';
-
-        // Try to change state directly
-        $order->state = 'completed';
-        $result = $orders->save($order);
-
-        $this->assertFalse($result);
-        $this->assertNotEmpty($order->getError('state'));
-    }
-}
-```
-
-## Custom Finders
-
-Test finder queries:
+After completing [Getting started](../guide/quick-start), create an application
+`OrdersFixture` with a pending order. Load the Workflow plugin and its configuration
+in the application's test bootstrap. Tests that use transition logging, locks or
+timeouts also need fixtures for the corresponding plugin tables.
 
 ```php
-public function testFindWithFlag(): void
+public function testCompletesOrder(): void
 {
     $orders = $this->getTableLocator()->get('Orders');
+    $order = $orders->get(1);
 
-    $done = $orders->find('withFlag', flag: 'done')->toArray();
-    $notDone = $orders->find('withoutFlag', flag: 'done')->toArray();
+    $result = $orders->getBehavior('Workflow')->transition($order, 'completed', [], [
+        'log' => false,
+        'lock' => false,
+        'timeouts' => false,
+    ]);
 
-    $this->assertNotEmpty($done);
-    $this->assertNotEmpty($notDone);
-}
-
-public function testFindInFinalState(): void
-{
-    $orders = $this->getTableLocator()->get('Orders');
-
-    $final = $orders->find('inFinalState')->toArray();
-    $active = $orders->find('notInFinalState')->toArray();
-
-    foreach ($final as $order) {
-        $this->assertTrue($orders->isFinal($order));
-    }
+    $this->assertTrue($result->isSuccess());
+    $this->assertSame('completed', $orders->get(1)->get('state'));
 }
 ```
 
-## Testing Tips
+The transition name `completed` matches the generated beginner definition. Replace
+it when testing another workflow. Declare `protected array $fixtures = ['app.Orders'];`
+in this test class and ensure fixture row `1` starts in `pending`.
 
-1. **Use fixture factories** - Create entities in specific states
-2. **Test guards independently** - Verify blocking reasons
-3. **Test commands** - Assert entity changes after transitions
-4. **Test edge cases** - Invalid transitions, null entities, concurrent access
-5. **Mock external services** - Email, webhooks in commands
+Add a blocked-transition test that reloads the row and confirms its state did not
+change. Test authorization separately through your application's controller tests.
+Changing the state directly and saving an existing entity raises
+`WorkflowException` when the behavior's default `validateOnSave` is enabled.

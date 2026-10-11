@@ -10,11 +10,11 @@ hero:
     alt: cakephp-workflow
   actions:
     - theme: brand
-      text: Get Started
-      link: /guide/
+      text: Installation
+      link: /guide/installation
     - theme: alt
-      text: Definition Guide
-      link: /definitions/
+      text: Getting started
+      link: /guide/quick-start
     - theme: alt
       text: Live Demo
       link: https://sandbox.dereuromark.de/workflow-sandbox

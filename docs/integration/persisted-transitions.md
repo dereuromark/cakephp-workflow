@@ -85,7 +85,7 @@ $this->addBehavior('Workflow.Workflow', [
 ## Transaction Safety
 
 ::: warning Important
-The `applyTransition()` / `apply()` methods only change the entity **in memory**. The database state is not modified until you call `save()`.
+The workflow object's `apply()` changes the entity **in memory**. Behavior `applyTransition()` does so with its default `autoSave => false`; enabling `autoSave` persists the change. A plain object's `apply()` does not mark the entity for the behavior's direct-state validation, so use a behavior transition API when that validation is enabled.
 
 If save fails after apply succeeds, the entity object will have the new state but the database will have the old state. This is by design—it lets you control persistence—but you must handle failures appropriately.
 :::

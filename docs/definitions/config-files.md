@@ -75,15 +75,10 @@ return [
 The `PhpLoader` is always active for the config path, so this works out of the box.
 The structure matches the NEON/YAML format below.
 
-## Install Loaders
+## Optional parsers
 
-NEON and YAML need an optional parser (PHP definitions do not):
-
-```bash
-composer require nette/neon
-# OR
-composer require symfony/yaml
-```
+PHP definitions need no parser package. NEON uses `nette/neon` and YAML uses
+`symfony/yaml`; install the selected parser through [Installation](../guide/installation#optional-parsers).
 
 ## Configure the Path
 

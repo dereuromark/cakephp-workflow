@@ -4,6 +4,10 @@
  * @var array<string, array{name: string, count: int}>|null $workflowStats
  * @var int|null $pendingTimeoutsCount
  */
+$cspNonce = (string)($this->getRequest()->getAttribute('cspScriptNonce') ?? $this->getRequest()->getAttribute('cspNonce', ''));
+$nonceAttr = $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '';
+$cspStyleNonce = (string)$this->getRequest()->getAttribute('cspStyleNonce', '');
+$styleNonceAttr = $cspStyleNonce !== '' ? ' nonce="' . h($cspStyleNonce) . '"' : '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -11,9 +15,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $this->fetch('title') ?> - Workflow Admin</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <style>
+    <link<?= $styleNonceAttr ?> href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link<?= $styleNonceAttr ?> href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style<?= $styleNonceAttr ?>>
         :root {
             --sidebar-width: 250px;
         }
@@ -293,7 +297,7 @@
         <?= $this->fetch('content') ?>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script<?= $nonceAttr ?> src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <?= $this->Workflow->includeMermaid() ?>
     <?= $this->fetch('script') ?>
 </body>

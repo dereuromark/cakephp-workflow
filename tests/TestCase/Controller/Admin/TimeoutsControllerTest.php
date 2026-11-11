@@ -30,6 +30,22 @@ class TimeoutsControllerTest extends IntegrationTestCase
         $this->assertResponseOk();
     }
 
+    public function testIndexUsesCspScriptNonce(): void
+    {
+        $this->withRequestAttribute('cspScriptNonce', 'core-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Timeouts',
+            'action' => 'index',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('<script nonce="core-nonce">');
+        $this->assertResponseNotRegExp('/<script(?![^>]*(nonce=|type="text\/plain"))/');
+    }
+
     /**
      * Test index action shows pending timeouts by default.
      */

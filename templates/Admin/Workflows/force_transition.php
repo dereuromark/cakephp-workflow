@@ -100,7 +100,7 @@ $this->assign('title', 'Force Transition');
                             'class' => 'btn btn-warning',
                             'type' => 'submit',
                             'escapeTitle' => false,
-                            'onclick' => "return confirm('Are you sure you want to force this transition? This action bypasses all guards and validations.');",
+                            'data-workflow-confirm' => 'Are you sure you want to force this transition? This action bypasses all guards and validations.',
                         ]) ?>
                         <?= $this->Html->link('Cancel', ['action' => 'view', $definition->getName()], [
                             'class' => 'btn btn-outline-secondary',
@@ -171,3 +171,14 @@ $this->assign('title', 'Force Transition');
         </div>
     </div>
 <?php } ?>
+
+<?php $cspNonce = (string)($this->getRequest()->getAttribute('cspScriptNonce') ?? $this->getRequest()->getAttribute('cspNonce', '')); ?>
+<script<?= $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '' ?>>
+document.querySelectorAll('[data-workflow-confirm]').forEach(function (button) {
+    button.addEventListener('click', function (e) {
+        if (!confirm(button.dataset.workflowConfirm)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>

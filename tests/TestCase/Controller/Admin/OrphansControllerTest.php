@@ -78,6 +78,24 @@ class OrphansControllerTest extends IntegrationTestCase
         $this->assertResponseContains('No orphaned items found');
     }
 
+    public function testIndexUsesCspScriptNonce(): void
+    {
+        $this->createOrder('unknown_state');
+        $this->withRequestAttribute('cspScriptNonce', 'core-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Orphans',
+            'action' => 'index',
+            '?' => ['workflow' => 'order'],
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('<script nonce="core-nonce">');
+        $this->assertResponseNotRegExp('/<script(?![^>]*(nonce=|type="text\/plain"))/');
+    }
+
     /**
      * Test index action can filter by workflow.
      */

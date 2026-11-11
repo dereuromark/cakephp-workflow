@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Workflow\Test\TestCase\View\Helper;
 
+use Cake\Http\ServerRequest;
 use Cake\ORM\Entity;
 use Cake\Routing\Router;
 use Cake\View\View;
@@ -186,6 +187,35 @@ class WorkflowHelperTest extends TestCase
         $this->assertStringContainsString('Export Mermaid', $widget);
         $this->assertStringContainsString('data-bs-target="#order-workflow-modal"', $widget);
         $this->assertStringContainsString('Current state: <strong>Paid</strong>', $widget);
+    }
+
+    public function testIncludeMermaidUsesCspScriptNonce(): void
+    {
+        $request = (new ServerRequest())->withAttribute('cspScriptNonce', 'core-nonce');
+        $helper = new WorkflowHelper(new View($request));
+
+        $script = $helper->includeMermaid(['toolkit' => true]);
+
+        $this->assertSame(3, substr_count($script, '<script nonce="core-nonce"'));
+        $this->assertDoesNotMatchRegularExpression('/<script(?![^>]*nonce=)/', $script);
+    }
+
+    public function testIncludeMermaidFallsBackToCspNonce(): void
+    {
+        $request = (new ServerRequest())->withAttribute('cspNonce', 'custom-nonce');
+        $helper = new WorkflowHelper(new View($request));
+
+        $script = $helper->includeMermaid(['toolkit' => true]);
+
+        $this->assertSame(3, substr_count($script, '<script nonce="custom-nonce"'));
+    }
+
+    public function testIncludeMermaidOmitsNonceWithoutCsp(): void
+    {
+        $script = $this->helper->includeMermaid(['toolkit' => true]);
+
+        $this->assertStringNotContainsString('nonce=', $script);
+        $this->assertStringContainsString('<script src="', $script);
     }
 
     public function testIncludeMermaidToolkitCanBeEnabled(): void

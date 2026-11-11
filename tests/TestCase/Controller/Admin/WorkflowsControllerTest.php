@@ -450,6 +450,107 @@ class WorkflowsControllerTest extends IntegrationTestCase
         ]);
     }
 
+    /**
+     * CakePHP's CspMiddleware stores the nonce as `cspScriptNonce`.
+     */
+    public function testViewUsesCspScriptNonce(): void
+    {
+        $this->withRequestAttribute('cspScriptNonce', 'core-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'view',
+            'order',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('<script nonce="core-nonce" src="https://cdn.jsdelivr.net/npm/bootstrap');
+        $this->assertResponseContains('<script nonce="core-nonce" src="https://cdn.jsdelivr.net/npm/mermaid');
+        $this->assertResponseNotRegExp('/<script(?![^>]*(nonce=|type="text\/plain"))/');
+    }
+
+    /**
+     * A custom middleware may still provide the nonce as `cspNonce`.
+     */
+    public function testViewFallsBackToCspNonce(): void
+    {
+        $this->withRequestAttribute('cspNonce', 'custom-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'view',
+            'order',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('<script nonce="custom-nonce">');
+        $this->assertResponseNotRegExp('/<script(?![^>]*(nonce=|type="text\/plain"))/');
+    }
+
+    /**
+     * Inline styles and CDN stylesheets need the style nonce under a nonce-only `style-src`.
+     */
+    public function testViewUsesCspStyleNonce(): void
+    {
+        $this->withRequestAttribute('cspStyleNonce', 'style-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'view',
+            'order',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('<style nonce="style-nonce">');
+        $this->assertResponseNotRegExp('/<style(?![^>]*nonce=)/');
+        $this->assertResponseNotRegExp('/<link(?![^>]*nonce=)[^>]*stylesheet/');
+    }
+
+    public function testCreateUsesCspScriptNonce(): void
+    {
+        $this->withRequestAttribute('cspScriptNonce', 'core-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'create',
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('<script nonce="core-nonce">');
+        $this->assertResponseNotRegExp('/<script(?![^>]*(nonce=|type="text\/plain"))/');
+    }
+
+    /**
+     * The confirm prompt is wired by a nonce'd script instead of an inline `onclick` handler.
+     */
+    public function testForceTransitionUsesCspScriptNonce(): void
+    {
+        $orderId = $this->createOrder('pending');
+        $this->withRequestAttribute('cspScriptNonce', 'core-nonce');
+
+        $this->get([
+            'prefix' => 'Admin',
+            'plugin' => 'Workflow',
+            'controller' => 'Workflows',
+            'action' => 'forceTransition',
+            'order',
+            (string)$orderId,
+        ]);
+
+        $this->assertResponseOk();
+        $this->assertResponseContains('data-workflow-confirm="Are you sure you want to force this transition?');
+        $this->assertResponseNotContains('onclick=');
+        $this->assertResponseNotRegExp('/<script(?![^>]*(nonce=|type="text\/plain"))/');
+    }
+
     public function testForceTransitionGetRendersForm(): void
     {
         $orderId = $this->createOrder('pending');

@@ -5,8 +5,13 @@ declare(strict_types=1);
 namespace Workflow\Test\TestCase\Controller;
 
 use Cake\Core\Configure;
+use Cake\Event\EventInterface;
 use Cake\Event\EventManager;
+use Cake\Http\MiddlewareQueue;
 use Cake\TestSuite\IntegrationTestTrait;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 use Workflow\Engine\Definition\Definition;
 use Workflow\Engine\Definition\State;
 use Workflow\Engine\Definition\Transition;
@@ -142,5 +147,17 @@ abstract class IntegrationTestCase extends DatabaseTestCase
         ]));
 
         return (int)$payment->get('id');
+    }
+
+    /**
+     * Adds a middleware that sets a request attribute, like a CSP middleware would.
+     */
+    protected function withRequestAttribute(string $name, string $value): void
+    {
+        EventManager::instance()->on('Server.buildMiddleware', function (EventInterface $event, MiddlewareQueue $queue) use ($name, $value): void {
+            $queue->prepend(function (ServerRequestInterface $request, RequestHandlerInterface $handler) use ($name, $value): ResponseInterface {
+                return $handler->handle($request->withAttribute($name, $value));
+            });
+        });
     }
 }

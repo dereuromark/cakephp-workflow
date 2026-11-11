@@ -280,8 +280,10 @@ class WorkflowHelper extends Helper
         $configJson = json_encode($config, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
 
         $output = sprintf(
-            '<script src="%s"></script><script>(function(){window.%s=window.%s||false;if(window.%s||typeof mermaid==="undefined"){return;}mermaid.initialize(%s);window.%s=true;})();</script>',
+            '<script%s src="%s"></script><script%s>(function(){window.%s=window.%s||false;if(window.%s||typeof mermaid==="undefined"){return;}mermaid.initialize(%s);window.%s=true;})();</script>',
+            $this->scriptNonceAttr(),
             h($src),
+            $this->scriptNonceAttr(),
             h($guardKey),
             h($guardKey),
             h($guardKey),
@@ -455,10 +457,22 @@ class WorkflowHelper extends Helper
         return $luminance > 0.5 ? '#000000' : '#ffffff';
     }
 
+    /**
+     * Nonce attribute for inline and external scripts under a nonce-based CSP.
+     *
+     * CakePHP's CspMiddleware sets `cspScriptNonce`; `cspNonce` is kept as a fallback.
+     */
+    private function scriptNonceAttr(): string
+    {
+        $request = $this->getView()->getRequest();
+        $nonce = (string)($request->getAttribute('cspScriptNonce') ?? $request->getAttribute('cspNonce', ''));
+
+        return $nonce !== '' ? ' nonce="' . h($nonce) . '"' : '';
+    }
+
     private function mermaidToolkitScript(): string
     {
-        return <<<'HTML'
-<script>
+        return '<script' . $this->scriptNonceAttr() . ">\n" . <<<'HTML'
 (function () {
     if (window.__workflowMermaidToolkitInitialized) {
         return;

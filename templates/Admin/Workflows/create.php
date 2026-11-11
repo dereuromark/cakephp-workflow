@@ -306,8 +306,11 @@ $this->assign('title', 'New Workflow - Designer');
     </div>
 </template>
 
-<?php $this->append('script'); ?>
-<script>
+<?php
+$this->append('script');
+$cspNonce = (string)($this->getRequest()->getAttribute('cspScriptNonce') ?? $this->getRequest()->getAttribute('cspNonce', ''));
+?>
+<script<?= $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '' ?>>
 document.addEventListener('DOMContentLoaded', function() {
     const statesContainer = document.getElementById('statesContainer');
     const transitionsContainer = document.getElementById('transitionsContainer');

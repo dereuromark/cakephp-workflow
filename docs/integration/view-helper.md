@@ -24,6 +24,8 @@ To render workflow diagrams, include the Mermaid.js library:
 
 This outputs the CDN script tag and initializes Mermaid. Include it once in your layout or before any diagrams.
 
+Under a nonce-based Content Security Policy the emitted `<script>` tags carry the request's nonce. The helper reads the `cspScriptNonce` request attribute set by CakePHP's `CspMiddleware` first, and falls back to `cspNonce`. The plugin's admin templates use the same lookup, and their inline styles and CDN stylesheets read `cspStyleNonce`.
+
 ## Rendering Diagrams
 
 Render a visual workflow diagram:

@@ -219,7 +219,8 @@ $this->assign('title', 'Timeouts');
     <?= $this->Form->end() ?>
 </div>
 
-<script>
+<?php $cspNonce = (string)($this->getRequest()->getAttribute('cspScriptNonce') ?? $this->getRequest()->getAttribute('cspNonce', '')); ?>
+<script<?= $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '' ?>>
 document.addEventListener('DOMContentLoaded', function () {
     const selectAll = document.querySelector('[data-timeout-select-all]');
     if (!selectAll) {

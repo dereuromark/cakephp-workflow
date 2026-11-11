@@ -443,7 +443,8 @@ foreach ($terminalStateIssues as $issue) {
     </div>
 </div>
 
-<script>
+<?php $cspNonce = (string)($this->getRequest()->getAttribute('cspScriptNonce') ?? $this->getRequest()->getAttribute('cspNonce', '')); ?>
+<script<?= $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '' ?>>
 (function() {
     let scale = 1;
     const diagramContainer = document.getElementById('diagram');

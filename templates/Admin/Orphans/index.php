@@ -174,7 +174,8 @@ $this->assign('title', 'Orphaned Items');
 <?php if ($selectedWorkflow && $totalOrphans > 0) { ?>
     <?= $this->Form->end() ?>
 
-    <script>
+    <?php $cspNonce = (string)($this->getRequest()->getAttribute('cspScriptNonce') ?? $this->getRequest()->getAttribute('cspNonce', '')); ?>
+    <script<?= $cspNonce !== '' ? ' nonce="' . h($cspNonce) . '"' : '' ?>>
     document.addEventListener('DOMContentLoaded', function() {
         const selectAll = document.getElementById('select-all');
         const checkboxes = document.querySelectorAll('.entity-checkbox');
